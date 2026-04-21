@@ -1,6 +1,14 @@
 import Anthropic from '@anthropic-ai/sdk';
 import type { BlogBrief } from '../domain/types.js';
 
+/** Default matches previous hardcoded model; unset env keeps prod behaviour. Override in dev, e.g. Haiku, via ANTHROPIC_MODEL. */
+export const DEFAULT_ALIGNMENT_ANTHROPIC_MODEL = 'claude-sonnet-4-6';
+
+export function resolveAlignmentAnthropicModel(): string {
+  const fromEnv = process.env['ANTHROPIC_MODEL']?.trim();
+  return fromEnv || DEFAULT_ALIGNMENT_ANTHROPIC_MODEL;
+}
+
 const client = new Anthropic({ apiKey: process.env['ANTHROPIC_API_KEY'] });
 
 export interface AlignmentSummary {
@@ -44,7 +52,7 @@ Respond with ONLY valid JSON matching this exact shape — no markdown fences, n
 }`;
 
   const message = await client.messages.create({
-    model: 'claude-sonnet-4-6',
+    model: resolveAlignmentAnthropicModel(),
     max_tokens: 512,
     messages: [{ role: 'user', content: prompt }],
   });

@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const { mockCreate } = vi.hoisted(() => ({ mockCreate: vi.fn() }));
 
@@ -8,7 +8,11 @@ vi.mock('@anthropic-ai/sdk', () => ({
   })),
 }));
 
-import { generateAlignmentSummary } from '../alignment-service.js';
+import {
+  DEFAULT_ALIGNMENT_ANTHROPIC_MODEL,
+  generateAlignmentSummary,
+  resolveAlignmentAnthropicModel,
+} from '../alignment-service.js';
 import type { BlogBrief } from '../../domain/types.js';
 
 const brief: BlogBrief = {
@@ -43,6 +47,34 @@ beforeEach(() => {
   vi.clearAllMocks();
 });
 
+describe('resolveAlignmentAnthropicModel', () => {
+  const key = 'ANTHROPIC_MODEL';
+  const previous = process.env[key];
+
+  afterEach(() => {
+    if (previous === undefined) {
+      delete process.env[key];
+    } else {
+      process.env[key] = previous;
+    }
+  });
+
+  it('returns Sonnet when env is unset', () => {
+    delete process.env[key];
+    expect(resolveAlignmentAnthropicModel()).toBe(DEFAULT_ALIGNMENT_ANTHROPIC_MODEL);
+  });
+
+  it('returns Sonnet when env is empty or whitespace', () => {
+    process.env[key] = '   ';
+    expect(resolveAlignmentAnthropicModel()).toBe(DEFAULT_ALIGNMENT_ANTHROPIC_MODEL);
+  });
+
+  it('returns trimmed model id when set', () => {
+    process.env[key] = '  claude-haiku-4-5-20251001  ';
+    expect(resolveAlignmentAnthropicModel()).toBe('claude-haiku-4-5-20251001');
+  });
+});
+
 describe('generateAlignmentSummary', () => {
   it('returns structured summary on valid Claude response', async () => {
     mockCreate.mockResolvedValue({
@@ -51,6 +83,9 @@ describe('generateAlignmentSummary', () => {
 
     const result = await generateAlignmentSummary(brief);
 
+    expect(mockCreate).toHaveBeenCalledWith(
+      expect.objectContaining({ model: DEFAULT_ALIGNMENT_ANTHROPIC_MODEL }),
+    );
     expect(result.blogGoal).toBe('Help professionals sleep better.');
     expect(result.targetAudience).toContain('Busy professionals');
     expect(result.seoIntent).toContain('sleep hygiene');

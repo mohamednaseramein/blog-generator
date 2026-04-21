@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { BlogBriefForm } from './components/BlogBriefForm.js';
 import { AlignmentSummary } from './components/AlignmentSummary.js';
+import { OutlineStep } from './components/OutlineStep.js';
 import { WizardProgress } from './components/WizardProgress.js';
 import { Button } from './components/ui/button.js';
 import { Toast } from './components/ui/toast.js';
@@ -11,6 +12,7 @@ type AppState =
   | { step: 'creating' }
   | { step: 'brief'; blogId: string }
   | { step: 'alignment'; blogId: string }
+  | { step: 'outline'; blogId: string }
   | { step: 'done'; blogId: string };
 
 export function App() {
@@ -32,7 +34,8 @@ export function App() {
   const wizardStep = state.step === 'idle' || state.step === 'creating' ? 1
     : state.step === 'brief' ? 1
     : state.step === 'alignment' ? 2
-    : 3;
+    : state.step === 'outline' ? 3
+    : 4;
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-indigo-50">
@@ -50,7 +53,7 @@ export function App() {
         </div>
 
         {/* Wizard progress */}
-        {(state.step === 'brief' || state.step === 'alignment' || state.step === 'done') && (
+        {(state.step === 'brief' || state.step === 'alignment' || state.step === 'outline' || state.step === 'done') && (
           <div className="mb-8">
             <WizardProgress current={wizardStep} />
           </div>
@@ -100,6 +103,14 @@ export function App() {
             <AlignmentSummary
               blogId={state.blogId}
               onEdit={() => setState({ step: 'brief', blogId: state.blogId })}
+              onConfirmed={() => setState({ step: 'outline', blogId: state.blogId })}
+            />
+          )}
+
+          {state.step === 'outline' && (
+            <OutlineStep
+              blogId={state.blogId}
+              onBack={() => setState({ step: 'alignment', blogId: state.blogId })}
               onConfirmed={() => setState({ step: 'done', blogId: state.blogId })}
             />
           )}
@@ -110,9 +121,9 @@ export function App() {
                 ✓
               </div>
               <div>
-                <h2 className="text-lg font-semibold text-slate-800">Alignment confirmed!</h2>
+                <h2 className="text-lg font-semibold text-slate-800">Outline confirmed!</h2>
                 <p className="mt-1 text-sm text-slate-500">
-                  Next up: Research & Outline — Step 3.
+                  Next up: Draft — Step 4.
                 </p>
               </div>
               <Button variant="ghost" size="sm" onClick={() => void startNewBlog()}>

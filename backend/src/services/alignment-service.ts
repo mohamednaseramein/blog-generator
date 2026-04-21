@@ -17,6 +17,8 @@ export interface AlignmentSummary {
   seoIntent: string;
   tone: string;
   scope: string;
+  /** Present only when the brief had a scraped reference URL. Describes what the AI understood from the reference content. */
+  referenceUnderstanding?: string;
   raw: string;
 }
 
@@ -24,8 +26,9 @@ export async function generateAlignmentSummary(
   brief: BlogBrief,
   feedback?: string,
 ): Promise<AlignmentSummary> {
-  const scrapedNote = brief.scrapedContent
-    ? `\nReference content scraped (${brief.scrapedContent.length} chars): ${brief.scrapedContent.slice(0, 800)}…`
+  const hasReference = !!brief.scrapedContent;
+  const scrapedNote = hasReference
+    ? `\nReference content scraped (${brief.scrapedContent!.length} chars): ${brief.scrapedContent!.slice(0, 800)}…`
     : '';
 
   const feedbackNote = feedback
@@ -42,13 +45,17 @@ export async function generateAlignmentSummary(
 - Word count: ${brief.wordCountMin}–${brief.wordCountMax} words
 - Brief: ${brief.blogBrief}${scrapedNote}${feedbackNote}
 
-Respond with ONLY valid JSON matching this exact shape — no markdown fences, no extra keys:
+Respond with ONLY valid JSON — no markdown fences, no extra keys.${hasReference ? `
+The response MUST include a sixth field "referenceUnderstanding" because a reference URL was provided.` : ''}
+
+Required JSON shape:
 {
   "blogGoal": "one sentence describing the core goal of this post",
   "targetAudience": "one sentence describing who will read this and why",
   "seoIntent": "one sentence on the SEO angle and keyword strategy",
   "tone": "one sentence describing the writing style and voice",
-  "scope": "two to three sentences covering what will and will not be covered"
+  "scope": "two to three sentences covering what will and will not be covered"${hasReference ? `,
+  "referenceUnderstanding": "two to three sentences describing what key ideas, structure, and angle were taken from the reference content, and how they will inform this post"` : ''}
 }`;
 
   const message = await client.messages.create({
@@ -73,6 +80,11 @@ Respond with ONLY valid JSON matching this exact shape — no markdown fences, n
       console.error('[alignment-service] Missing or invalid field in response:', field, text);
       throw new Error('AI returned an unexpected response format. Please try again.');
     }
+  }
+
+  if (hasReference && (!parsed['referenceUnderstanding'] || typeof parsed['referenceUnderstanding'] !== 'string')) {
+    console.error('[alignment-service] Missing referenceUnderstanding field despite scraped content:', text);
+    throw new Error('AI returned an unexpected response format. Please try again.');
   }
 
   return { ...parsed, raw: text };

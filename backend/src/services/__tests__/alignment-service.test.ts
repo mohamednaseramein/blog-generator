@@ -43,6 +43,15 @@ const validSummaryJson = JSON.stringify({
   scope: 'Covers 10 actionable tips. Excludes medical advice.',
 });
 
+const validSummaryWithReferenceJson = JSON.stringify({
+  blogGoal: 'Help professionals sleep better.',
+  targetAudience: 'Busy professionals 30–45 seeking wellness tips.',
+  seoIntent: 'Rank for "sleep hygiene" with practical advice.',
+  tone: 'Friendly and expert.',
+  scope: 'Covers 10 actionable tips. Excludes medical advice.',
+  referenceUnderstanding: 'The reference article covered evidence-based sleep routines and will inform the structure of the tips.',
+});
+
 beforeEach(() => {
   vi.clearAllMocks();
 });
@@ -123,7 +132,7 @@ describe('generateAlignmentSummary', () => {
 
   it('includes scraped content in the prompt when available', async () => {
     mockCreate.mockResolvedValue({
-      content: [{ type: 'text', text: validSummaryJson }],
+      content: [{ type: 'text', text: validSummaryWithReferenceJson }],
     });
 
     const briefWithContent: BlogBrief = {
@@ -135,5 +144,50 @@ describe('generateAlignmentSummary', () => {
 
     const promptArg = mockCreate.mock.calls[0]?.[0] as { messages: { content: string }[] };
     expect(promptArg.messages[0]?.content).toContain('Reference content scraped');
+    expect(promptArg.messages[0]?.content).toContain('referenceUnderstanding');
+  });
+
+  it('returns referenceUnderstanding when scraped content is present', async () => {
+    mockCreate.mockResolvedValue({
+      content: [{ type: 'text', text: validSummaryWithReferenceJson }],
+    });
+
+    const briefWithContent: BlogBrief = {
+      ...brief,
+      scrapedContent: 'Reference article about sleep hygiene…',
+    };
+
+    const result = await generateAlignmentSummary(briefWithContent);
+
+    expect(result.referenceUnderstanding).toBe(
+      'The reference article covered evidence-based sleep routines and will inform the structure of the tips.',
+    );
+  });
+
+  it('does not include referenceUnderstanding when no scraped content', async () => {
+    mockCreate.mockResolvedValue({
+      content: [{ type: 'text', text: validSummaryJson }],
+    });
+
+    const result = await generateAlignmentSummary(brief);
+
+    expect(result.referenceUnderstanding).toBeUndefined();
+    const promptArg = mockCreate.mock.calls[0]?.[0] as { messages: { content: string }[] };
+    expect(promptArg.messages[0]?.content).not.toContain('referenceUnderstanding');
+  });
+
+  it('throws when referenceUnderstanding is missing despite scraped content', async () => {
+    mockCreate.mockResolvedValue({
+      content: [{ type: 'text', text: validSummaryJson }],
+    });
+
+    const briefWithContent: BlogBrief = {
+      ...brief,
+      scrapedContent: 'Reference article about sleep hygiene…',
+    };
+
+    await expect(generateAlignmentSummary(briefWithContent)).rejects.toThrow(
+      'AI returned an unexpected response format. Please try again.',
+    );
   });
 });

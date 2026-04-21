@@ -98,6 +98,46 @@ export async function updateScrapeResult(
   if (error) throw new Error(error.message);
 }
 
+export async function updateAlignmentSummary(
+  blogId: string,
+  summary: string,
+): Promise<void> {
+  const { data, error: fetchError } = await getSupabase()
+    .from('blog_briefs')
+    .select('alignment_iterations')
+    .eq('blog_id', blogId)
+    .single<Pick<BlogBriefRow, 'alignment_iterations'>>();
+
+  if (fetchError) throw new Error(fetchError.message);
+
+  const { error } = await getSupabase()
+    .from('blog_briefs')
+    .update({
+      alignment_summary: summary,
+      alignment_iterations: (data?.alignment_iterations ?? 0) + 1,
+      updated_at: new Date().toISOString(),
+    })
+    .eq('blog_id', blogId);
+
+  if (error) throw new Error(error.message);
+}
+
+export async function confirmAlignment(
+  blogId: string,
+  summary: string,
+): Promise<void> {
+  const { error } = await getSupabase()
+    .from('blog_briefs')
+    .update({
+      alignment_summary: summary,
+      alignment_confirmed: true,
+      updated_at: new Date().toISOString(),
+    })
+    .eq('blog_id', blogId);
+
+  if (error) throw new Error(error.message);
+}
+
 export async function getScrapeStatus(
   blogId: string,
 ): Promise<{ scrapeStatus: ScrapeStatus; scrapedContentLength: number } | null> {

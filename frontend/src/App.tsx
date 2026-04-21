@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { BlogBriefForm } from './components/BlogBriefForm.js';
+import { AlignmentSummary } from './components/AlignmentSummary.js';
 import { WizardProgress } from './components/WizardProgress.js';
 import { Button } from './components/ui/button.js';
 import { Toast } from './components/ui/toast.js';
@@ -9,6 +10,7 @@ type AppState =
   | { step: 'idle' }
   | { step: 'creating' }
   | { step: 'brief'; blogId: string }
+  | { step: 'alignment'; blogId: string }
   | { step: 'done'; blogId: string };
 
 export function App() {
@@ -29,7 +31,8 @@ export function App() {
 
   const wizardStep = state.step === 'idle' || state.step === 'creating' ? 1
     : state.step === 'brief' ? 1
-    : 2;
+    : state.step === 'alignment' ? 2
+    : 3;
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-indigo-50">
@@ -47,7 +50,7 @@ export function App() {
         </div>
 
         {/* Wizard progress */}
-        {(state.step === 'brief' || state.step === 'done') && (
+        {(state.step === 'brief' || state.step === 'alignment' || state.step === 'done') && (
           <div className="mb-8">
             <WizardProgress current={wizardStep} />
           </div>
@@ -88,9 +91,17 @@ export function App() {
               </div>
               <BlogBriefForm
                 blogId={state.blogId}
-                onSuccess={() => setState({ step: 'done', blogId: state.blogId })}
+                onSuccess={() => setState({ step: 'alignment', blogId: state.blogId })}
               />
             </>
+          )}
+
+          {state.step === 'alignment' && (
+            <AlignmentSummary
+              blogId={state.blogId}
+              onEdit={() => setState({ step: 'brief', blogId: state.blogId })}
+              onConfirmed={() => setState({ step: 'done', blogId: state.blogId })}
+            />
           )}
 
           {state.step === 'done' && (
@@ -99,9 +110,9 @@ export function App() {
                 ✓
               </div>
               <div>
-                <h2 className="text-lg font-semibold text-slate-800">Brief saved!</h2>
+                <h2 className="text-lg font-semibold text-slate-800">Alignment confirmed!</h2>
                 <p className="mt-1 text-sm text-slate-500">
-                  Next up: AI Alignment Summary — coming in the next step.
+                  Next up: Research & Outline — Step 3.
                 </p>
               </div>
               <Button variant="ghost" size="sm" onClick={() => void startNewBlog()}>

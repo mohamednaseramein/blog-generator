@@ -46,3 +46,31 @@ export async function submitBrief(
 export async function getScrapeStatus(blogId: string): Promise<ScrapeStatusResponse> {
   return request<ScrapeStatusResponse>(`${BASE}/${blogId}/brief/scrape-status`);
 }
+
+export interface AlignmentSummary {
+  blogGoal: string;
+  targetAudience: string;
+  seoIntent: string;
+  tone: string;
+  scope: string;
+}
+
+export interface AlignmentResponse {
+  summary: AlignmentSummary & { raw: string };
+}
+
+export async function generateAlignment(
+  blogId: string,
+  feedback?: string,
+): Promise<AlignmentResponse> {
+  return request<AlignmentResponse>(`${BASE}/${blogId}/alignment`, {
+    method: 'POST',
+    body: JSON.stringify({ feedback }),
+  });
+}
+
+export async function confirmAlignment(blogId: string): Promise<{ confirmed: boolean }> {
+  return request<{ confirmed: boolean }>(`${BASE}/${blogId}/alignment/confirm`, {
+    method: 'POST',
+  });
+}

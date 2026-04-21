@@ -55,7 +55,16 @@ Respond with ONLY valid JSON matching this exact shape — no markdown fences, n
   try {
     parsed = JSON.parse(text) as Omit<AlignmentSummary, 'raw'>;
   } catch {
+    console.error('[alignment-service] Claude returned non-JSON:', text);
     throw new Error('AI returned an unexpected response format. Please try again.');
+  }
+
+  const requiredFields = ['blogGoal', 'targetAudience', 'seoIntent', 'tone', 'scope'] as const;
+  for (const field of requiredFields) {
+    if (!parsed[field] || typeof parsed[field] !== 'string') {
+      console.error('[alignment-service] Missing or invalid field in response:', field, text);
+      throw new Error('AI returned an unexpected response format. Please try again.');
+    }
   }
 
   return { ...parsed, raw: text };

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { generateAlignment, confirmAlignment, type AlignmentSummary as AlignmentSummaryType } from '../api/blog-api.js';
 import { Button } from './ui/button.js';
 import { Textarea } from './ui/textarea.js';
@@ -54,10 +54,8 @@ export function AlignmentSummary({ blogId, onEdit, onConfirmed }: Props) {
     }
   }
 
-  // Auto-generate on first render
-  if (!summary && !generating && !error) {
-    void generate();
-  }
+  // Auto-generate on first render — empty dep array prevents double-fire under React StrictMode
+  useEffect(() => { void generate(); }, []);
 
   return (
     <div className="flex flex-col gap-6">

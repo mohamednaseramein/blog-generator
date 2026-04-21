@@ -1,8 +1,8 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { submitBrief } from '../api/blog-api.js';
+import { getBrief, submitBrief } from '../api/blog-api.js';
 import { ScrapeStatusIndicator } from './ScrapeStatusIndicator.js';
 import { Button } from './ui/button.js';
 import { Input } from './ui/input.js';
@@ -49,12 +49,42 @@ interface Props {
 export function BlogBriefForm({ blogId, onSuccess }: Props) {
   const [submittedBlogId, setSubmittedBlogId] = useState<string | null>(null);
   const [submitError, setSubmitError] = useState<string | null>(null);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [loadingBrief, setLoadingBrief] = useState(true);
 
   const {
     register,
     handleSubmit,
+    reset,
     formState: { errors, isSubmitting },
   } = useForm<FormValues>({ resolver: zodResolver(schema) });
+
+  useEffect(() => {
+    let cancelled = false;
+    setLoadingBrief(true);
+    setLoadError(null);
+    getBrief(blogId)
+      .then((brief) => {
+        if (cancelled) return;
+        reset({
+          title: brief.title,
+          primaryKeyword: brief.primaryKeyword,
+          audiencePersona: brief.audiencePersona,
+          toneOfVoice: brief.toneOfVoice,
+          wordCountMin: brief.wordCountMin,
+          wordCountMax: brief.wordCountMax,
+          blogBrief: brief.blogBrief,
+          referenceUrl: brief.referenceUrl ?? '',
+        });
+      })
+      .catch(() => {
+        if (!cancelled) setLoadError(null);
+      })
+      .finally(() => {
+        if (!cancelled) setLoadingBrief(false);
+      });
+    return () => { cancelled = true; };
+  }, [blogId, reset]);
 
   async function onSubmit(values: FormValues) {
     setSubmitError(null);
@@ -70,6 +100,15 @@ export function BlogBriefForm({ blogId, onSuccess }: Props) {
     }
   }
 
+  if (loadingBrief) {
+    return (
+      <div className="flex flex-col items-center gap-3 py-12 text-slate-500" role="status" aria-label="Loading saved brief">
+        <span className="inline-block h-6 w-6 animate-spin rounded-full border-2 border-slate-200 border-t-indigo-500" />
+        <p className="text-sm">Loading your saved inputs…</p>
+      </div>
+    );
+  }
+
   return (
     <form
       onSubmit={handleSubmit(onSubmit)}
@@ -77,6 +116,7 @@ export function BlogBriefForm({ blogId, onSuccess }: Props) {
       aria-label="Blog brief form"
       className="flex flex-col gap-6"
     >
+      {loadError && <Toast variant="error">{loadError}</Toast>}
       <div className="grid gap-6 sm:grid-cols-2">
         <Field label="Blog Title" error={errors.title?.message} required>
           <Input

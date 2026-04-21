@@ -16,6 +16,21 @@ export interface ScrapeStatusResponse {
   scrapedContentLength: number;
 }
 
+export interface BlogBriefResponse {
+  title: string;
+  primaryKeyword: string;
+  audiencePersona: string;
+  toneOfVoice: string;
+  wordCountMin: number;
+  wordCountMax: number;
+  blogBrief: string;
+  referenceUrl: string | null;
+}
+
+export async function getBrief(blogId: string): Promise<BlogBriefResponse> {
+  return request<BlogBriefResponse>(`${BASE}/${blogId}/brief`);
+}
+
 async function request<T>(url: string, options?: RequestInit): Promise<T> {
   const res = await fetch(url, {
     headers: { 'Content-Type': 'application/json' },

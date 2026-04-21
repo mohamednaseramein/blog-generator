@@ -68,6 +68,8 @@ export interface AlignmentSummary {
   seoIntent: string;
   tone: string;
   scope: string;
+  /** Present only when the brief had a scraped reference URL. */
+  referenceUnderstanding?: string;
 }
 
 export interface AlignmentResponse {

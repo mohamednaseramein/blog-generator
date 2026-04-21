@@ -11,12 +11,13 @@ interface Props {
   onConfirmed: () => void;
 }
 
-const SECTIONS: { key: keyof AlignmentSummaryType; label: string; icon: string }[] = [
+const SECTIONS: { key: keyof AlignmentSummaryType; label: string; icon: string; optional?: boolean }[] = [
   { key: 'blogGoal', label: 'Blog Goal', icon: '🎯' },
   { key: 'targetAudience', label: 'Target Audience', icon: '👥' },
   { key: 'seoIntent', label: 'SEO Intent', icon: '🔍' },
   { key: 'tone', label: 'Tone & Voice', icon: '✍️' },
   { key: 'scope', label: 'Scope', icon: '📋' },
+  { key: 'referenceUnderstanding', label: 'Reference Understanding', icon: '🔗', optional: true },
 ];
 
 export function AlignmentSummary({ blogId, onEdit, onConfirmed }: Props) {
@@ -77,14 +78,21 @@ export function AlignmentSummary({ blogId, onEdit, onConfirmed }: Props) {
       {/* Summary cards */}
       {summary && !generating && (
         <div className="flex flex-col gap-3">
-          {SECTIONS.map(({ key, label, icon }) => (
-            <div key={key} className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3">
-              <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-slate-400">
-                {icon} {label}
-              </p>
-              <p className="text-sm text-slate-700">{summary[key]}</p>
-            </div>
-          ))}
+          {SECTIONS.map(({ key, label, icon, optional }) => {
+            const value = summary[key];
+            if (optional && !value) return null;
+            return (
+              <div
+                key={key}
+                className={`rounded-xl border px-4 py-3 ${key === 'referenceUnderstanding' ? 'border-indigo-200 bg-indigo-50' : 'border-slate-200 bg-slate-50'}`}
+              >
+                <p className={`mb-1 text-xs font-semibold uppercase tracking-wide ${key === 'referenceUnderstanding' ? 'text-indigo-400' : 'text-slate-400'}`}>
+                  {icon} {label}
+                </p>
+                <p className="text-sm text-slate-700">{value}</p>
+              </div>
+            );
+          })}
 
           {iterations > 0 && (
             <p className="text-right text-xs text-slate-400">
@@ -93,6 +101,7 @@ export function AlignmentSummary({ blogId, onEdit, onConfirmed }: Props) {
           )}
         </div>
       )}
+
 
       {error && <Toast variant="error">{error}</Toast>}
 

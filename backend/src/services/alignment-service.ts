@@ -57,13 +57,16 @@ Respond with ONLY valid JSON matching this exact shape — no markdown fences, n
     messages: [{ role: 'user', content: prompt }],
   });
 
-  const text = message.content[0]?.type === 'text' ? message.content[0].text.trim() : '';
+  const raw = message.content[0]?.type === 'text' ? message.content[0].text.trim() : '';
+
+  /** Strip optional markdown code fences: ```json ... ``` or ``` ... ``` */
+  const text = raw.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/, '').trim();
 
   let parsed: Omit<AlignmentSummary, 'raw'>;
   try {
     parsed = JSON.parse(text) as Omit<AlignmentSummary, 'raw'>;
   } catch {
-    console.error('[alignment-service] Claude returned non-JSON:', text);
+    console.error('[alignment-service] Claude returned non-JSON:', raw);
     throw new Error('AI returned an unexpected response format. Please try again.');
   }
 

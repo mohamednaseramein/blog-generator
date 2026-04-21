@@ -28,6 +28,11 @@ RUN npm ci --workspace=backend --omit=dev
 
 COPY --from=builder /app/backend/dist ./backend/dist
 
+# SQL migration files are not compiled by tsc; copy them next to the compiled
+# migrate.js so the runner can find them at backend/dist/db/migrations/*.sql
+COPY backend/src/db/migrations ./backend/dist/db/migrations
+
 EXPOSE 3000
 
-CMD ["node", "backend/dist/index.js"]
+# Run pending migrations (idempotent) then start the API server.
+CMD ["sh", "-c", "node backend/dist/db/migrate.js && node backend/dist/index.js"]

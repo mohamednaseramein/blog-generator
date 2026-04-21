@@ -103,6 +103,29 @@ describe('generateAlignmentSummary', () => {
     expect(result.raw).toBe(validSummaryJson);
   });
 
+  it('strips ```json fences when model wraps response in markdown', async () => {
+    const fenced = `\`\`\`json\n${validSummaryJson}\n\`\`\``;
+    mockCreate.mockResolvedValue({
+      content: [{ type: 'text', text: fenced }],
+    });
+
+    const result = await generateAlignmentSummary(brief);
+
+    expect(result.blogGoal).toBe('Help professionals sleep better.');
+    expect(result.raw).toBe(validSummaryJson);
+  });
+
+  it('strips plain ``` fences when model wraps response without language tag', async () => {
+    const fenced = `\`\`\`\n${validSummaryJson}\n\`\`\``;
+    mockCreate.mockResolvedValue({
+      content: [{ type: 'text', text: fenced }],
+    });
+
+    const result = await generateAlignmentSummary(brief);
+
+    expect(result.blogGoal).toBe('Help professionals sleep better.');
+  });
+
   it('passes feedback to the prompt when provided', async () => {
     mockCreate.mockResolvedValue({
       content: [{ type: 'text', text: validSummaryJson }],

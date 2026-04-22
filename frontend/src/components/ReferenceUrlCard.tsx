@@ -2,9 +2,11 @@ import { useEffect, useState } from 'react';
 import {
   getReferenceStatus,
   removeReference,
+  retryReferenceExtraction,
   type ReferenceScrapeStatus,
   type ReferenceExtractionStatus,
 } from '../api/blog-api.js';
+import { Button } from './ui/button.js';
 
 interface Props {
   blogId: string;
@@ -29,6 +31,22 @@ interface Props {
 const SCRAPE_SETTLED: ReferenceScrapeStatus[] = ['success', 'failed', 'timeout', 'skipped'];
 const EXTRACTION_SETTLED: ReferenceExtractionStatus[] = ['success', 'failed', 'irrelevant'];
 const POLL_INTERVAL_MS = 2_000;
+
+function parseStoredExtractionError(
+  json: string | null,
+  status: ReferenceExtractionStatus,
+): string | null {
+  if (status !== 'failed' || !json) return null;
+  try {
+    const o = JSON.parse(json) as { _extractionError?: boolean; message?: string };
+    if (o._extractionError && typeof o.message === 'string' && o.message.trim()) {
+      return o.message;
+    }
+  } catch {
+    /* ignore */
+  }
+  return null;
+}
 
 function parseExtractionPreview(json: string | null): {
   relevance: string;
@@ -76,10 +94,16 @@ function ExtractionLine({
   scrapeStatus,
   extractionStatus,
   extractionJson,
+  errorDetail,
+  onRetry,
+  retrying,
 }: {
   scrapeStatus: ReferenceScrapeStatus;
   extractionStatus: ReferenceExtractionStatus;
   extractionJson: string | null;
+  errorDetail: string | null;
+  onRetry: () => void;
+  retrying: boolean;
 }) {
   if (scrapeStatus !== 'success') return null;
 
@@ -87,13 +111,29 @@ function ExtractionLine({
     return (
       <span className="flex items-center gap-1.5 text-xs text-slate-500">
         <span className="inline-block h-3 w-3 animate-spin rounded-full border-2 border-slate-200 border-t-violet-500" />
-        Analysing relevance…
+        Analysing reference…
       </span>
     );
   }
 
   if (extractionStatus === 'failed') {
-    return <span className="text-xs text-amber-700">Reference analysis failed — alignment can still use the raw page text.</span>;
+    return (
+      <div className="flex flex-col gap-2">
+        <p className="text-xs text-amber-800 leading-snug">
+          {errorDetail?.trim() ?? 'Reference analysis failed — alignment can still use the raw page text.'}
+        </p>
+        <Button
+          type="button"
+          variant="ghost"
+          size="sm"
+          className="h-8 w-fit border border-amber-200 text-xs text-amber-900 hover:bg-amber-50"
+          onClick={onRetry}
+          disabled={retrying}
+        >
+          {retrying ? 'Retrying…' : 'Retry analysis'}
+        </Button>
+      </div>
+    );
   }
 
   if (extractionStatus === 'irrelevant') {
@@ -103,7 +143,7 @@ function ExtractionLine({
   if (extractionStatus === 'success') {
     const preview = parseExtractionPreview(extractionJson);
     if (!preview) {
-      return <span className="text-xs font-medium text-violet-700">✓ Analysed</span>;
+      return <span className="text-xs font-medium text-violet-700">✓ Reference analysed</span>;
     }
     return (
       <div className="mt-1 space-y-1 rounded-lg border border-violet-100 bg-violet-50/80 px-3 py-2 text-xs text-slate-700">
@@ -140,12 +180,17 @@ export function ReferenceUrlCard({
   const [scrapeError, setScrapeError] = useState<string | null>(initialError);
   const [extractionStatus, setExtractionStatus] = useState<ReferenceExtractionStatus>(initialExtractionStatus);
   const [extractionJson, setExtractionJson] = useState<string | null>(initialExtractionJson);
+  const [extractionErrorDetail, setExtractionErrorDetail] = useState<string | null>(() =>
+    parseStoredExtractionError(initialExtractionJson, initialExtractionStatus),
+  );
+  const [retrying, setRetrying] = useState(false);
 
   useEffect(() => {
     setScrapeStatus(initialStatus);
     setScrapeError(initialError);
     setExtractionStatus(initialExtractionStatus);
     setExtractionJson(initialExtractionJson);
+    setExtractionErrorDetail(parseStoredExtractionError(initialExtractionJson, initialExtractionStatus));
   }, [initialStatus, initialError, initialExtractionStatus, initialExtractionJson]);
 
   useEffect(() => {
@@ -164,6 +209,9 @@ export function ReferenceUrlCard({
           setScrapeError(s.scrapeError);
           setExtractionStatus(s.extractionStatus);
           setExtractionJson(s.extractionJson);
+          setExtractionErrorDetail(
+            s.extractionError ?? parseStoredExtractionError(s.extractionJson, s.extractionStatus),
+          );
           onReferenceUpdate(refId, {
             scrapeStatus: s.scrapeStatus,
             scrapeError: s.scrapeError,
@@ -185,6 +233,21 @@ export function ReferenceUrlCard({
       clearInterval(timer);
     };
   }, [blogId, refId, scrapeStatus, extractionStatus, onReferenceUpdate]);
+
+  async function handleRetryExtraction() {
+    setRetrying(true);
+    try {
+      await retryReferenceExtraction(blogId, refId);
+      setExtractionStatus('pending');
+      setExtractionJson(null);
+      setExtractionErrorDetail(null);
+      onReferenceUpdate(refId, { extractionStatus: 'pending', extractionJson: null });
+    } catch {
+      // leave UI state; user can try again
+    } finally {
+      setRetrying(false);
+    }
+  }
 
   async function handleRemove() {
     try {
@@ -212,6 +275,9 @@ export function ReferenceUrlCard({
         scrapeStatus={scrapeStatus}
         extractionStatus={extractionStatus}
         extractionJson={extractionJson}
+        errorDetail={extractionErrorDetail}
+        onRetry={() => void handleRetryExtraction()}
+        retrying={retrying}
       />
     </div>
   );

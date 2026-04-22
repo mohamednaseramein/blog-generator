@@ -130,6 +130,11 @@ export async function listReferences(blogId) {
 export async function getReferenceStatus(blogId, refId) {
     return request(`${BASE}/${blogId}/references/${refId}/status`);
 }
+export async function retryReferenceExtraction(blogId, refId) {
+    return request(`${BASE}/${blogId}/references/${refId}/retry-extraction`, {
+        method: 'POST',
+    });
+}
 export async function removeReference(blogId, refId) {
     return request(`${BASE}/${blogId}/references/${refId}`, {
         method: 'DELETE',

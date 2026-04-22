@@ -24,6 +24,7 @@ import {
   handleAddReference,
   handleListReferences,
   handleGetReferenceStatus,
+  handleRetryReferenceExtraction,
   handleDeleteReference,
 } from '../handlers/blog-references-handler.js';
 import { handleRecordEvent } from '../handlers/blog-events-handler.js';
@@ -51,6 +52,7 @@ router.post('/:id/events', requireAuth, handleRecordEvent);
 router.post('/:id/references', requireAuth, handleAddReference);
 router.get('/:id/references', requireAuth, handleListReferences);
 router.get('/:id/references/:refId/status', requireAuth, handleGetReferenceStatus);
+router.post('/:id/references/:refId/retry-extraction', requireAuth, handleRetryReferenceExtraction);
 router.delete('/:id/references/:refId', requireAuth, handleDeleteReference);
 
 export default router;

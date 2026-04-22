@@ -16,6 +16,11 @@ vi.mock('../../repositories/blog-brief-repository.js', () => ({
   updateScrapeResult: vi.fn(),
 }));
 
+vi.mock('../reference-extraction-runner.js', () => ({
+  extractReferenceInBackground: vi.fn(),
+  requeueReferenceExtractionsForBlog: vi.fn(),
+}));
+
 import { scrapeReferenceInBackground } from '../url-scraper-service.js';
 
 function flushPromises() {

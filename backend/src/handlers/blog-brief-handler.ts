@@ -6,6 +6,7 @@ import {
   getScrapeStatus,
 } from '../repositories/blog-brief-repository.js';
 import { scrapeUrlInBackground } from '../services/url-scraper-service.js';
+import { requeueReferenceExtractionsForBlog } from '../services/reference-extraction-runner.js';
 import { WordCountRange, ReferenceUrl, trimInput } from '../domain/value-objects.js';
 import { AppError } from '../middleware/error-handler.js';
 import { getUserId } from '../middleware/auth.js';
@@ -41,6 +42,9 @@ export async function handleSubmitBrief(
     if (input.referenceUrl) {
       scrapeUrlInBackground(blogId, input.referenceUrl);
     }
+
+    // Scrape can finish before the first `blog_briefs` save; re-run reference AI analysis now that the brief exists.
+    requeueReferenceExtractionsForBlog(blogId);
 
     // After a saved brief, the user proceeds to alignment (step 2 in the wizard).
     await advanceBlogStep(blogId, 2);

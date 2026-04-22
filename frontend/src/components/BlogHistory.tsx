@@ -89,7 +89,7 @@ export function BlogHistory({ onResume, onNew }: Props) {
               day: 'numeric',
               year: 'numeric',
             });
-            const title = blog.title ?? `Draft · ${date}`;
+            const title = blog.title ?? 'Untitled';
 
             return (
               <li

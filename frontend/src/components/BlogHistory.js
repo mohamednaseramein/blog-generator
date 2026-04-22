@@ -41,7 +41,7 @@ export function BlogHistory({ onResume, onNew }) {
                         day: 'numeric',
                         year: 'numeric',
                     });
-                    const title = blog.title ?? `Draft · ${date}`;
+                    const title = blog.title ?? 'Untitled';
                     return (_jsxs("li", { className: "flex items-center justify-between gap-4 rounded-xl border border-slate-200 bg-white px-4 py-3 hover:border-indigo-200 hover:bg-indigo-50 transition-colors", children: [_jsxs("div", { className: "flex min-w-0 flex-col gap-1", children: [_jsx("span", { className: `truncate text-sm font-medium ${blog.title ? 'text-slate-800' : 'text-slate-400 italic'}`, children: title }), _jsxs("div", { className: "flex items-center gap-2", children: [_jsx(StepBadge, { step: blog.currentStep, done: done }), _jsx("span", { className: "text-xs text-slate-400", children: date })] })] }), _jsx(Button, { size: "sm", variant: done ? 'ghost' : undefined, onClick: () => onResume(blog.id, blog.currentStep), children: done ? 'View' : 'Continue →' })] }, blog.id));
                 }) }))] }));
 }

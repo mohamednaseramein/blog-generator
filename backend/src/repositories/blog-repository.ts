@@ -61,6 +61,7 @@ export async function listBlogsByUser(userId: string): Promise<BlogSummary[]> {
     .from('blogs')
     .select('id, current_step, status, updated_at, blog_briefs(title)')
     .eq('user_id', userId)
+    .gt('current_step', 0)
     .order('updated_at', { ascending: false });
 
   if (error) throw new Error(error.message);

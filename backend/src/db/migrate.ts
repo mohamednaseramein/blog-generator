@@ -12,7 +12,9 @@ import { readFileSync, readdirSync } from 'fs';
 import pg from 'pg';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
-import 'dotenv/config';
+import { loadBlogGeneratorEnv } from './load-env.js';
+
+loadBlogGeneratorEnv();
 
 const { Client } = pg;
 

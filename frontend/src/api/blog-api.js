@@ -62,6 +62,17 @@ export async function confirmDraft(blogId) {
 export async function getDraft(blogId) {
     return request(`${BASE}/${blogId}/draft`);
 }
+export async function recordExportEvent(blogId, section) {
+    try {
+        await request(`${BASE}/${blogId}/events`, {
+            method: 'POST',
+            body: JSON.stringify({ type: 'exported', section }),
+        });
+    }
+    catch {
+        // fire-and-forget — never surface to the user
+    }
+}
 export async function addReference(blogId, url) {
     return request(`${BASE}/${blogId}/references`, {
         method: 'POST',

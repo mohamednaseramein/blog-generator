@@ -11,6 +11,11 @@ export interface BlogDraftResult {
   raw: string;
 }
 
+export interface MetaAndSlug {
+  metaDescription: string;
+  suggestedSlug: string;
+}
+
 function outlineToPrompt(sections: OutlineSection[]): string {
   return sections
     .map((s, i) => {
@@ -77,4 +82,38 @@ ${outlineToPrompt(sections)}${feedbackNote}
 
   const markdown = raw.replace(/^```(?:markdown|md)?\s*/i, '').replace(/\s*```\s*$/m, '').trim();
   return { markdown, raw };
+}
+
+export async function generateMetaAndSlug(
+  title: string,
+  markdown: string,
+  primaryKeyword: string,
+): Promise<MetaAndSlug> {
+  const excerpt = markdown.slice(0, 1500);
+  const prompt = `Given the following blog post title, primary keyword, and opening content, generate:
+1. A meta description of at most 155 characters that includes the primary keyword and entices clicks.
+2. A URL slug: lowercase, kebab-case, at most 60 characters, keyword-rich.
+
+Title: ${title}
+Primary keyword: ${primaryKeyword}
+Content excerpt:
+${excerpt}
+
+Respond with valid JSON only, no markdown fences:
+{"metaDescription": "...", "suggestedSlug": "..."}`;
+
+  const message = await client.messages.create({
+    model: resolveAlignmentAnthropicModel(),
+    max_tokens: 256,
+    messages: [{ role: 'user', content: prompt }],
+  });
+
+  const text = message.content[0]?.type === 'text' ? message.content[0].text.trim() : '';
+  const cleaned = text.replace(/^```(?:json)?\s*/i, '').replace(/\s*```\s*$/m, '').trim();
+  const parsed = JSON.parse(cleaned) as { metaDescription: string; suggestedSlug: string };
+
+  return {
+    metaDescription: parsed.metaDescription.slice(0, 155),
+    suggestedSlug: parsed.suggestedSlug.slice(0, 60),
+  };
 }

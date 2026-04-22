@@ -7,7 +7,7 @@ import {
   upsertDraft,
   confirmDraft,
 } from '../repositories/blog-draft-repository.js';
-import { generateBlogDraft } from '../services/draft-service.js';
+import { generateBlogDraft, generateMetaAndSlug } from '../services/draft-service.js';
 import type { AlignmentSummary } from '../services/alignment-service.js';
 import { parseStoredOutlineJson } from '../services/outline-service.js';
 import { AppError } from '../middleware/error-handler.js';
@@ -88,9 +88,19 @@ export async function handleConfirmDraft(
       throw new AppError(400, 'BAD_REQUEST', 'Generate a draft first');
     }
 
-    await confirmDraft(blogId);
+    const brief = await getBriefByBlogId(blogId);
+    const title = brief?.title ?? '';
+    const keyword = brief?.primaryKeyword ?? '';
 
-    res.json({ confirmed: true, blogId });
+    const { metaDescription, suggestedSlug } = await generateMetaAndSlug(
+      title,
+      draft.draftMarkdown,
+      keyword,
+    );
+
+    await confirmDraft(blogId, metaDescription, suggestedSlug);
+
+    res.json({ confirmed: true, blogId, metaDescription, suggestedSlug });
   } catch (err) {
     next(err);
   }
@@ -116,6 +126,8 @@ export async function handleGetDraft(
         markdown: draft.draftMarkdown,
         draftConfirmed: draft.draftConfirmed,
         draftIterations: draft.draftIterations,
+        metaDescription: draft.metaDescription,
+        suggestedSlug: draft.suggestedSlug,
       },
     });
   } catch (err) {

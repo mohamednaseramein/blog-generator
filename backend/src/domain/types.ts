@@ -56,6 +56,8 @@ export interface BlogDraft {
   draftMarkdown: string;
   draftConfirmed: boolean;
   draftIterations: number;
+  metaDescription: string | null;
+  suggestedSlug: string | null;
   createdAt: Date;
   updatedAt: Date;
 }

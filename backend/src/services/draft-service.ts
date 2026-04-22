@@ -110,10 +110,16 @@ Respond with valid JSON only, no markdown fences:
 
   const text = message.content[0]?.type === 'text' ? message.content[0].text.trim() : '';
   const cleaned = text.replace(/^```(?:json)?\s*/i, '').replace(/\s*```\s*$/m, '').trim();
-  const parsed = JSON.parse(cleaned) as { metaDescription: string; suggestedSlug: string };
+
+  let parsed: { metaDescription: string; suggestedSlug: string };
+  try {
+    parsed = JSON.parse(cleaned) as { metaDescription: string; suggestedSlug: string };
+  } catch {
+    return { metaDescription: '', suggestedSlug: '' };
+  }
 
   return {
-    metaDescription: parsed.metaDescription.slice(0, 155),
-    suggestedSlug: parsed.suggestedSlug.slice(0, 60),
+    metaDescription: (parsed.metaDescription ?? '').slice(0, 155),
+    suggestedSlug: (parsed.suggestedSlug ?? '').slice(0, 60),
   };
 }

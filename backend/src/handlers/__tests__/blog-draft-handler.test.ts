@@ -8,6 +8,7 @@ const {
   mockUpsertDraft,
   mockConfirmDraft,
   mockGenerateBlogDraft,
+  mockGenerateMetaAndSlug,
   mockGetUserId,
 } = vi.hoisted(() => ({
   mockGetBlogByIdAndUser: vi.fn(),
@@ -17,6 +18,7 @@ const {
   mockUpsertDraft: vi.fn(),
   mockConfirmDraft: vi.fn(),
   mockGenerateBlogDraft: vi.fn(),
+  mockGenerateMetaAndSlug: vi.fn(),
   mockGetUserId: vi.fn(() => 'user-1'),
 }));
 
@@ -40,6 +42,7 @@ vi.mock('../../repositories/blog-draft-repository.js', () => ({
 
 vi.mock('../../services/draft-service.js', () => ({
   generateBlogDraft: mockGenerateBlogDraft,
+  generateMetaAndSlug: mockGenerateMetaAndSlug,
 }));
 
 vi.mock('../../middleware/auth.js', () => ({
@@ -141,37 +144,67 @@ describe('handleGenerateDraft', () => {
 });
 
 describe('handleConfirmDraft', () => {
-  it('confirms when draft exists with content', async () => {
+  const draftRow = {
+    id: 'd-1',
+    blogId: 'blog-1',
+    draftMarkdown: '# Post',
+    draftConfirmed: false,
+    draftIterations: 1,
+    metaDescription: null,
+    suggestedSlug: null,
+    createdAt: new Date(),
+    updatedAt: new Date(),
+  };
+
+  it('confirms draft and returns meta + slug', async () => {
     mockGetBlogByIdAndUser.mockResolvedValue(blog);
-    mockGetDraftByBlogId.mockResolvedValue({
-      id: 'd-1',
-      blogId: 'blog-1',
-      draftMarkdown: '# Post',
-      draftConfirmed: false,
-      draftIterations: 1,
-      createdAt: new Date(),
-      updatedAt: new Date(),
+    mockGetDraftByBlogId.mockResolvedValue(draftRow);
+    mockGetBriefByBlogId.mockResolvedValue(brief);
+    mockGenerateMetaAndSlug.mockResolvedValue({
+      metaDescription: 'A meta description.',
+      suggestedSlug: 'sleep-tips',
     });
     mockConfirmDraft.mockResolvedValue(undefined);
 
     const { req, res, json, next } = makeReqRes('blog-1');
     await handleConfirmDraft(req, res, next);
 
-    expect(mockConfirmDraft).toHaveBeenCalledWith('blog-1');
-    expect(json).toHaveBeenCalledWith({ confirmed: true, blogId: 'blog-1' });
+    expect(mockConfirmDraft).toHaveBeenCalledWith(
+      'blog-1',
+      'A meta description.',
+      'sleep-tips',
+    );
+    expect(json).toHaveBeenCalledWith({
+      confirmed: true,
+      blogId: 'blog-1',
+      metaDescription: 'A meta description.',
+      suggestedSlug: 'sleep-tips',
+    });
     expect(next).not.toHaveBeenCalled();
+  });
+
+  it('returns 400 when draft is missing', async () => {
+    mockGetBlogByIdAndUser.mockResolvedValue(blog);
+    mockGetDraftByBlogId.mockResolvedValue(null);
+
+    const { req, res, next } = makeReqRes('blog-1');
+    await handleConfirmDraft(req, res, next);
+
+    expect(next).toHaveBeenCalledWith(expect.objectContaining({ status: 400 }));
   });
 });
 
 describe('handleGetDraft', () => {
-  it('returns draft payload', async () => {
+  it('returns draft payload including meta and slug', async () => {
     mockGetBlogByIdAndUser.mockResolvedValue(blog);
     mockGetDraftByBlogId.mockResolvedValue({
       id: 'd-1',
       blogId: 'blog-1',
       draftMarkdown: 'Body',
-      draftConfirmed: false,
+      draftConfirmed: true,
       draftIterations: 1,
+      metaDescription: 'A meta description.',
+      suggestedSlug: 'sleep-tips',
       createdAt: new Date(),
       updatedAt: new Date(),
     });
@@ -180,7 +213,13 @@ describe('handleGetDraft', () => {
     await handleGetDraft(req, res, next);
 
     expect(json).toHaveBeenCalledWith({
-      draft: { markdown: 'Body', draftConfirmed: false, draftIterations: 1 },
+      draft: {
+        markdown: 'Body',
+        draftConfirmed: true,
+        draftIterations: 1,
+        metaDescription: 'A meta description.',
+        suggestedSlug: 'sleep-tips',
+      },
     });
     expect(next).not.toHaveBeenCalled();
   });

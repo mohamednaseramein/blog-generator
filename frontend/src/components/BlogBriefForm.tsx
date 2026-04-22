@@ -2,8 +2,8 @@ import { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { getBrief, submitBrief } from '../api/blog-api.js';
-import { ScrapeStatusIndicator } from './ScrapeStatusIndicator.js';
+import { getBrief, submitBrief, listReferences, type BlogReference } from '../api/blog-api.js';
+import { ReferenceUrlList } from './ReferenceUrlList.js';
 import { Button } from './ui/button.js';
 import { Input } from './ui/input.js';
 import { Textarea } from './ui/textarea.js';
@@ -25,14 +25,6 @@ const schema = z
       .int()
       .min(1, 'Must be greater than 0'),
     blogBrief: z.string().min(1, 'Blog brief is required').transform((v) => v.trim()),
-    referenceUrl: z
-      .string()
-      .optional()
-      .transform((v) => v?.trim() ?? '')
-      .refine(
-        (v) => v === '' || /^https?:\/\/.+/.test(v),
-        'Must be a valid URL',
-      ),
   })
   .refine((d) => d.wordCountMax >= d.wordCountMin, {
     message: 'Max must be ≥ min',
@@ -47,10 +39,10 @@ interface Props {
 }
 
 export function BlogBriefForm({ blogId, onSuccess }: Props) {
-  const [submittedBlogId, setSubmittedBlogId] = useState<string | null>(null);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [loadingBrief, setLoadingBrief] = useState(true);
+  const [existingReferences, setExistingReferences] = useState<BlogReference[]>([]);
 
   const {
     register,
@@ -63,8 +55,9 @@ export function BlogBriefForm({ blogId, onSuccess }: Props) {
     let cancelled = false;
     setLoadingBrief(true);
     setLoadError(null);
-    getBrief(blogId)
-      .then((brief) => {
+
+    Promise.all([getBrief(blogId), listReferences(blogId)])
+      .then(([brief, { references }]) => {
         if (cancelled) return;
         reset({
           title: brief.title,
@@ -74,8 +67,8 @@ export function BlogBriefForm({ blogId, onSuccess }: Props) {
           wordCountMin: brief.wordCountMin,
           wordCountMax: brief.wordCountMax,
           blogBrief: brief.blogBrief,
-          referenceUrl: brief.referenceUrl ?? '',
         });
+        setExistingReferences(references);
       })
       .catch(() => {
         if (!cancelled) setLoadError(null);
@@ -89,11 +82,7 @@ export function BlogBriefForm({ blogId, onSuccess }: Props) {
   async function onSubmit(values: FormValues) {
     setSubmitError(null);
     try {
-      const result = await submitBrief(blogId, {
-        ...values,
-        referenceUrl: values.referenceUrl || undefined,
-      });
-      setSubmittedBlogId(result.blogId);
+      await submitBrief(blogId, values);
       onSuccess();
     } catch (e) {
       setSubmitError((e as Error).message);
@@ -211,20 +200,11 @@ export function BlogBriefForm({ blogId, onSuccess }: Props) {
       </Field>
 
       <Field
-        label="Reference URL"
-        hint="Optional — we'll scrape this page to inform the content."
-        error={errors.referenceUrl?.message}
+        label="Reference URLs"
+        hint="Optional — add up to 5 URLs. We'll scrape each one to inform the content."
       >
-        <Input
-          id="referenceUrl"
-          type="url"
-          placeholder="https://example.com/reference-article"
-          error={!!errors.referenceUrl}
-          {...register('referenceUrl')}
-        />
+        <ReferenceUrlList blogId={blogId} initialReferences={existingReferences} />
       </Field>
-
-      {submittedBlogId && <ScrapeStatusIndicator blogId={submittedBlogId} />}
 
       {submitError && <Toast variant="error">{submitError}</Toast>}
 

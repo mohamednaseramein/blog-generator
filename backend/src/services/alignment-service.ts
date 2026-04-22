@@ -1,5 +1,5 @@
 import Anthropic from '@anthropic-ai/sdk';
-import type { BlogBrief } from '../domain/types.js';
+import type { BlogBrief, BlogReference } from '../domain/types.js';
 
 /** Default matches previous hardcoded model; unset env keeps prod behaviour. Override in dev, e.g. Haiku, via ANTHROPIC_MODEL. */
 export const DEFAULT_ALIGNMENT_ANTHROPIC_MODEL = 'claude-sonnet-4-6';
@@ -25,10 +25,17 @@ export interface AlignmentSummary {
 export async function generateAlignmentSummary(
   brief: BlogBrief,
   feedback?: string,
+  references?: BlogReference[],
 ): Promise<AlignmentSummary> {
-  const hasReference = !!brief.scrapedContent;
+  const successfulRefs = (references ?? []).filter((r) => r.scrapeStatus === 'success' && r.scrapedContent);
+  const hasReference = successfulRefs.length > 0 || !!brief.scrapedContent;
+
   const scrapedNote = hasReference
-    ? `\nReference content scraped (${brief.scrapedContent!.length} chars): ${brief.scrapedContent!.slice(0, 800)}…`
+    ? successfulRefs.length > 0
+      ? successfulRefs
+          .map((r, i) => `\nReference ${i + 1} (${r.url}, ${r.scrapedContent!.length} chars): ${r.scrapedContent!.slice(0, 600)}…`)
+          .join('')
+      : `\nReference content scraped (${brief.scrapedContent!.length} chars): ${brief.scrapedContent!.slice(0, 800)}…`
     : '';
 
   const feedbackNote = feedback

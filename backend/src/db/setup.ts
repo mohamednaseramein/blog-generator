@@ -6,7 +6,9 @@ import { readFileSync } from 'fs';
 import { createClient } from '@supabase/supabase-js';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
-import 'dotenv/config';
+import { loadBlogGeneratorEnv } from './load-env.js';
+
+loadBlogGeneratorEnv();
 
 const url = process.env['SUPABASE_URL'];
 const key = process.env['SUPABASE_SERVICE_ROLE_KEY'];

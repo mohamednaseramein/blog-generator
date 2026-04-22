@@ -238,7 +238,14 @@ export async function getDraft(blogId: string): Promise<{
   return request(`${BASE}/${blogId}/draft`);
 }
 
-export type ExportSection = 'all' | 'title' | 'meta' | 'slug' | 'body';
+export type ExportSection =
+  | 'all'
+  | 'all_html'
+  | 'title'
+  | 'meta'
+  | 'slug'
+  | 'body'
+  | 'body_html';
 
 export async function recordExportEvent(
   blogId: string,

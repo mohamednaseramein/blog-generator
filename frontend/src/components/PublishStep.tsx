@@ -1,6 +1,7 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { getDraft, getBrief, recordExportEvent, completeBlog } from '../api/blog-api.js';
 import type { ExportSection } from '../api/blog-api.js';
+import { buildFullDocumentHtml, markdownToSafeHtml } from '../lib/publishContent.js';
 import { Button } from './ui/button.js';
 import { Toast } from './ui/toast.js';
 
@@ -54,6 +55,32 @@ function CopyButton({
   );
 }
 
+const htmlPreviewProse = [
+  'max-h-[min(50vh,28rem)]',
+  'overflow-y-auto',
+  'rounded-xl',
+  'border border-slate-200',
+  'bg-white',
+  'px-4',
+  'py-4',
+  'text-sm',
+  'text-slate-800',
+  '[&_h1]:text-2xl [&_h1]:font-bold [&_h1]:text-slate-900 [&_h1]:mb-3',
+  '[&_h2]:mt-6 [&_h2]:text-xl [&_h2]:font-semibold [&_h2]:text-slate-900',
+  '[&_h3]:mt-4 [&_h3]:text-lg [&_h3]:font-medium',
+  '[&_p]:mb-3 [&_p]:leading-relaxed',
+  '[&_ul]:my-2 [&_ul]:list-disc [&_ul]:pl-6',
+  '[&_ol]:my-2 [&_ol]:list-decimal [&_ol]:pl-6',
+  '[&_li]:my-0.5',
+  '[&_code]:rounded [&_code]:bg-slate-100 [&_code]:px-1 [&_code]:py-0.5 [&_code]:text-[0.9em]',
+  '[&_pre]:my-2 [&_pre]:overflow-x-auto [&_pre]:rounded-lg [&_pre]:bg-slate-100 [&_pre]:p-3',
+  '[&_blockquote]:my-2 [&_blockquote]:border-l-4 [&_blockquote]:border-slate-300 [&_blockquote]:pl-4 [&_blockquote]:text-slate-600',
+  '[&_a]:text-indigo-600 [&_a]:underline',
+  '[&_hr]:my-4 [&_hr]:border-slate-200',
+].join(' ');
+
+type ViewMode = 'preview' | 'markdown';
+
 export function PublishStep({ blogId, onBack, onFinish }: Props) {
   const [markdown, setMarkdown] = useState<string | null>(null);
   const [title, setTitle] = useState<string>('');
@@ -63,6 +90,7 @@ export function PublishStep({ blogId, onBack, onFinish }: Props) {
   const [error, setError] = useState<string | null>(null);
   const [seoOpen, setSeoOpen] = useState(false);
   const [disclosureOn, setDisclosureOn] = useState(false);
+  const [viewMode, setViewMode] = useState<ViewMode>('preview');
 
   const { status: copyStatus, copy } = useCopyFeedback();
 
@@ -93,7 +121,19 @@ export function PublishStep({ blogId, onBack, onFinish }: Props) {
 
   useEffect(() => { void load(); }, [load]);
 
-  function buildFullBlock() {
+  const withDisclosure = useCallback(
+    (text: string) => (disclosureOn ? `${text}\n\n---\n${AI_DISCLOSURE}` : text),
+    [disclosureOn],
+  );
+
+  const bodyForExport = useMemo(
+    () => (markdown ? withDisclosure(markdown) : ''),
+    [markdown, withDisclosure],
+  );
+
+  const bodyHtml = useMemo(() => markdownToSafeHtml(bodyForExport), [bodyForExport]);
+
+  function buildFullBlockMarkdown() {
     const lines: string[] = [];
     if (title) lines.push(`# ${title}\n`);
     if (suggestedSlug) lines.push(`slug: ${suggestedSlug}`);
@@ -104,8 +144,15 @@ export function PublishStep({ blogId, onBack, onFinish }: Props) {
     return lines.join('\n');
   }
 
-  function withDisclosure(text: string) {
-    return disclosureOn ? `${text}\n\n---\n${AI_DISCLOSURE}` : text;
+  function buildFullBlockHtml() {
+    return buildFullDocumentHtml({
+      title,
+      suggestedSlug,
+      metaDescription,
+      bodyMarkdown: markdown ?? '',
+      disclosure: disclosureOn,
+      disclosureText: AI_DISCLOSURE,
+    });
   }
 
   return (
@@ -113,7 +160,8 @@ export function PublishStep({ blogId, onBack, onFinish }: Props) {
       <div>
         <h2 className="text-lg font-semibold text-slate-800">Step 5 — Publish</h2>
         <p className="mt-1 text-sm text-slate-500">
-          Copy your post to the clipboard — all at once or section by section.
+          Preview as formatted HTML, or switch to Markdown. Copy the full post or sections as Markdown or as HTML
+          for your CMS.
         </p>
       </div>
 
@@ -129,27 +177,36 @@ export function PublishStep({ blogId, onBack, onFinish }: Props) {
       {markdown && !loading && (
         <div className="flex flex-col gap-5">
 
-          {/* Copy all */}
-          <div className="flex items-center justify-between rounded-xl border border-indigo-200 bg-indigo-50 px-4 py-3">
-            <div>
-              <p className="text-sm font-medium text-indigo-800">Copy all</p>
-              <p className="text-xs text-indigo-600">Title · slug · meta · full post{disclosureOn ? ' · disclosure' : ''}</p>
+          {/* Copy all — Markdown + HTML */}
+          <div className="flex flex-col gap-3 rounded-xl border border-indigo-200 bg-indigo-50 px-4 py-3">
+            <p className="text-sm font-medium text-indigo-800">Copy full post</p>
+            <p className="text-xs text-indigo-600">
+              Includes title, optional slug/meta, body{disclosureOn ? ', disclosure' : ''} — in the format you
+              choose.
+            </p>
+            <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center sm:gap-3">
+              <CopyButton
+                label="Copy all (Markdown)"
+                statusKey="all_md"
+                copyStatus={copyStatus}
+                onCopy={() => void copy('all', buildFullBlockMarkdown(), blogId, 'all')}
+              />
+              <CopyButton
+                label="Copy all (HTML)"
+                statusKey="all_html"
+                copyStatus={copyStatus}
+                onCopy={() => void copy('all_html', buildFullBlockHtml(), blogId, 'all_html')}
+              />
             </div>
-            <CopyButton
-              label="Copy all"
-              statusKey="all"
-              copyStatus={copyStatus}
-              onCopy={() => void copy('all', buildFullBlock(), blogId, 'all')}
-            />
           </div>
 
           {/* Per-section copies */}
-          <div className="flex flex-col gap-2 rounded-xl border border-slate-200 bg-white px-4 py-3">
+          <div className="flex flex-col gap-3 rounded-xl border border-slate-200 bg-white px-4 py-3">
             <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">Copy by section</p>
 
             {title && (
-              <div className="flex items-center justify-between py-1">
-                <span className="text-sm text-slate-700 truncate max-w-xs">{title}</span>
+              <div className="flex items-center justify-between py-1 gap-2">
+                <span className="text-sm text-slate-700 truncate min-w-0 max-w-xs">{title}</span>
                 <CopyButton
                   label="Copy title"
                   statusKey="title"
@@ -159,14 +216,22 @@ export function PublishStep({ blogId, onBack, onFinish }: Props) {
               </div>
             )}
 
-            <div className="flex items-center justify-between py-1">
-              <span className="text-sm text-slate-500 italic truncate max-w-xs">Post body</span>
-              <CopyButton
-                label="Copy body"
-                statusKey="body"
-                copyStatus={copyStatus}
-                onCopy={() => void copy('body', withDisclosure(markdown), blogId, 'body')}
-              />
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between py-1">
+              <span className="text-sm text-slate-600">Post body</span>
+              <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-2">
+                <CopyButton
+                  label="Copy as Markdown"
+                  statusKey="body_md"
+                  copyStatus={copyStatus}
+                  onCopy={() => void copy('body', bodyForExport, blogId, 'body')}
+                />
+                <CopyButton
+                  label="Copy as HTML"
+                  statusKey="body_html"
+                  copyStatus={copyStatus}
+                  onCopy={() => void copy('body_html', bodyHtml, blogId, 'body_html')}
+                />
+              </div>
             </div>
           </div>
 
@@ -234,11 +299,64 @@ export function PublishStep({ blogId, onBack, onFinish }: Props) {
             </span>
           </label>
 
-          {/* Post preview */}
-          <div className="max-h-[min(50vh,24rem)] overflow-y-auto rounded-xl border border-slate-200 bg-slate-50 px-4 py-3">
-            <pre className="whitespace-pre-wrap break-words font-sans text-sm text-slate-800">
-              {markdown}
-            </pre>
+          {/* View: Preview (HTML) vs Markdown */}
+          <div className="flex flex-col gap-2">
+            <div className="flex items-center justify-between gap-2">
+              <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">Post preview</p>
+              <div
+                className="inline-flex rounded-lg border border-slate-200 bg-slate-100 p-0.5"
+                role="group"
+                aria-label="Preview format"
+              >
+                <button
+                  type="button"
+                  onClick={() => setViewMode('preview')}
+                  className={`rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
+                    viewMode === 'preview'
+                      ? 'bg-white text-slate-900 shadow-sm'
+                      : 'text-slate-600 hover:text-slate-900'
+                  }`}
+                >
+                  Preview
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setViewMode('markdown')}
+                  className={`rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
+                    viewMode === 'markdown'
+                      ? 'bg-white text-slate-900 shadow-sm'
+                      : 'text-slate-600 hover:text-slate-900'
+                  }`}
+                >
+                  Markdown
+                </button>
+              </div>
+            </div>
+
+            {viewMode === 'preview' && (
+              <div className={htmlPreviewProse}>
+                {title ? (
+                  <h1 className="text-2xl font-bold text-slate-900 mb-2">{title}</h1>
+                ) : null}
+                {(suggestedSlug || metaDescription) ? (
+                  <div className="mb-4 text-xs text-slate-500 space-y-0.5 border-b border-slate-100 pb-3">
+                    {suggestedSlug ? <p><span className="font-medium">Slug:</span> {suggestedSlug}</p> : null}
+                    {metaDescription ? <p><span className="font-medium">Meta:</span> {metaDescription}</p> : null}
+                  </div>
+                ) : null}
+                <div
+                  className="publish-preview-body"
+                  // eslint-disable-next-line react/no-danger -- sanitized via DOMPurify in markdownToSafeHtml
+                  dangerouslySetInnerHTML={{ __html: bodyHtml }}
+                />
+              </div>
+            )}
+
+            {viewMode === 'markdown' && (
+              <pre className="max-h-[min(50vh,28rem)] overflow-y-auto rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 whitespace-pre-wrap break-words font-sans text-sm text-slate-800">
+                {buildFullBlockMarkdown()}
+              </pre>
+            )}
           </div>
         </div>
       )}

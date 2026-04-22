@@ -3,7 +3,7 @@ import { getBlogByIdAndUser } from '../repositories/blog-repository.js';
 import { AppError } from '../middleware/error-handler.js';
 import { getUserId } from '../middleware/auth.js';
 
-const VALID_SECTIONS = ['all', 'title', 'meta', 'slug', 'body'] as const;
+const VALID_SECTIONS = ['all', 'all_html', 'title', 'meta', 'slug', 'body', 'body_html'] as const;
 type ExportSection = (typeof VALID_SECTIONS)[number];
 
 export async function handleRecordEvent(

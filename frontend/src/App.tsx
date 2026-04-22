@@ -27,7 +27,7 @@ const STEP_TO_APP: Record<number, AppState['step']> = {
   3: 'outline',
   4: 'draft',
   5: 'publish',
-  6: 'done',
+  6: 'publish', // completed blogs open on Publish so content can be re-copied
 };
 
 export function App() {
@@ -47,8 +47,9 @@ export function App() {
   }
 
   function resumeBlog(blogId: string, currentStep: number) {
-    const step = (STEP_TO_APP[currentStep] ?? 'brief') as AppState['step'];
-    setState({ step, blogId } as AppState);
+    const step = STEP_TO_APP[currentStep] ?? 'brief';
+    if (step === 'idle' || step === 'history' || step === 'creating') return;
+    setState({ step, blogId });
   }
 
   const wizardStep = state.step === 'idle' || state.step === 'history' || state.step === 'creating' ? 1

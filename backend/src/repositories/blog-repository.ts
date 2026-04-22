@@ -64,6 +64,7 @@ export async function listBlogsByUser(userId: string): Promise<BlogSummary[]> {
     .order('updated_at', { ascending: false });
 
   if (error) throw new Error(error.message);
+  if (!data) return [];
 
   type RawRow = {
     id: string;

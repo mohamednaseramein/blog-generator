@@ -84,12 +84,12 @@ export function BlogHistory({ onResume, onNew }: Props) {
         <ul className="flex flex-col gap-3">
           {blogs.map((blog) => {
             const done = blog.currentStep >= 6;
-            const title = blog.title ?? 'Untitled post';
             const date = new Date(blog.updatedAt).toLocaleDateString(undefined, {
               month: 'short',
               day: 'numeric',
               year: 'numeric',
             });
+            const title = blog.title ?? `Draft · ${date}`;
 
             return (
               <li
@@ -97,7 +97,9 @@ export function BlogHistory({ onResume, onNew }: Props) {
                 className="flex items-center justify-between gap-4 rounded-xl border border-slate-200 bg-white px-4 py-3 hover:border-indigo-200 hover:bg-indigo-50 transition-colors"
               >
                 <div className="flex min-w-0 flex-col gap-1">
-                  <span className="truncate text-sm font-medium text-slate-800">{title}</span>
+                  <span className={`truncate text-sm font-medium ${blog.title ? 'text-slate-800' : 'text-slate-400 italic'}`}>
+                    {title}
+                  </span>
                   <div className="flex items-center gap-2">
                     <StepBadge step={blog.currentStep} done={done} />
                     <span className="text-xs text-slate-400">{date}</span>

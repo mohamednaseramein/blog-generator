@@ -48,6 +48,20 @@ export async function confirmOutline(blogId) {
         method: 'POST',
     });
 }
+export async function generateDraft(blogId, feedback) {
+    return request(`${BASE}/${blogId}/draft`, {
+        method: 'POST',
+        body: JSON.stringify({ feedback }),
+    });
+}
+export async function confirmDraft(blogId) {
+    return request(`${BASE}/${blogId}/draft/confirm`, {
+        method: 'POST',
+    });
+}
+export async function getDraft(blogId) {
+    return request(`${BASE}/${blogId}/draft`);
+}
 export async function addReference(blogId, url) {
     return request(`${BASE}/${blogId}/references`, {
         method: 'POST',

@@ -37,14 +37,20 @@ export function PublishStep({ blogId, onBack, onFinish }) {
         setCopyStatus('idle');
         setCopyMessage('');
         try {
-            const [draftRes, briefRes] = await Promise.all([getDraft(blogId), getBrief(blogId)]);
+            const draftRes = await getDraft(blogId);
             if (!draftRes.draft.draftConfirmed) {
                 setError('Draft is not confirmed — go back to Step 4 and confirm the draft first.');
                 setMarkdown(null);
                 return;
             }
             setMarkdown(draftRes.draft.markdown);
-            setTitle(briefRes.title);
+            try {
+                const briefRes = await getBrief(blogId);
+                setTitle(briefRes.title);
+            }
+            catch {
+                setTitle(undefined);
+            }
         }
         catch (e) {
             setError(e.message);
@@ -83,5 +89,5 @@ export function PublishStep({ blogId, onBack, onFinish }) {
             setError('Download failed. Try again or copy the text below.');
         }
     }
-    return (_jsxs("div", { className: "flex flex-col gap-6", children: [_jsxs("div", { children: [_jsx("h2", { className: "text-lg font-semibold text-slate-800", children: "Step 5 \u2014 Publish" }), _jsx("p", { className: "mt-1 text-sm text-slate-500", children: "Copy the markdown into any CMS, doc, or email. Download a file if the clipboard is blocked." })] }), loading && (_jsxs("div", { className: "flex flex-col items-center gap-3 py-10 text-slate-500", children: [_jsx("span", { className: "inline-block h-6 w-6 animate-spin rounded-full border-2 border-slate-200 border-t-indigo-500" }), _jsx("p", { className: "text-sm", children: "Loading your draft\u2026" })] })), error && _jsx(Toast, { variant: "error", children: error }), _jsx("div", { className: "sr-only", "aria-live": "polite", "data-testid": "publish-copy-announcer", children: copyMessage }), copyMessage && copyStatus === 'success' && (_jsx("p", { className: "text-sm text-green-700", role: "status", children: copyMessage })), copyMessage && copyStatus === 'error' && (_jsx("p", { className: "text-sm text-amber-800", role: "status", children: copyMessage })), markdown && !loading && (_jsxs("div", { className: "flex flex-col gap-2", children: [_jsx("div", { className: "max-h-[min(50vh,24rem)] overflow-y-auto rounded-xl border border-slate-200 bg-slate-50 px-4 py-3", children: _jsx("pre", { className: "whitespace-pre-wrap break-words font-sans text-sm text-slate-800", children: markdown }) }), _jsxs("div", { className: "flex flex-wrap gap-2", children: [_jsx(Button, { type: "button", onClick: () => void copyToClipboard(), children: "Copy full post" }), _jsx(Button, { type: "button", variant: "ghost", onClick: download, children: "Download .md" })] })] })), _jsxs("div", { className: "flex flex-wrap items-center justify-between gap-3 pt-1", children: [_jsx(Button, { variant: "ghost", size: "sm", onClick: onBack, disabled: loading, children: "\u2190 Back to Draft" }), _jsx(Button, { variant: "ghost", size: "sm", onClick: onFinish, children: "Finish \u2192" })] })] }));
+    return (_jsxs("div", { className: "flex flex-col gap-6", children: [_jsxs("div", { children: [_jsx("h2", { className: "text-lg font-semibold text-slate-800", children: "Step 5 \u2014 Publish" }), _jsx("p", { className: "mt-1 text-sm text-slate-500", children: "Copy the markdown into any CMS, doc, or email. Download a file if the clipboard is blocked." })] }), loading && (_jsxs("div", { className: "flex flex-col items-center gap-3 py-10 text-slate-500", children: [_jsx("span", { className: "inline-block h-6 w-6 animate-spin rounded-full border-2 border-slate-200 border-t-indigo-500" }), _jsx("p", { className: "text-sm", children: "Loading your draft\u2026" })] })), error && _jsx(Toast, { variant: "error", children: error }), copyMessage && copyStatus === 'success' && (_jsx("p", { className: "text-sm text-green-700", role: "status", "aria-live": "polite", children: copyMessage })), copyMessage && copyStatus === 'error' && (_jsx("p", { className: "text-sm text-amber-800", role: "status", "aria-live": "polite", children: copyMessage })), markdown && !loading && (_jsxs("div", { className: "flex flex-col gap-2", children: [_jsx("div", { className: "max-h-[min(50vh,24rem)] overflow-y-auto rounded-xl border border-slate-200 bg-slate-50 px-4 py-3", children: _jsx("pre", { className: "whitespace-pre-wrap break-words font-sans text-sm text-slate-800", children: markdown }) }), _jsxs("div", { className: "flex flex-wrap gap-2", children: [_jsx(Button, { type: "button", onClick: () => void copyToClipboard(), children: "Copy full post" }), _jsx(Button, { type: "button", variant: "ghost", onClick: download, children: "Download .md" })] })] })), _jsxs("div", { className: "flex flex-wrap items-center justify-between gap-3 pt-1", children: [_jsx(Button, { variant: "ghost", size: "sm", onClick: onBack, disabled: loading, children: "\u2190 Back to Draft" }), _jsx(Button, { variant: "ghost", size: "sm", onClick: onFinish, children: "Finish \u2192" })] })] }));
 }

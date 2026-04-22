@@ -46,14 +46,19 @@ export function PublishStep({ blogId, onBack, onFinish }: Props) {
     setCopyStatus('idle');
     setCopyMessage('');
     try {
-      const [draftRes, briefRes] = await Promise.all([getDraft(blogId), getBrief(blogId)]);
+      const draftRes = await getDraft(blogId);
       if (!draftRes.draft.draftConfirmed) {
         setError('Draft is not confirmed — go back to Step 4 and confirm the draft first.');
         setMarkdown(null);
         return;
       }
       setMarkdown(draftRes.draft.markdown);
-      setTitle(briefRes.title);
+      try {
+        const briefRes = await getBrief(blogId);
+        setTitle(briefRes.title);
+      } catch {
+        setTitle(undefined);
+      }
     } catch (e) {
       setError((e as Error).message);
       setMarkdown(null);

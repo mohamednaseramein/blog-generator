@@ -55,9 +55,10 @@ export function BlogBriefForm({ blogId, onSuccess }) {
             });
             setExistingReferences(references);
         })
-            .catch(() => {
-            if (!cancelled)
-                setLoadError(null);
+            .catch((e) => {
+            if (!cancelled) {
+                setLoadError(e.message ?? 'Could not load your brief. Try refreshing the page.');
+            }
         })
             .finally(() => {
             if (!cancelled)

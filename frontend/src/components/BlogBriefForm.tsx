@@ -70,8 +70,10 @@ export function BlogBriefForm({ blogId, onSuccess }: Props) {
         });
         setExistingReferences(references);
       })
-      .catch(() => {
-        if (!cancelled) setLoadError(null);
+      .catch((e) => {
+        if (!cancelled) {
+          setLoadError((e as Error).message ?? 'Could not load your brief. Try refreshing the page.');
+        }
       })
       .finally(() => {
         if (!cancelled) setLoadingBrief(false);

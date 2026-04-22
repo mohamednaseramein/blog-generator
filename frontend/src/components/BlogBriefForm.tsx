@@ -33,6 +33,21 @@ const schema = z
 
 type FormValues = z.input<typeof schema>;
 
+/** New blogs have no `blog_briefs` row yet — GET /brief returns 404 with this message. */
+function isBriefNotFoundError(e: unknown): boolean {
+  return e instanceof Error && e.message === 'Brief not found';
+}
+
+const EMPTY_BRIEF_FORM: FormValues = {
+  title: '',
+  primaryKeyword: '',
+  audiencePersona: '',
+  toneOfVoice: '',
+  wordCountMin: 800,
+  wordCountMax: 1500,
+  blogBrief: '',
+};
+
 interface Props {
   blogId: string;
   onSuccess: () => void;
@@ -56,28 +71,41 @@ export function BlogBriefForm({ blogId, onSuccess }: Props) {
     setLoadingBrief(true);
     setLoadError(null);
 
-    Promise.all([getBrief(blogId), listReferences(blogId)])
-      .then(([brief, { references }]) => {
+    void (async () => {
+      try {
+        const { references } = await listReferences(blogId);
         if (cancelled) return;
-        reset({
-          title: brief.title,
-          primaryKeyword: brief.primaryKeyword,
-          audiencePersona: brief.audiencePersona,
-          toneOfVoice: brief.toneOfVoice,
-          wordCountMin: brief.wordCountMin,
-          wordCountMax: brief.wordCountMax,
-          blogBrief: brief.blogBrief,
-        });
         setExistingReferences(references);
-      })
-      .catch((e) => {
+
+        try {
+          const brief = await getBrief(blogId);
+          if (cancelled) return;
+          reset({
+            title: brief.title,
+            primaryKeyword: brief.primaryKeyword,
+            audiencePersona: brief.audiencePersona,
+            toneOfVoice: brief.toneOfVoice,
+            wordCountMin: brief.wordCountMin,
+            wordCountMax: brief.wordCountMax,
+            blogBrief: brief.blogBrief,
+          });
+        } catch (e) {
+          if (cancelled) return;
+          if (isBriefNotFoundError(e)) {
+            reset(EMPTY_BRIEF_FORM);
+          } else {
+            throw e;
+          }
+        }
+      } catch (e) {
         if (!cancelled) {
           setLoadError((e as Error).message ?? 'Could not load your brief. Try refreshing the page.');
         }
-      })
-      .finally(() => {
+      } finally {
         if (!cancelled) setLoadingBrief(false);
-      });
+      }
+    })();
+
     return () => { cancelled = true; };
   }, [blogId, reset]);
 

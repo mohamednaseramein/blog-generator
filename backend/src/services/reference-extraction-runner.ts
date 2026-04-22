@@ -16,7 +16,11 @@ async function runExtract(referenceId: string): Promise<void> {
   if (!ref || ref.scrapeStatus !== 'success' || !ref.scrapedContent) return;
 
   const brief = await getBriefByBlogId(ref.blogId);
-  if (!brief) return;
+  if (!brief) {
+    console.error('[reference-extraction-runner] no brief for blogId=%s — marking extraction failed', ref.blogId);
+    await updateReferenceExtraction(referenceId, 'failed', null);
+    return;
+  }
 
   try {
     const result = await generateReferenceExtraction(brief, ref.url, ref.scrapedContent);

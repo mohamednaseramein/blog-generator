@@ -7,7 +7,9 @@ const {
   mockGetRefs,
   mockGetRefById,
   mockDeleteRef,
+  mockUpdateRefExtraction,
   mockScrapeInBackground,
+  mockExtractInBackground,
   mockGetUserId,
 } = vi.hoisted(() => ({
   mockGetBlogByIdAndUser: vi.fn(),
@@ -16,7 +18,9 @@ const {
   mockGetRefs: vi.fn(),
   mockGetRefById: vi.fn(),
   mockDeleteRef: vi.fn(),
+  mockUpdateRefExtraction: vi.fn(),
   mockScrapeInBackground: vi.fn(),
+  mockExtractInBackground: vi.fn(),
   mockGetUserId: vi.fn(() => 'user-1'),
 }));
 
@@ -30,11 +34,17 @@ vi.mock('../../repositories/blog-references-repository.js', () => ({
   getReferencesByBlogId: mockGetRefs,
   getReferenceById: mockGetRefById,
   deleteReference: mockDeleteRef,
+  updateReferenceExtraction: mockUpdateRefExtraction,
 }));
 
 vi.mock('../../services/url-scraper-service.js', () => ({
   scrapeReferenceInBackground: mockScrapeInBackground,
   scrapeUrlInBackground: vi.fn(),
+}));
+
+vi.mock('../../services/reference-extraction-runner.js', () => ({
+  extractReferenceInBackground: mockExtractInBackground,
+  requeueReferenceExtractionsForBlog: vi.fn(),
 }));
 
 vi.mock('../../middleware/auth.js', () => ({
@@ -46,6 +56,7 @@ import {
   handleListReferences,
   handleDeleteReference,
   handleGetReferenceStatus,
+  handleRetryReferenceExtraction,
 } from '../blog-references-handler.js';
 import type { Request, Response, NextFunction } from 'express';
 
@@ -176,8 +187,30 @@ describe('handleGetReferenceStatus', () => {
     await handleGetReferenceStatus(req, res, next);
 
     expect(json).toHaveBeenCalledWith(
-      expect.objectContaining({ scrapeStatus: 'success' }),
+      expect.objectContaining({ scrapeStatus: 'success', extractionError: null }),
     );
+    expect(next).not.toHaveBeenCalled();
+  });
+});
+
+describe('handleRetryReferenceExtraction', () => {
+  it('resets extraction to pending and re-queues', async () => {
+    mockGetBlogByIdAndUser.mockResolvedValue(blog);
+    const scraped = {
+      ...fakeRef,
+      scrapeStatus: 'success' as const,
+      scrapedContent: 'body text',
+      extractionStatus: 'failed' as const,
+    };
+    mockGetRefById.mockResolvedValue(scraped);
+    mockUpdateRefExtraction.mockResolvedValue(undefined);
+
+    const { req, res, json, next } = makeReqRes('blog-1', {}, { refId: 'ref-1' });
+    await handleRetryReferenceExtraction(req, res, next);
+
+    expect(mockUpdateRefExtraction).toHaveBeenCalledWith('ref-1', 'pending', null);
+    expect(mockExtractInBackground).toHaveBeenCalledWith('ref-1');
+    expect(json).toHaveBeenCalledWith({ retried: true });
     expect(next).not.toHaveBeenCalled();
   });
 });

@@ -192,9 +192,9 @@ export function PublishStep({ blogId, onBack, onFinish }: Props) {
       {error && <Toast variant="error">{error}</Toast>}
 
       {markdown && !loading && (
-        <div className="grid min-h-0 grid-cols-1 gap-6 lg:grid-cols-2 lg:items-start">
-          {/* Preview first (column 1 on lg) */}
-          <div className="min-w-0 flex flex-col gap-3 lg:order-1">
+        <div className="flex min-h-0 w-full flex-col gap-6">
+          {/* Post preview first; Export follows below (single column on all breakpoints) */}
+          <div className="min-w-0 flex w-full flex-col gap-3">
             <div className="flex flex-wrap items-center justify-between gap-2">
               <h3 className="text-xs font-semibold uppercase tracking-wide text-slate-500">Post preview</h3>
               <div
@@ -253,8 +253,8 @@ export function PublishStep({ blogId, onBack, onFinish }: Props) {
             )}
           </div>
 
-          {/* Export — unified neutral panel, sticky on large screens */}
-          <div className="min-w-0 lg:order-2 lg:sticky lg:top-4 lg:max-h-[calc(100vh-6rem)] lg:overflow-y-auto">
+          {/* Export — below preview for a single scroll flow */}
+          <div className="min-w-0 w-full">
             <div className="flex flex-col gap-4 rounded-xl border border-slate-200 bg-white p-1 shadow-sm">
               <div className="px-3 pt-3">
                 <h3 className="text-sm font-semibold text-slate-800">Export</h3>

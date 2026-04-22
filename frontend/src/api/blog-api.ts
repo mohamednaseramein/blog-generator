@@ -299,13 +299,25 @@ export async function getReferenceStatus(
   scrapeError: string | null;
   extractionStatus: ReferenceExtractionStatus;
   extractionJson: string | null;
+  /** Human-readable reason when extraction failed; optional in older clients. */
+  extractionError: string | null;
 }> {
   return request<{
     scrapeStatus: ReferenceScrapeStatus;
     scrapeError: string | null;
     extractionStatus: ReferenceExtractionStatus;
     extractionJson: string | null;
+    extractionError: string | null;
   }>(`${BASE}/${blogId}/references/${refId}/status`);
+}
+
+export async function retryReferenceExtraction(
+  blogId: string,
+  refId: string,
+): Promise<{ retried: boolean }> {
+  return request<{ retried: boolean }>(`${BASE}/${blogId}/references/${refId}/retry-extraction`, {
+    method: 'POST',
+  });
 }
 
 export async function removeReference(

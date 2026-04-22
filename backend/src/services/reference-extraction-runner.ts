@@ -1,14 +1,36 @@
 import {
   getReferenceById,
   updateReferenceExtraction,
+  getReferencesByBlogId,
 } from '../repositories/blog-references-repository.js';
 import { getBriefByBlogId } from '../repositories/blog-brief-repository.js';
-import { generateReferenceExtraction } from './reference-extraction-service.js';
+import {
+  generateReferenceExtraction,
+  buildExtractionFailurePayload,
+  userSafeExtractionError,
+} from './reference-extraction-service.js';
 
 export function extractReferenceInBackground(referenceId: string): void {
-  runExtract(referenceId).catch(() => {
-    /* errors handled inside */
-  });
+  void runExtract(referenceId);
+}
+
+/**
+ * Re-run reference analysis for a blog after the brief is first saved, or to recover from
+ * a race (scrape finished before `blog_briefs` row existed) or a transient AI error.
+ */
+export function requeueReferenceExtractionsForBlog(blogId: string): void {
+  void (async () => {
+    try {
+      const refs = await getReferencesByBlogId(blogId);
+      for (const ref of refs) {
+        if (ref.scrapeStatus !== 'success' || !ref.scrapedContent?.trim()) continue;
+        if (ref.extractionStatus === 'success' || ref.extractionStatus === 'irrelevant') continue;
+        extractReferenceInBackground(ref.id);
+      }
+    } catch (e) {
+      console.error('[requeueReferenceExtractionsForBlog] failed:', (e as Error).message);
+    }
+  })();
 }
 
 async function runExtract(referenceId: string): Promise<void> {
@@ -17,8 +39,7 @@ async function runExtract(referenceId: string): Promise<void> {
 
   const brief = await getBriefByBlogId(ref.blogId);
   if (!brief) {
-    console.error('[reference-extraction-runner] no brief for blogId=%s — marking extraction failed', ref.blogId);
-    await updateReferenceExtraction(referenceId, 'failed', null);
+    // Brief not saved yet — keep extraction as pending; requeueReferenceExtractionsForBlog runs on POST /brief.
     return;
   }
 
@@ -27,7 +48,12 @@ async function runExtract(referenceId: string): Promise<void> {
     const status = result.irrelevantToBrief ? 'irrelevant' : 'success';
     await updateReferenceExtraction(referenceId, status, result.raw);
   } catch (err) {
+    const msg = userSafeExtractionError(err);
     console.error('[reference-extraction-runner] extraction failed:', (err as Error).message);
-    await updateReferenceExtraction(referenceId, 'failed', null);
+    await updateReferenceExtraction(
+      referenceId,
+      'failed',
+      buildExtractionFailurePayload(msg),
+    );
   }
 }

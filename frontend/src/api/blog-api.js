@@ -1,4 +1,7 @@
 const BASE = '/api/blogs';
+export async function getBrief(blogId) {
+    return request(`${BASE}/${blogId}/brief`);
+}
 async function request(url, options) {
     const res = await fetch(url, {
         headers: { 'Content-Type': 'application/json' },
@@ -32,5 +35,33 @@ export async function generateAlignment(blogId, feedback) {
 export async function confirmAlignment(blogId) {
     return request(`${BASE}/${blogId}/alignment/confirm`, {
         method: 'POST',
+    });
+}
+export async function generateOutline(blogId, feedback) {
+    return request(`${BASE}/${blogId}/outline`, {
+        method: 'POST',
+        body: JSON.stringify({ feedback }),
+    });
+}
+export async function confirmOutline(blogId) {
+    return request(`${BASE}/${blogId}/outline/confirm`, {
+        method: 'POST',
+    });
+}
+export async function addReference(blogId, url) {
+    return request(`${BASE}/${blogId}/references`, {
+        method: 'POST',
+        body: JSON.stringify({ url }),
+    });
+}
+export async function listReferences(blogId) {
+    return request(`${BASE}/${blogId}/references`);
+}
+export async function getReferenceStatus(blogId, refId) {
+    return request(`${BASE}/${blogId}/references/${refId}/status`);
+}
+export async function removeReference(blogId, refId) {
+    return request(`${BASE}/${blogId}/references/${refId}`, {
+        method: 'DELETE',
     });
 }

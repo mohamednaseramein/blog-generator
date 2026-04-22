@@ -1,5 +1,10 @@
-import { useEffect, useRef } from 'react';
-import { getReferenceStatus, removeReference, type ReferenceScrapeStatus } from '../api/blog-api.js';
+import { useEffect, useState } from 'react';
+import {
+  getReferenceStatus,
+  removeReference,
+  type ReferenceScrapeStatus,
+  type ReferenceExtractionStatus,
+} from '../api/blog-api.js';
 
 interface Props {
   blogId: string;
@@ -7,14 +12,41 @@ interface Props {
   url: string;
   initialStatus: ReferenceScrapeStatus;
   initialError: string | null;
+  initialExtractionStatus: ReferenceExtractionStatus;
+  initialExtractionJson: string | null;
   onRemove: (refId: string) => void;
-  onStatusChange: (refId: string, status: ReferenceScrapeStatus) => void;
+  onReferenceUpdate: (
+    refId: string,
+    patch: Partial<{
+      scrapeStatus: ReferenceScrapeStatus;
+      scrapeError: string | null;
+      extractionStatus: ReferenceExtractionStatus;
+      extractionJson: string | null;
+    }>,
+  ) => void;
 }
 
-const SETTLED: ReferenceScrapeStatus[] = ['success', 'failed', 'timeout', 'skipped'];
+const SCRAPE_SETTLED: ReferenceScrapeStatus[] = ['success', 'failed', 'timeout', 'skipped'];
+const EXTRACTION_SETTLED: ReferenceExtractionStatus[] = ['success', 'failed', 'irrelevant'];
 const POLL_INTERVAL_MS = 2_000;
 
-function StatusBadge({ status, error }: { status: ReferenceScrapeStatus; error: string | null }) {
+function parseExtractionPreview(json: string | null): {
+  relevance: string;
+  summary: string;
+  keyAngle: string;
+} | null {
+  if (!json) return null;
+  try {
+    const o = JSON.parse(json) as Record<string, unknown>;
+    if (typeof o.summary !== 'string' || typeof o.keyAngle !== 'string') return null;
+    const rel = typeof o.relevance === 'string' ? o.relevance : '';
+    return { relevance: rel, summary: o.summary, keyAngle: o.keyAngle };
+  } catch {
+    return null;
+  }
+}
+
+function ScrapeLine({ status, error }: { status: ReferenceScrapeStatus; error: string | null }) {
   if (status === 'pending') {
     return (
       <span className="flex items-center gap-1.5 text-xs text-slate-500">
@@ -24,9 +56,7 @@ function StatusBadge({ status, error }: { status: ReferenceScrapeStatus; error: 
     );
   }
   if (status === 'success') {
-    return (
-      <span className="text-xs font-medium text-green-600">✓ Scraped</span>
-    );
+    return <span className="text-xs font-medium text-green-600">✓ Page fetched</span>;
   }
   if (status === 'timeout') {
     return (
@@ -42,29 +72,108 @@ function StatusBadge({ status, error }: { status: ReferenceScrapeStatus; error: 
   );
 }
 
+function ExtractionLine({
+  scrapeStatus,
+  extractionStatus,
+  extractionJson,
+}: {
+  scrapeStatus: ReferenceScrapeStatus;
+  extractionStatus: ReferenceExtractionStatus;
+  extractionJson: string | null;
+}) {
+  if (scrapeStatus !== 'success') return null;
+
+  if (extractionStatus === 'pending') {
+    return (
+      <span className="flex items-center gap-1.5 text-xs text-slate-500">
+        <span className="inline-block h-3 w-3 animate-spin rounded-full border-2 border-slate-200 border-t-violet-500" />
+        Analysing relevance…
+      </span>
+    );
+  }
+
+  if (extractionStatus === 'failed') {
+    return <span className="text-xs text-amber-700">Reference analysis failed — alignment can still use the raw page text.</span>;
+  }
+
+  if (extractionStatus === 'irrelevant') {
+    return <span className="text-xs text-slate-600">Marked as low relevance to your brief.</span>;
+  }
+
+  if (extractionStatus === 'success') {
+    const preview = parseExtractionPreview(extractionJson);
+    if (!preview) {
+      return <span className="text-xs font-medium text-violet-700">✓ Analysed</span>;
+    }
+    return (
+      <div className="mt-1 space-y-1 rounded-lg border border-violet-100 bg-violet-50/80 px-3 py-2 text-xs text-slate-700">
+        {preview.relevance ? (
+          <p>
+            <span className="font-semibold text-violet-800">Relevance:</span> {preview.relevance}
+          </p>
+        ) : null}
+        <p>
+          <span className="font-semibold text-violet-800">Summary:</span> {preview.summary}
+        </p>
+        <p>
+          <span className="font-semibold text-violet-800">Angle:</span> {preview.keyAngle}
+        </p>
+      </div>
+    );
+  }
+
+  return null;
+}
+
 export function ReferenceUrlCard({
   blogId,
   refId,
   url,
   initialStatus,
   initialError,
+  initialExtractionStatus,
+  initialExtractionJson,
   onRemove,
-  onStatusChange,
+  onReferenceUpdate,
 }: Props) {
-  const statusRef = useRef<ReferenceScrapeStatus>(initialStatus);
+  const [scrapeStatus, setScrapeStatus] = useState<ReferenceScrapeStatus>(initialStatus);
+  const [scrapeError, setScrapeError] = useState<string | null>(initialError);
+  const [extractionStatus, setExtractionStatus] = useState<ReferenceExtractionStatus>(initialExtractionStatus);
+  const [extractionJson, setExtractionJson] = useState<string | null>(initialExtractionJson);
 
   useEffect(() => {
-    if (SETTLED.includes(initialStatus)) return;
+    setScrapeStatus(initialStatus);
+    setScrapeError(initialError);
+    setExtractionStatus(initialExtractionStatus);
+    setExtractionJson(initialExtractionJson);
+  }, [initialStatus, initialError, initialExtractionStatus, initialExtractionJson]);
+
+  useEffect(() => {
+    const scrapeDone = SCRAPE_SETTLED.includes(scrapeStatus);
+    const extractionDone =
+      scrapeStatus !== 'success' || EXTRACTION_SETTLED.includes(extractionStatus);
+    if (scrapeDone && extractionDone) return;
 
     let cancelled = false;
     const timer = setInterval(() => {
       if (cancelled) return;
       getReferenceStatus(blogId, refId)
-        .then(({ scrapeStatus }) => {
+        .then((s) => {
           if (cancelled) return;
-          onStatusChange(refId, scrapeStatus);
-          statusRef.current = scrapeStatus;
-          if (SETTLED.includes(scrapeStatus)) clearInterval(timer);
+          setScrapeStatus(s.scrapeStatus);
+          setScrapeError(s.scrapeError);
+          setExtractionStatus(s.extractionStatus);
+          setExtractionJson(s.extractionJson);
+          onReferenceUpdate(refId, {
+            scrapeStatus: s.scrapeStatus,
+            scrapeError: s.scrapeError,
+            extractionStatus: s.extractionStatus,
+            extractionJson: s.extractionJson,
+          });
+          const doneNow =
+            SCRAPE_SETTLED.includes(s.scrapeStatus) &&
+            (s.scrapeStatus !== 'success' || EXTRACTION_SETTLED.includes(s.extractionStatus));
+          if (doneNow) clearInterval(timer);
         })
         .catch(() => {
           if (!cancelled) clearInterval(timer);
@@ -75,7 +184,7 @@ export function ReferenceUrlCard({
       cancelled = true;
       clearInterval(timer);
     };
-  }, [blogId, refId, initialStatus, onStatusChange]);
+  }, [blogId, refId, scrapeStatus, extractionStatus, onReferenceUpdate]);
 
   async function handleRemove() {
     try {
@@ -98,7 +207,12 @@ export function ReferenceUrlCard({
           ✕
         </button>
       </div>
-      <StatusBadge status={initialStatus} error={initialError} />
+      <ScrapeLine status={scrapeStatus} error={scrapeError} />
+      <ExtractionLine
+        scrapeStatus={scrapeStatus}
+        extractionStatus={extractionStatus}
+        extractionJson={extractionJson}
+      />
     </div>
   );
 }

@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react';
-import { generateOutline, confirmOutline, type BlogOutline } from '../api/blog-api.js';
+import { useState, useEffect, useRef } from 'react';
+import { getOutline, generateOutline, confirmOutline, type BlogOutline } from '../api/blog-api.js';
 import { Button } from './ui/button.js';
 import { Textarea } from './ui/textarea.js';
 import { Toast } from './ui/toast.js';
@@ -15,16 +15,21 @@ export function OutlineStep({ blogId, onBack, onConfirmed }: Props) {
   const [outline, setOutline] = useState<BlogOutline | null>(null);
   const [feedback, setFeedback] = useState('');
   const [generating, setGenerating] = useState(false);
+  const [loadingSaved, setLoadingSaved] = useState(true);
   const [confirming, setConfirming] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [iterations, setIterations] = useState(0);
+  const [fromSavedRun, setFromSavedRun] = useState(false);
+  const bootstrapped = useRef(false);
 
   async function generate(feedbackText?: string) {
     setError(null);
+    setFromSavedRun(false);
     setGenerating(true);
     try {
       const res = await generateOutline(blogId, feedbackText);
-      setOutline(res.outline);
+      const { raw: _r, ...rest } = res.outline;
+      setOutline(rest);
       setFeedback('');
       setIterations((i) => i + 1);
     } catch (e) {
@@ -46,7 +51,39 @@ export function OutlineStep({ blogId, onBack, onConfirmed }: Props) {
     }
   }
 
-  useEffect(() => { void generate(); }, []);
+  useEffect(() => {
+    if (bootstrapped.current) return;
+    bootstrapped.current = true;
+    let cancelled = false;
+
+    void (async () => {
+      setError(null);
+      setLoadingSaved(true);
+      setFromSavedRun(false);
+      try {
+        const saved = await getOutline(blogId);
+        if (saved && saved.outline.sections.length > 0) {
+          const { raw: _r, ...rest } = saved.outline;
+          if (cancelled) return;
+          setOutline(rest);
+          setIterations(saved.outlineIterations);
+          setFromSavedRun(true);
+          setLoadingSaved(false);
+          return;
+        }
+      } catch {
+        // no row yet or error — fall through to generate
+      }
+      if (cancelled) return;
+      setLoadingSaved(false);
+      if (cancelled) return;
+      await generate();
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [blogId]);
 
   return (
     <div className="flex flex-col gap-6">
@@ -57,17 +94,29 @@ export function OutlineStep({ blogId, onBack, onConfirmed }: Props) {
         </p>
       </div>
 
-      {generating && (
+      {(loadingSaved || generating) && (
         <div className="flex flex-col items-center gap-3 py-10 text-slate-500">
           <span className="inline-block h-6 w-6 animate-spin rounded-full border-2 border-slate-200 border-t-indigo-500" />
           <p className="text-sm">
-            {iterations === 0 ? 'Generating outline…' : 'Regenerating with your feedback…'}
+            {loadingSaved
+              ? 'Loading your outline…'
+              : iterations === 0
+                ? 'Calling the model to create your outline…'
+                : 'Calling the model with your feedback…'}
           </p>
         </div>
       )}
 
-      {outline && !generating && (
+      {outline && !generating && !loadingSaved && (
         <div className="flex flex-col gap-4">
+          {fromSavedRun && (
+            <div
+              className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-900"
+              role="status"
+            >
+              Restored your last saved outline.
+            </div>
+          )}
           <div className="flex items-center justify-between">
             <p className="text-xs text-slate-400 font-medium uppercase tracking-wide">
               {outline.sections.length} sections · ~{outline.totalEstimatedWords.toLocaleString()} words
@@ -108,7 +157,7 @@ export function OutlineStep({ blogId, onBack, onConfirmed }: Props) {
 
       {error && <Toast variant="error">{error}</Toast>}
 
-      {outline && !generating && (
+      {outline && !generating && !loadingSaved && (
         <Field
           label="Something off? Tell the AI what to change:"
           hint="Leave blank if the outline looks good."
@@ -123,7 +172,7 @@ export function OutlineStep({ blogId, onBack, onConfirmed }: Props) {
       )}
 
       <div className="flex flex-wrap items-center justify-between gap-3 pt-1">
-        <Button variant="ghost" size="sm" onClick={onBack} disabled={generating || confirming}>
+        <Button variant="ghost" size="sm" onClick={onBack} disabled={loadingSaved || generating || confirming}>
           ← Back to Alignment
         </Button>
 
@@ -132,15 +181,17 @@ export function OutlineStep({ blogId, onBack, onConfirmed }: Props) {
             <Button
               variant="ghost"
               size="sm"
-              onClick={() => void generate(feedback || undefined)}
-              disabled={generating || confirming}
+              onClick={() => void generate(feedback.trim() || undefined)}
+              disabled={loadingSaved || generating || confirming}
             >
-              {feedback ? 'Regenerate with feedback' : 'Regenerate'}
+              {feedback.trim()
+                ? 'Regenerate outline with your feedback'
+                : 'Regenerate outline'}
             </Button>
           )}
           <Button
             onClick={() => void confirm()}
-            disabled={!outline || generating || confirming}
+            disabled={!outline || loadingSaved || generating || confirming}
             aria-busy={confirming}
           >
             {confirming ? (

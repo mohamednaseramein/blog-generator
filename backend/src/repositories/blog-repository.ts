@@ -56,12 +56,36 @@ export interface BlogSummary {
   updatedAt: Date;
 }
 
+/** PostgREST returns 1:1 embeds as a single object; 1:n as an array. Handle both. */
+export function displayTitleFromBriefEmbed(blogBriefs: unknown): string | null {
+  if (blogBriefs == null) return null;
+
+  const row = (() => {
+    if (Array.isArray(blogBriefs)) {
+      return (blogBriefs[0] ?? null) as Record<string, unknown> | null;
+    }
+    if (typeof blogBriefs === 'object') {
+      return blogBriefs as Record<string, unknown>;
+    }
+    return null;
+  })();
+
+  if (!row) return null;
+
+  const str = (k: string): string | null => {
+    const v = row[k];
+    return typeof v === 'string' && v.trim() ? v.trim() : null;
+  };
+
+  return str('title') ?? str('primary_keyword') ?? null;
+}
+
 export async function listBlogsByUser(userId: string): Promise<BlogSummary[]> {
   // Inner join: only blogs with a saved brief. Excludes "abandoned" creates (no blog_briefs row)
   // without relying on current_step for filtering (see GH-42).
   const { data, error } = await getSupabase()
     .from('blogs')
-    .select('id, current_step, status, updated_at, blog_briefs!inner(title)')
+    .select('id, current_step, status, updated_at, blog_briefs!inner(title, primary_keyword)')
     .eq('user_id', userId)
     .order('updated_at', { ascending: false });
 
@@ -73,16 +97,14 @@ export async function listBlogsByUser(userId: string): Promise<BlogSummary[]> {
     current_step: number;
     status: string;
     updated_at: string;
-    blog_briefs: { title: string }[] | null;
+    blog_briefs: unknown;
   };
 
   return (data as unknown as RawRow[]).map((row) => ({
     id: row.id,
     currentStep: row.current_step,
     status: row.status as Blog['status'],
-    title: Array.isArray(row.blog_briefs) && row.blog_briefs.length > 0
-      ? row.blog_briefs[0]!.title
-      : null,
+    title: displayTitleFromBriefEmbed(row.blog_briefs),
     updatedAt: new Date(row.updated_at),
   }));
 }

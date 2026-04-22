@@ -109,6 +109,23 @@ export async function updateReferenceScrapeResult(
   if (error) throw new Error(error.message);
 }
 
+export async function updateReferenceExtraction(
+  id: string,
+  status: ReferenceExtractionStatus,
+  extractionJson: string | null,
+): Promise<void> {
+  const { error } = await getSupabase()
+    .from('blog_references')
+    .update({
+      extraction_status: status,
+      extraction_json: extractionJson,
+      updated_at: new Date().toISOString(),
+    })
+    .eq('id', id);
+
+  if (error) throw new Error(error.message);
+}
+
 export async function getSuccessfullyScrapeReferences(blogId: string): Promise<BlogReference[]> {
   const { data, error } = await getSupabase()
     .from('blog_references')

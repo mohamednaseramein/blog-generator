@@ -28,10 +28,14 @@ export async function handleGenerateAlignment(
     if (!brief) throw new AppError(404, 'NOT_FOUND', 'Brief not found — submit the brief first');
 
     const references = await getReferencesByBlogId(blogId);
-    const summary = await generateAlignmentSummary(brief, feedbackText, references);
-    await updateAlignmentSummary(blogId, summary.raw);
+    const result = await generateAlignmentSummary(brief, feedbackText, references);
+    await updateAlignmentSummary(blogId, result.raw);
 
-    res.json({ summary });
+    const { referencesAnalysis, ...summary } = result;
+    res.json({
+      summary,
+      ...(referencesAnalysis ? { referencesAnalysis } : {}),
+    });
   } catch (err) {
     next(err);
   }

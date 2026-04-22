@@ -1,7 +1,8 @@
 import { useState, useCallback } from 'react';
-import { addReference, type BlogReference, type ReferenceScrapeStatus } from '../api/blog-api.js';
+import { addReference, type BlogReference, type ReferenceScrapeStatus, type ReferenceExtractionStatus } from '../api/blog-api.js';
 import { ReferenceUrlCard } from './ReferenceUrlCard.js';
 import { Input } from './ui/input.js';
+import { Button } from './ui/button.js';
 
 const MAX_REFERENCES = 5;
 const URL_REGEX = /^https?:\/\/.+/;
@@ -55,11 +56,22 @@ export function ReferenceUrlList({ blogId, initialReferences = [] }: Props) {
     setReferences((prev) => prev.filter((r) => r.id !== refId));
   }, []);
 
-  const handleStatusChange = useCallback((refId: string, status: ReferenceScrapeStatus) => {
-    setReferences((prev) =>
-      prev.map((r) => (r.id === refId ? { ...r, scrapeStatus: status } : r)),
-    );
-  }, []);
+  const handleReferenceUpdate = useCallback(
+    (
+      refId: string,
+      patch: Partial<{
+        scrapeStatus: ReferenceScrapeStatus;
+        scrapeError: string | null;
+        extractionStatus: ReferenceExtractionStatus;
+        extractionJson: string | null;
+      }>,
+    ) => {
+      setReferences((prev) =>
+        prev.map((r) => (r.id === refId ? { ...r, ...patch } : r)),
+      );
+    },
+    [],
+  );
 
   return (
     <div className="flex flex-col gap-3">
@@ -71,25 +83,31 @@ export function ReferenceUrlList({ blogId, initialReferences = [] }: Props) {
           url={ref.url}
           initialStatus={ref.scrapeStatus}
           initialError={ref.scrapeError}
+          initialExtractionStatus={ref.extractionStatus}
+          initialExtractionJson={ref.extractionJson}
           onRemove={handleRemove}
-          onStatusChange={handleStatusChange}
+          onReferenceUpdate={handleReferenceUpdate}
         />
       ))}
 
       {references.length < MAX_REFERENCES && (
         <div className="flex flex-col gap-1">
-          <div className="flex gap-2">
-            <Input
-              type="url"
-              placeholder="https://example.com/reference-article"
-              value={inputValue}
-              onChange={(e) => { setInputValue(e.target.value); setInputError(null); }}
-              onKeyDown={handleKeyDown}
-              onBlur={() => { if (inputValue.trim()) void handleAdd(); }}
-              disabled={adding}
-              error={!!inputError}
-              aria-label="Add reference URL"
-            />
+          <div className="flex flex-wrap gap-2">
+            <div className="min-w-0 flex-1">
+              <Input
+                type="url"
+                placeholder="https://example.com/reference-article"
+                value={inputValue}
+                onChange={(e) => { setInputValue(e.target.value); setInputError(null); }}
+                onKeyDown={handleKeyDown}
+                disabled={adding}
+                error={!!inputError}
+                aria-label="Add reference URL"
+              />
+            </div>
+            <Button type="button" onClick={() => void handleAdd()} disabled={adding}>
+              Add URL
+            </Button>
           </div>
           {inputError && (
             <p className="text-xs text-red-600">{inputError}</p>
@@ -101,7 +119,7 @@ export function ReferenceUrlList({ blogId, initialReferences = [] }: Props) {
             </p>
           )}
           <p className="text-xs text-slate-400">
-            Press Enter or leave the field to add · {MAX_REFERENCES - references.length} remaining
+            Press Enter or use Add URL · {MAX_REFERENCES - references.length} remaining
           </p>
         </div>
       )}

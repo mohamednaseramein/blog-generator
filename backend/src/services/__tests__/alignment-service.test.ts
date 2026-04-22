@@ -13,7 +13,7 @@ import {
   generateAlignmentSummary,
   resolveAlignmentAnthropicModel,
 } from '../alignment-service.js';
-import type { BlogBrief } from '../../domain/types.js';
+import type { BlogBrief, BlogReference } from '../../domain/types.js';
 
 const brief: BlogBrief = {
   id: 'brief-1',
@@ -51,6 +51,32 @@ const validSummaryWithReferenceJson = JSON.stringify({
   scope: 'Covers 10 actionable tips. Excludes medical advice.',
   referenceUnderstanding: 'The reference article covered evidence-based sleep routines and will inform the structure of the tips.',
 });
+
+const validDifferentiationJson = JSON.stringify({
+  blogGoal: 'Help professionals sleep better.',
+  targetAudience: 'Busy professionals 30–45 seeking wellness tips.',
+  seoIntent: 'Rank for "sleep hygiene" with practical advice.',
+  tone: 'Friendly and expert.',
+  scope: 'Covers 10 actionable tips. Excludes medical advice.',
+  differentiationAngle: 'We will emphasise quick wins for shift workers, unlike the reference’s generic evening routine focus.',
+});
+
+function makeRef(overrides: Partial<BlogReference>): BlogReference {
+  return {
+    id: 'ref-1',
+    blogId: 'blog-1',
+    url: 'https://example.com/article',
+    position: 1,
+    scrapeStatus: 'pending',
+    scrapeError: null,
+    scrapedContent: null,
+    extractionStatus: 'pending',
+    extractionJson: null,
+    createdAt: new Date(),
+    updatedAt: new Date(),
+    ...overrides,
+  };
+}
 
 beforeEach(() => {
   vi.clearAllMocks();
@@ -212,5 +238,89 @@ describe('generateAlignmentSummary', () => {
     await expect(generateAlignmentSummary(briefWithContent)).rejects.toThrow(
       'AI returned an unexpected response format. Please try again.',
     );
+  });
+
+  it('uses differentiationAngle when at least one reference has successful extraction JSON', async () => {
+    mockCreate.mockResolvedValue({
+      content: [{ type: 'text', text: validDifferentiationJson }],
+    });
+
+    const extractionJson = JSON.stringify({
+      relevance: 'high',
+      summary: 'Covers sleep hygiene basics.',
+      keyAngle: 'Focus on circadian rhythm.',
+      irrelevantToBrief: false,
+    });
+
+    const references: BlogReference[] = [
+      makeRef({
+        scrapeStatus: 'success',
+        extractionStatus: 'success',
+        extractionJson,
+        scrapedContent: 'body text',
+      }),
+    ];
+
+    const result = await generateAlignmentSummary(brief, undefined, references);
+
+    expect(result.differentiationAngle).toContain('shift workers');
+    expect(result.referenceUnderstanding).toBeUndefined();
+    expect(result.referencesAnalysis).toBeUndefined();
+
+    const promptArg = mockCreate.mock.calls[0]?.[0] as { messages: { content: string }[] };
+    expect(promptArg.messages[0]?.content).toContain('differentiationAngle');
+    expect(promptArg.messages[0]?.content).toContain('Reference insights');
+    expect(promptArg.messages[0]?.content).not.toMatch(/"referenceUnderstanding"\s*:/);
+  });
+
+  it('returns referencesAnalysis none_usable when references exist, scrapes settled, and no successful extraction', async () => {
+    mockCreate.mockResolvedValue({
+      content: [{ type: 'text', text: validSummaryJson }],
+    });
+
+    const references: BlogReference[] = [
+      makeRef({
+        scrapeStatus: 'success',
+        scrapedContent: 'some text',
+        extractionStatus: 'failed',
+        extractionJson: null,
+      }),
+    ];
+
+    const result = await generateAlignmentSummary(brief, undefined, references);
+
+    expect(result.referencesAnalysis).toBe('none_usable');
+    expect(result.referenceUnderstanding).toBeUndefined();
+    expect(result.differentiationAngle).toBeUndefined();
+    const stored = JSON.parse(result.raw) as { referencesAnalysis?: string };
+    expect(stored.referencesAnalysis).toBe('none_usable');
+
+    const promptArg = mockCreate.mock.calls[0]?.[0] as { messages: { content: string }[] };
+    expect(promptArg.messages[0]?.content).toContain('did not produce usable structured insights');
+  });
+
+  it('falls back to referenceUnderstanding when scrape succeeded but extraction is still pending', async () => {
+    mockCreate.mockResolvedValue({
+      content: [{ type: 'text', text: validSummaryWithReferenceJson }],
+    });
+
+    const references: BlogReference[] = [
+      makeRef({
+        scrapeStatus: 'success',
+        scrapedContent: 'scraped body here',
+        extractionStatus: 'pending',
+        extractionJson: null,
+      }),
+    ];
+
+    const result = await generateAlignmentSummary(brief, undefined, references);
+
+    expect(result.referenceUnderstanding).toBeTruthy();
+    expect(result.differentiationAngle).toBeUndefined();
+    expect(result.referencesAnalysis).toBeUndefined();
+
+    const promptArg = mockCreate.mock.calls[0]?.[0] as { messages: { content: string }[] };
+    expect(promptArg.messages[0]?.content).toContain('referenceUnderstanding');
+    expect(promptArg.messages[0]?.content).toContain('scraped body here');
   });
 });

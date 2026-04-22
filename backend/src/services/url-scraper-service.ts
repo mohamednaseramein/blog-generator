@@ -2,6 +2,7 @@ import axios from 'axios';
 import * as cheerio from 'cheerio';
 import { updateScrapeResult } from '../repositories/blog-brief-repository.js';
 import { updateReferenceScrapeResult } from '../repositories/blog-references-repository.js';
+import { extractReferenceInBackground } from './reference-extraction-runner.js';
 
 const MAX_CONTENT_LENGTH = 10_000;
 
@@ -64,6 +65,7 @@ async function scrapeReference(referenceId: string, url: string): Promise<void> 
       .slice(0, MAX_CONTENT_LENGTH);
 
     await updateReferenceScrapeResult(referenceId, 'success', text || null, null);
+    extractReferenceInBackground(referenceId);
   } catch (err) {
     const error = err as NodeJS.ErrnoException & { code?: string; response?: { status: number } };
 

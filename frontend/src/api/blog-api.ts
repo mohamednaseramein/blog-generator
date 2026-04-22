@@ -68,12 +68,15 @@ export interface AlignmentSummary {
   seoIntent: string;
   tone: string;
   scope: string;
-  /** Present only when the brief had a scraped reference URL. */
+  /** Raw-scrape / pending-extraction path. */
   referenceUnderstanding?: string;
+  /** Structured reference extractions available. */
+  differentiationAngle?: string;
 }
 
 export interface AlignmentResponse {
   summary: AlignmentSummary & { raw: string };
+  referencesAnalysis?: 'none_usable';
 }
 
 export async function generateAlignment(
@@ -152,6 +155,8 @@ export async function getDraft(
 
 export type ReferenceScrapeStatus = 'pending' | 'success' | 'failed' | 'timeout' | 'skipped';
 
+export type ReferenceExtractionStatus = 'pending' | 'success' | 'failed' | 'irrelevant';
+
 export interface BlogReference {
   id: string;
   blogId: string;
@@ -160,7 +165,7 @@ export interface BlogReference {
   scrapeStatus: ReferenceScrapeStatus;
   scrapeError: string | null;
   scrapedContent: string | null;
-  extractionStatus: string;
+  extractionStatus: ReferenceExtractionStatus;
   extractionJson: string | null;
 }
 
@@ -181,10 +186,18 @@ export async function listReferences(blogId: string): Promise<{ references: Blog
 export async function getReferenceStatus(
   blogId: string,
   refId: string,
-): Promise<{ scrapeStatus: ReferenceScrapeStatus; scrapeError: string | null }> {
-  return request<{ scrapeStatus: ReferenceScrapeStatus; scrapeError: string | null }>(
-    `${BASE}/${blogId}/references/${refId}/status`,
-  );
+): Promise<{
+  scrapeStatus: ReferenceScrapeStatus;
+  scrapeError: string | null;
+  extractionStatus: ReferenceExtractionStatus;
+  extractionJson: string | null;
+}> {
+  return request<{
+    scrapeStatus: ReferenceScrapeStatus;
+    scrapeError: string | null;
+    extractionStatus: ReferenceExtractionStatus;
+    extractionJson: string | null;
+  }>(`${BASE}/${blogId}/references/${refId}/status`);
 }
 
 export async function removeReference(

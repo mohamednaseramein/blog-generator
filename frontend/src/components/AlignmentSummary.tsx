@@ -11,17 +11,27 @@ interface Props {
   onConfirmed: () => void;
 }
 
-const SECTIONS: { key: keyof AlignmentSummaryType; label: string; icon: string; optional?: boolean }[] = [
+const BASE_SECTIONS: { key: keyof AlignmentSummaryType; label: string; icon: string }[] = [
   { key: 'blogGoal', label: 'Blog Goal', icon: '🎯' },
   { key: 'targetAudience', label: 'Target Audience', icon: '👥' },
   { key: 'seoIntent', label: 'SEO Intent', icon: '🔍' },
   { key: 'tone', label: 'Tone & Voice', icon: '✍️' },
   { key: 'scope', label: 'Scope', icon: '📋' },
-  { key: 'referenceUnderstanding', label: 'Reference Understanding', icon: '🔗', optional: true },
+];
+
+const REFERENCE_SECTIONS: {
+  key: keyof AlignmentSummaryType;
+  label: string;
+  icon: string;
+  variant: 'indigo' | 'violet';
+}[] = [
+  { key: 'differentiationAngle', label: 'Differentiation angle', icon: '✨', variant: 'violet' },
+  { key: 'referenceUnderstanding', label: 'Reference understanding', icon: '🔗', variant: 'indigo' },
 ];
 
 export function AlignmentSummary({ blogId, onEdit, onConfirmed }: Props) {
   const [summary, setSummary] = useState<AlignmentSummaryType | null>(null);
+  const [referencesAnalysis, setReferencesAnalysis] = useState<'none_usable' | null>(null);
   const [feedback, setFeedback] = useState('');
   const [generating, setGenerating] = useState(false);
   const [confirming, setConfirming] = useState(false);
@@ -34,6 +44,7 @@ export function AlignmentSummary({ blogId, onEdit, onConfirmed }: Props) {
     try {
       const res = await generateAlignment(blogId, feedbackText);
       setSummary(res.summary);
+      setReferencesAnalysis(res.referencesAnalysis ?? null);
       setFeedback('');
       setIterations((i) => i + 1);
     } catch (e) {
@@ -78,15 +89,46 @@ export function AlignmentSummary({ blogId, onEdit, onConfirmed }: Props) {
       {/* Summary cards */}
       {summary && !generating && (
         <div className="flex flex-col gap-3">
-          {SECTIONS.map(({ key, label, icon, optional }) => {
+          {referencesAnalysis === 'none_usable' && (
+            <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-950">
+              Your reference URLs could not be turned into structured insights (scrape or analysis did not yield usable
+              content). The summary below is based on your brief only. You can still paste key ideas into the brief and
+              regenerate.
+            </div>
+          )}
+
+          {BASE_SECTIONS.map(({ key, label, icon }) => {
             const value = summary[key];
-            if (optional && !value) return null;
+            return (
+              <div key={key} className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3">
+                <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-slate-400">
+                  {icon} {label}
+                </p>
+                <p className="text-sm text-slate-700">{value}</p>
+              </div>
+            );
+          })}
+
+          {REFERENCE_SECTIONS.map(({ key, label, icon, variant }) => {
+            const value = summary[key];
+            if (!value || typeof value !== 'string') return null;
+            const isViolet = variant === 'violet';
             return (
               <div
                 key={key}
-                className={`rounded-xl border px-4 py-3 ${key === 'referenceUnderstanding' ? 'border-indigo-200 bg-indigo-50' : 'border-slate-200 bg-slate-50'}`}
+                className={
+                  isViolet
+                    ? 'rounded-xl border border-violet-200 bg-violet-50 px-4 py-3'
+                    : 'rounded-xl border border-indigo-200 bg-indigo-50 px-4 py-3'
+                }
               >
-                <p className={`mb-1 text-xs font-semibold uppercase tracking-wide ${key === 'referenceUnderstanding' ? 'text-indigo-400' : 'text-slate-400'}`}>
+                <p
+                  className={
+                    isViolet
+                      ? 'mb-1 text-xs font-semibold uppercase tracking-wide text-violet-500'
+                      : 'mb-1 text-xs font-semibold uppercase tracking-wide text-indigo-400'
+                  }
+                >
                   {icon} {label}
                 </p>
                 <p className="text-sm text-slate-700">{value}</p>

@@ -124,6 +124,32 @@ export async function confirmOutline(blogId: string): Promise<{ confirmed: boole
   });
 }
 
+export interface DraftResponse {
+  draft: { markdown: string; raw: string };
+}
+
+export async function generateDraft(
+  blogId: string,
+  feedback?: string,
+): Promise<DraftResponse> {
+  return request<DraftResponse>(`${BASE}/${blogId}/draft`, {
+    method: 'POST',
+    body: JSON.stringify({ feedback }),
+  });
+}
+
+export async function confirmDraft(blogId: string): Promise<{ confirmed: boolean }> {
+  return request<{ confirmed: boolean }>(`${BASE}/${blogId}/draft/confirm`, {
+    method: 'POST',
+  });
+}
+
+export async function getDraft(
+  blogId: string,
+): Promise<{ draft: { markdown: string; draftConfirmed: boolean; draftIterations: number } }> {
+  return request(`${BASE}/${blogId}/draft`);
+}
+
 export type ReferenceScrapeStatus = 'pending' | 'success' | 'failed' | 'timeout' | 'skipped';
 
 export interface BlogReference {

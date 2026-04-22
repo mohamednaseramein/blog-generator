@@ -16,6 +16,11 @@ import {
   handleGetOutline,
 } from '../handlers/blog-outline-handler.js';
 import {
+  handleGenerateDraft,
+  handleConfirmDraft,
+  handleGetDraft,
+} from '../handlers/blog-draft-handler.js';
+import {
   handleAddReference,
   handleListReferences,
   handleGetReferenceStatus,
@@ -33,6 +38,9 @@ router.post('/:id/alignment/confirm', requireAuth, handleConfirmAlignment);
 router.post('/:id/outline', requireAuth, handleGenerateOutline);
 router.post('/:id/outline/confirm', requireAuth, handleConfirmOutline);
 router.get('/:id/outline', requireAuth, handleGetOutline);
+router.post('/:id/draft', requireAuth, handleGenerateDraft);
+router.post('/:id/draft/confirm', requireAuth, handleConfirmDraft);
+router.get('/:id/draft', requireAuth, handleGetDraft);
 
 // Reference URLs (multi-URL support — EP-05 / US-09)
 router.post('/:id/references', requireAuth, handleAddReference);

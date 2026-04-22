@@ -14,6 +14,9 @@ async function request(url, options) {
     }
     return body;
 }
+export async function listBlogs() {
+    return request(BASE);
+}
 export async function createBlog() {
     return request(BASE, { method: 'POST' });
 }

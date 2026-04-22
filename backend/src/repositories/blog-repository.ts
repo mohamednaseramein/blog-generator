@@ -48,6 +48,44 @@ export async function getBlogByIdAndUser(
   return toModel(data);
 }
 
+export interface BlogSummary {
+  id: string;
+  currentStep: number;
+  status: Blog['status'];
+  title: string | null;
+  updatedAt: Date;
+}
+
+export async function listBlogsByUser(userId: string): Promise<BlogSummary[]> {
+  const { data, error } = await getSupabase()
+    .from('blogs')
+    .select('id, current_step, status, updated_at, blog_briefs(title)')
+    .eq('user_id', userId)
+    .gt('current_step', 0)
+    .order('updated_at', { ascending: false });
+
+  if (error) throw new Error(error.message);
+  if (!data) return [];
+
+  type RawRow = {
+    id: string;
+    current_step: number;
+    status: string;
+    updated_at: string;
+    blog_briefs: { title: string }[] | null;
+  };
+
+  return (data as unknown as RawRow[]).map((row) => ({
+    id: row.id,
+    currentStep: row.current_step,
+    status: row.status as Blog['status'],
+    title: Array.isArray(row.blog_briefs) && row.blog_briefs.length > 0
+      ? row.blog_briefs[0]!.title
+      : null,
+    updatedAt: new Date(row.updated_at),
+  }));
+}
+
 export async function advanceBlogStep(id: string, step: number): Promise<void> {
   const { error } = await getSupabase()
     .from('blogs')

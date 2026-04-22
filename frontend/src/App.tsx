@@ -5,12 +5,14 @@ import { OutlineStep } from './components/OutlineStep.js';
 import { DraftStep } from './components/DraftStep.js';
 import { PublishStep } from './components/PublishStep.js';
 import { WizardProgress } from './components/WizardProgress.js';
+import { BlogHistory } from './components/BlogHistory.js';
 import { Button } from './components/ui/button.js';
 import { Toast } from './components/ui/toast.js';
 import { createBlog } from './api/blog-api.js';
 
 type AppState =
   | { step: 'idle' }
+  | { step: 'history' }
   | { step: 'creating' }
   | { step: 'brief'; blogId: string }
   | { step: 'alignment'; blogId: string }
@@ -18,6 +20,15 @@ type AppState =
   | { step: 'draft'; blogId: string }
   | { step: 'publish'; blogId: string }
   | { step: 'done'; blogId: string };
+
+const STEP_TO_APP: Record<number, AppState['step']> = {
+  1: 'brief',
+  2: 'alignment',
+  3: 'outline',
+  4: 'draft',
+  5: 'publish',
+  6: 'publish', // completed blogs open on Publish so content can be re-copied
+};
 
 export function App() {
   const [state, setState] = useState<AppState>({ step: 'idle' });
@@ -35,7 +46,13 @@ export function App() {
     }
   }
 
-  const wizardStep = state.step === 'idle' || state.step === 'creating' ? 1
+  function resumeBlog(blogId: string, currentStep: number) {
+    const step = STEP_TO_APP[currentStep] ?? 'brief';
+    if (step === 'idle' || step === 'history' || step === 'creating') return;
+    setState({ step, blogId });
+  }
+
+  const wizardStep = state.step === 'idle' || state.step === 'history' || state.step === 'creating' ? 1
     : state.step === 'brief' ? 1
     : state.step === 'alignment' ? 2
     : state.step === 'outline' ? 3
@@ -59,7 +76,7 @@ export function App() {
         </div>
 
         {/* Wizard progress */}
-        {(state.step === 'brief' || state.step === 'alignment' || state.step === 'outline' || state.step === 'draft' || state.step === 'publish' || state.step === 'done') && (
+        {(state.step === 'brief' || state.step === 'alignment' || state.step === 'outline' || state.step === 'draft' || state.step === 'publish') && (
           <div className="mb-8">
             <WizardProgress current={wizardStep} />
           </div>
@@ -77,10 +94,22 @@ export function App() {
                 </p>
               </div>
               {error && <Toast variant="error">{error}</Toast>}
-              <Button onClick={() => void startNewBlog()} size="md">
-                Start a new blog post →
-              </Button>
+              <div className="flex gap-3">
+                <Button onClick={() => void startNewBlog()} size="md">
+                  Start a new blog post →
+                </Button>
+                <Button variant="ghost" size="md" onClick={() => setState({ step: 'history' })}>
+                  My blogs
+                </Button>
+              </div>
             </div>
+          )}
+
+          {state.step === 'history' && (
+            <BlogHistory
+              onResume={resumeBlog}
+              onNew={() => void startNewBlog()}
+            />
           )}
 
           {state.step === 'creating' && (
@@ -148,9 +177,14 @@ export function App() {
                   Thanks for using the wizard. Start another post whenever you are ready.
                 </p>
               </div>
-              <Button variant="ghost" size="sm" onClick={() => void startNewBlog()}>
-                ← Start another post
-              </Button>
+              <div className="flex gap-3">
+                <Button size="sm" onClick={() => void startNewBlog()}>
+                  + New post
+                </Button>
+                <Button variant="ghost" size="sm" onClick={() => setState({ step: 'history' })}>
+                  My blogs
+                </Button>
+              </div>
             </div>
           )}
 

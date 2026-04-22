@@ -44,6 +44,18 @@ async function request<T>(url: string, options?: RequestInit): Promise<T> {
   return body as T;
 }
 
+export interface BlogSummary {
+  id: string;
+  currentStep: number;
+  status: 'draft' | 'in_progress' | 'completed';
+  title: string | null;
+  updatedAt: string;
+}
+
+export async function listBlogs(): Promise<{ blogs: BlogSummary[] }> {
+  return request<{ blogs: BlogSummary[] }>(BASE);
+}
+
 export async function createBlog(): Promise<{ blogId: string }> {
   return request<{ blogId: string }>(BASE, { method: 'POST' });
 }

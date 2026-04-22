@@ -84,10 +84,12 @@ export function BlogHistory({ onResume, onNew }: Props) {
         <ul className="flex flex-col gap-3">
           {blogs.map((blog) => {
             const done = blog.currentStep >= 6;
-            const date = new Date(blog.updatedAt).toLocaleDateString(undefined, {
+            const date = new Date(blog.updatedAt).toLocaleString(undefined, {
               month: 'short',
               day: 'numeric',
               year: 'numeric',
+              hour: '2-digit',
+              minute: '2-digit',
             });
             const title = blog.title ?? 'Untitled';
 

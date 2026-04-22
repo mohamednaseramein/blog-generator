@@ -30,6 +30,23 @@ export interface BlogBrief {
   updatedAt: Date;
 }
 
+export interface BlogOutlineSection {
+  title: string;
+  description: string;
+  subsections: string[];
+  estimatedWords: number;
+}
+
+export interface BlogOutline {
+  id: string;
+  blogId: string;
+  outlineJson: string;
+  outlineConfirmed: boolean;
+  outlineIterations: number;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
 export interface SubmitBriefInput {
   title: string;
   primaryKeyword: string;

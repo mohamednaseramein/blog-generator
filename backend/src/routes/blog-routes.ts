@@ -10,6 +10,11 @@ import {
   handleGenerateAlignment,
   handleConfirmAlignment,
 } from '../handlers/blog-alignment-handler.js';
+import {
+  handleGenerateOutline,
+  handleConfirmOutline,
+  handleGetOutline,
+} from '../handlers/blog-outline-handler.js';
 
 const router = Router();
 
@@ -19,5 +24,8 @@ router.get('/:id/brief', requireAuth, handleGetBrief);
 router.get('/:id/brief/scrape-status', requireAuth, handleGetScrapeStatus);
 router.post('/:id/alignment', requireAuth, handleGenerateAlignment);
 router.post('/:id/alignment/confirm', requireAuth, handleConfirmAlignment);
+router.post('/:id/outline', requireAuth, handleGenerateOutline);
+router.post('/:id/outline/confirm', requireAuth, handleConfirmOutline);
+router.get('/:id/outline', requireAuth, handleGetOutline);
 
 export default router;

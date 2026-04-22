@@ -91,3 +91,35 @@ export async function confirmAlignment(blogId: string): Promise<{ confirmed: boo
     method: 'POST',
   });
 }
+
+export interface OutlineSection {
+  title: string;
+  description: string;
+  subsections: string[];
+  estimatedWords: number;
+}
+
+export interface BlogOutline {
+  sections: OutlineSection[];
+  totalEstimatedWords: number;
+}
+
+export interface OutlineResponse {
+  outline: BlogOutline & { raw: string };
+}
+
+export async function generateOutline(
+  blogId: string,
+  feedback?: string,
+): Promise<OutlineResponse> {
+  return request<OutlineResponse>(`${BASE}/${blogId}/outline`, {
+    method: 'POST',
+    body: JSON.stringify({ feedback }),
+  });
+}
+
+export async function confirmOutline(blogId: string): Promise<{ confirmed: boolean }> {
+  return request<{ confirmed: boolean }>(`${BASE}/${blogId}/outline/confirm`, {
+    method: 'POST',
+  });
+}

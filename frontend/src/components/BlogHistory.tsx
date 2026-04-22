@@ -5,6 +5,7 @@ import { Button } from './ui/button.js';
 import { Toast } from './ui/toast.js';
 
 const STEP_LABELS: Record<number, string> = {
+  0: 'Not started',
   1: 'Brief',
   2: 'Alignment',
   3: 'Outline',
@@ -18,11 +19,14 @@ function stepLabel(step: number): string {
 }
 
 function StepBadge({ step, done }: { step: number; done: boolean }) {
+  const notStarted = step === 0;
   return (
     <span
       className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${
         done
           ? 'bg-green-100 text-green-700'
+          : notStarted
+          ? 'bg-slate-100 text-slate-500'
           : 'bg-indigo-100 text-indigo-700'
       }`}
     >

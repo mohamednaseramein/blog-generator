@@ -4,6 +4,7 @@ import { listBlogs } from '../api/blog-api.js';
 import { Button } from './ui/button.js';
 import { Toast } from './ui/toast.js';
 const STEP_LABELS = {
+    0: 'Not started',
     1: 'Brief',
     2: 'Alignment',
     3: 'Outline',
@@ -15,9 +16,12 @@ function stepLabel(step) {
     return STEP_LABELS[step] ?? `Step ${step}`;
 }
 function StepBadge({ step, done }) {
+    const notStarted = step === 0;
     return (_jsx("span", { className: `inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${done
             ? 'bg-green-100 text-green-700'
-            : 'bg-indigo-100 text-indigo-700'}`, children: done ? '✓ Done' : stepLabel(step) }));
+            : notStarted
+                ? 'bg-slate-100 text-slate-500'
+                : 'bg-indigo-100 text-indigo-700'}`, children: done ? '✓ Done' : stepLabel(step) }));
 }
 export function BlogHistory({ onResume, onNew }) {
     const [blogs, setBlogs] = useState([]);

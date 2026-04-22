@@ -5,6 +5,7 @@ import {
   updateAlignmentSummary,
   confirmAlignment,
 } from '../repositories/blog-brief-repository.js';
+import { getReferencesByBlogId } from '../repositories/blog-references-repository.js';
 import { generateAlignmentSummary } from '../services/alignment-service.js';
 import { AppError } from '../middleware/error-handler.js';
 import { getUserId } from '../middleware/auth.js';
@@ -26,7 +27,8 @@ export async function handleGenerateAlignment(
     const brief = await getBriefByBlogId(blogId);
     if (!brief) throw new AppError(404, 'NOT_FOUND', 'Brief not found — submit the brief first');
 
-    const summary = await generateAlignmentSummary(brief, feedbackText);
+    const references = await getReferencesByBlogId(blogId);
+    const summary = await generateAlignmentSummary(brief, feedbackText, references);
     await updateAlignmentSummary(blogId, summary.raw);
 
     res.json({ summary });

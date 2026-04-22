@@ -1,5 +1,7 @@
 export type BlogStatus = 'draft' | 'in_progress' | 'completed';
 export type ScrapeStatus = 'pending' | 'success' | 'failed' | 'skipped';
+export type ReferenceScrapeStatus = 'pending' | 'success' | 'failed' | 'timeout' | 'skipped';
+export type ReferenceExtractionStatus = 'pending' | 'success' | 'failed' | 'irrelevant';
 
 export interface Blog {
   id: string;
@@ -47,6 +49,20 @@ export interface BlogOutline {
   updatedAt: Date;
 }
 
+export interface BlogReference {
+  id: string;
+  blogId: string;
+  url: string;
+  position: number;
+  scrapeStatus: ReferenceScrapeStatus;
+  scrapeError: string | null;
+  scrapedContent: string | null;
+  extractionStatus: ReferenceExtractionStatus;
+  extractionJson: string | null;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
 export interface SubmitBriefInput {
   title: string;
   primaryKeyword: string;
@@ -55,5 +71,10 @@ export interface SubmitBriefInput {
   wordCountMin: number;
   wordCountMax: number;
   blogBrief: string;
+  /** @deprecated Use blog_references table instead. Kept for backwards compat during transition. */
   referenceUrl?: string;
+}
+
+export interface AddReferenceInput {
+  url: string;
 }

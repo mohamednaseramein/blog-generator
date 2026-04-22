@@ -123,3 +123,49 @@ export async function confirmOutline(blogId: string): Promise<{ confirmed: boole
     method: 'POST',
   });
 }
+
+export type ReferenceScrapeStatus = 'pending' | 'success' | 'failed' | 'timeout' | 'skipped';
+
+export interface BlogReference {
+  id: string;
+  blogId: string;
+  url: string;
+  position: number;
+  scrapeStatus: ReferenceScrapeStatus;
+  scrapeError: string | null;
+  scrapedContent: string | null;
+  extractionStatus: string;
+  extractionJson: string | null;
+}
+
+export async function addReference(
+  blogId: string,
+  url: string,
+): Promise<{ reference: BlogReference }> {
+  return request<{ reference: BlogReference }>(`${BASE}/${blogId}/references`, {
+    method: 'POST',
+    body: JSON.stringify({ url }),
+  });
+}
+
+export async function listReferences(blogId: string): Promise<{ references: BlogReference[] }> {
+  return request<{ references: BlogReference[] }>(`${BASE}/${blogId}/references`);
+}
+
+export async function getReferenceStatus(
+  blogId: string,
+  refId: string,
+): Promise<{ scrapeStatus: ReferenceScrapeStatus; scrapeError: string | null }> {
+  return request<{ scrapeStatus: ReferenceScrapeStatus; scrapeError: string | null }>(
+    `${BASE}/${blogId}/references/${refId}/status`,
+  );
+}
+
+export async function removeReference(
+  blogId: string,
+  refId: string,
+): Promise<{ deleted: boolean }> {
+  return request<{ deleted: boolean }>(`${BASE}/${blogId}/references/${refId}`, {
+    method: 'DELETE',
+  });
+}

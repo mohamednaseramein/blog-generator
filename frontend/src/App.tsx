@@ -47,7 +47,9 @@ export function App() {
   }
 
   function resumeBlog(blogId: string, currentStep: number) {
-    const step = STEP_TO_APP[currentStep] ?? 'brief';
+    // DB default is 0; legacy rows may never have had advanceBlogStep. Treat 0 as "brief" (1).
+    const s = currentStep < 1 ? 1 : currentStep;
+    const step = STEP_TO_APP[s] ?? 'brief';
     if (step === 'idle' || step === 'history' || step === 'creating') return;
     setState({ step, blogId });
   }

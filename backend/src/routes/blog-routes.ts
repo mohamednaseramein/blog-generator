@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { requireAuth } from '../middleware/auth.js';
-import { handleCreateBlog, handleListBlogs } from '../handlers/blog-handler.js';
+import { handleCreateBlog, handleCompleteBlog, handleListBlogs } from '../handlers/blog-handler.js';
 import {
   handleSubmitBrief,
   handleGetBrief,
@@ -32,6 +32,7 @@ const router = Router();
 
 router.get('/', requireAuth, handleListBlogs);
 router.post('/', requireAuth, handleCreateBlog);
+router.post('/:id/complete', requireAuth, handleCompleteBlog);
 router.post('/:id/brief', requireAuth, handleSubmitBrief);
 router.get('/:id/brief', requireAuth, handleGetBrief);
 router.get('/:id/brief/scrape-status', requireAuth, handleGetScrapeStatus);

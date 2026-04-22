@@ -1,5 +1,5 @@
 import type { Request, Response, NextFunction } from 'express';
-import { getBlogByIdAndUser } from '../repositories/blog-repository.js';
+import { getBlogByIdAndUser, advanceBlogStep } from '../repositories/blog-repository.js';
 import {
   upsertBrief,
   getBriefByBlogId,
@@ -41,6 +41,9 @@ export async function handleSubmitBrief(
     if (input.referenceUrl) {
       scrapeUrlInBackground(blogId, input.referenceUrl);
     }
+
+    // After a saved brief, the user proceeds to alignment (step 2 in the wizard).
+    await advanceBlogStep(blogId, 2);
 
     res.status(201).json({ blogId: brief.blogId, scrapeStatus: brief.scrapeStatus });
   } catch (err) {

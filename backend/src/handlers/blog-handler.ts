@@ -1,5 +1,6 @@
 import type { Request, Response, NextFunction } from 'express';
-import { createBlog, listBlogsByUser } from '../repositories/blog-repository.js';
+import { createBlog, getBlogByIdAndUser, listBlogsByUser, advanceBlogStep } from '../repositories/blog-repository.js';
+import { AppError } from '../middleware/error-handler.js';
 import { getUserId } from '../middleware/auth.js';
 
 export async function handleListBlogs(
@@ -25,6 +26,23 @@ export async function handleCreateBlog(
     const userId = getUserId(req as Request & { userId?: string });
     const blog = await createBlog(userId);
     res.status(201).json({ blogId: blog.id, currentStep: blog.currentStep });
+  } catch (err) {
+    next(err);
+  }
+}
+
+export async function handleCompleteBlog(
+  req: Request,
+  res: Response,
+  next: NextFunction,
+): Promise<void> {
+  try {
+    const userId = getUserId(req);
+    const blogId = req.params['id'] as string;
+    const blog = await getBlogByIdAndUser(blogId, userId);
+    if (!blog) throw new AppError(404, 'NOT_FOUND', 'Blog not found');
+    await advanceBlogStep(blogId, 6);
+    res.json({ blogId, currentStep: 6 });
   } catch (err) {
     next(err);
   }

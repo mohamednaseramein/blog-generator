@@ -83,7 +83,8 @@ export function BlogHistory({ onResume, onNew }: Props) {
       {!loading && blogs.length > 0 && (
         <ul className="flex flex-col gap-3">
           {blogs.map((blog) => {
-            const done = blog.currentStep >= 6;
+            const stepForUi = blog.currentStep < 1 ? 1 : blog.currentStep;
+            const done = stepForUi >= 6;
             const date = new Date(blog.updatedAt).toLocaleString(undefined, {
               month: 'short',
               day: 'numeric',
@@ -103,14 +104,14 @@ export function BlogHistory({ onResume, onNew }: Props) {
                     {title}
                   </span>
                   <div className="flex items-center gap-2">
-                    <StepBadge step={blog.currentStep} done={done} />
+                    <StepBadge step={stepForUi} done={done} />
                     <span className="text-xs text-slate-400">{date}</span>
                   </div>
                 </div>
                 <Button
                   size="sm"
                   variant={done ? 'ghost' : undefined}
-                  onClick={() => onResume(blog.id, blog.currentStep)}
+                  onClick={() => onResume(blog.id, stepForUi)}
                 >
                   {done ? 'View' : 'Continue →'}
                 </Button>

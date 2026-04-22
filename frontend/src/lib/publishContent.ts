@@ -23,8 +23,6 @@ export interface FullDocumentHtmlOptions {
   suggestedSlug: string | null;
   metaDescription: string | null;
   bodyMarkdown: string;
-  disclosure: boolean;
-  disclosureText: string;
 }
 
 /** Full article as an HTML string (for pasting into CMS “HTML” modes). */
@@ -44,8 +42,5 @@ export function buildFullDocumentHtml(opts: FullDocumentHtmlOptions): string {
     blocks.push(`<div class="doc-meta">${inner.join('')}</div>`);
   }
   blocks.push(`<div class="doc-body">${markdownToSafeHtml(opts.bodyMarkdown)}</div>`);
-  if (opts.disclosure) {
-    blocks.push(`<hr><p><em>${escapeHtml(opts.disclosureText)}</em></p>`);
-  }
   return `<article>\n${blocks.join('\n')}\n</article>`;
 }

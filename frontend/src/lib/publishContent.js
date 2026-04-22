@@ -31,8 +31,5 @@ export function buildFullDocumentHtml(opts) {
         blocks.push(`<div class="doc-meta">${inner.join('')}</div>`);
     }
     blocks.push(`<div class="doc-body">${markdownToSafeHtml(opts.bodyMarkdown)}</div>`);
-    if (opts.disclosure) {
-        blocks.push(`<hr><p><em>${escapeHtml(opts.disclosureText)}</em></p>`);
-    }
     return `<article>\n${blocks.join('\n')}\n</article>`;
 }

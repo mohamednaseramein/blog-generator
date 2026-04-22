@@ -7,6 +7,8 @@ interface BlogDraftRow {
   draft_markdown: string;
   draft_confirmed: boolean;
   draft_iterations: number;
+  meta_description: string | null;
+  suggested_slug: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -18,6 +20,8 @@ function toModel(row: BlogDraftRow): BlogDraft {
     draftMarkdown: row.draft_markdown,
     draftConfirmed: row.draft_confirmed,
     draftIterations: row.draft_iterations,
+    metaDescription: row.meta_description ?? null,
+    suggestedSlug: row.suggested_slug ?? null,
     createdAt: new Date(row.created_at),
     updatedAt: new Date(row.updated_at),
   };
@@ -60,10 +64,19 @@ export async function upsertDraft(
   return toModel(data);
 }
 
-export async function confirmDraft(blogId: string): Promise<void> {
+export async function confirmDraft(
+  blogId: string,
+  metaDescription: string,
+  suggestedSlug: string,
+): Promise<void> {
   const { error } = await getSupabase()
     .from('blog_drafts')
-    .update({ draft_confirmed: true, updated_at: new Date().toISOString() })
+    .update({
+      draft_confirmed: true,
+      meta_description: metaDescription,
+      suggested_slug: suggestedSlug,
+      updated_at: new Date().toISOString(),
+    })
     .eq('blog_id', blogId);
 
   if (error) throw new Error(error.message);

@@ -26,6 +26,7 @@ import {
   handleGetReferenceStatus,
   handleDeleteReference,
 } from '../handlers/blog-references-handler.js';
+import { handleRecordEvent } from '../handlers/blog-events-handler.js';
 
 const router = Router();
 
@@ -41,6 +42,8 @@ router.get('/:id/outline', requireAuth, handleGetOutline);
 router.post('/:id/draft', requireAuth, handleGenerateDraft);
 router.post('/:id/draft/confirm', requireAuth, handleConfirmDraft);
 router.get('/:id/draft', requireAuth, handleGetDraft);
+
+router.post('/:id/events', requireAuth, handleRecordEvent);
 
 // Reference URLs (multi-URL support — EP-05 / US-09)
 router.post('/:id/references', requireAuth, handleAddReference);

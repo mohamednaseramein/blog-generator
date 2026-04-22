@@ -147,10 +147,32 @@ export async function confirmDraft(blogId: string): Promise<{ confirmed: boolean
   });
 }
 
-export async function getDraft(
-  blogId: string,
-): Promise<{ draft: { markdown: string; draftConfirmed: boolean; draftIterations: number } }> {
+export async function getDraft(blogId: string): Promise<{
+  draft: {
+    markdown: string;
+    draftConfirmed: boolean;
+    draftIterations: number;
+    metaDescription: string | null;
+    suggestedSlug: string | null;
+  };
+}> {
   return request(`${BASE}/${blogId}/draft`);
+}
+
+export type ExportSection = 'all' | 'title' | 'meta' | 'slug' | 'body';
+
+export async function recordExportEvent(
+  blogId: string,
+  section: ExportSection,
+): Promise<void> {
+  try {
+    await request(`${BASE}/${blogId}/events`, {
+      method: 'POST',
+      body: JSON.stringify({ type: 'exported', section }),
+    });
+  } catch {
+    // fire-and-forget — never surface to the user
+  }
 }
 
 export type ReferenceScrapeStatus = 'pending' | 'success' | 'failed' | 'timeout' | 'skipped';

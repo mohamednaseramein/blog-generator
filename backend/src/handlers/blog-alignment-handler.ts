@@ -1,5 +1,5 @@
 import type { Request, Response, NextFunction } from 'express';
-import { getBlogByIdAndUser } from '../repositories/blog-repository.js';
+import { getBlogByIdAndUser, advanceBlogStep } from '../repositories/blog-repository.js';
 import {
   getBriefByBlogId,
   updateAlignmentSummary,
@@ -58,6 +58,7 @@ export async function handleConfirmAlignment(
     if (!brief.alignmentSummary) throw new AppError(400, 'BAD_REQUEST', 'Generate an alignment summary first');
 
     await confirmAlignment(blogId, brief.alignmentSummary);
+    await advanceBlogStep(blogId, 2);
 
     res.json({ confirmed: true, blogId });
   } catch (err) {

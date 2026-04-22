@@ -73,6 +73,17 @@ export async function recordExportEvent(blogId, section) {
         // fire-and-forget — never surface to the user
     }
 }
+export async function recordFinished(blogId) {
+    try {
+        await request(`${BASE}/${blogId}/events`, {
+            method: 'POST',
+            body: JSON.stringify({ type: 'finished' }),
+        });
+    }
+    catch {
+        // fire-and-forget
+    }
+}
 export async function addReference(blogId, url) {
     return request(`${BASE}/${blogId}/references`, {
         method: 'POST',

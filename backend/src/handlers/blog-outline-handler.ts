@@ -1,5 +1,5 @@
 import type { Request, Response, NextFunction } from 'express';
-import { getBlogByIdAndUser } from '../repositories/blog-repository.js';
+import { getBlogByIdAndUser, advanceBlogStep } from '../repositories/blog-repository.js';
 import { getBriefByBlogId } from '../repositories/blog-brief-repository.js';
 import {
   getOutlineByBlogId,
@@ -66,6 +66,7 @@ export async function handleConfirmOutline(
     if (!outline) throw new AppError(400, 'BAD_REQUEST', 'Generate an outline first');
 
     await confirmOutline(blogId);
+    await advanceBlogStep(blogId, 3);
 
     res.json({ confirmed: true, blogId });
   } catch (err) {

@@ -1,5 +1,5 @@
 import type { Request, Response, NextFunction } from 'express';
-import { getBlogByIdAndUser } from '../repositories/blog-repository.js';
+import { getBlogByIdAndUser, advanceBlogStep } from '../repositories/blog-repository.js';
 import { AppError } from '../middleware/error-handler.js';
 import { getUserId } from '../middleware/auth.js';
 
@@ -24,6 +24,11 @@ export async function handleRecordEvent(
 
     if (type === 'exported' && section && VALID_SECTIONS.includes(section)) {
       console.log(`[events] blogId=${blogId} type=exported section=${section}`);
+      if (blog.currentStep < 5) await advanceBlogStep(blogId, 5);
+    }
+
+    if (type === 'finished') {
+      await advanceBlogStep(blogId, 6);
     }
 
     res.status(204).end();

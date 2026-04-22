@@ -1,5 +1,5 @@
 import type { Request, Response, NextFunction } from 'express';
-import { getBlogByIdAndUser } from '../repositories/blog-repository.js';
+import { getBlogByIdAndUser, advanceBlogStep } from '../repositories/blog-repository.js';
 import { getBriefByBlogId } from '../repositories/blog-brief-repository.js';
 import { getOutlineByBlogId } from '../repositories/blog-outline-repository.js';
 import {
@@ -99,6 +99,7 @@ export async function handleConfirmDraft(
     );
 
     await confirmDraft(blogId, metaDescription, suggestedSlug);
+    await advanceBlogStep(blogId, 4);
 
     res.json({ confirmed: true, blogId, metaDescription, suggestedSlug });
   } catch (err) {

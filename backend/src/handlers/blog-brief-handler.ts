@@ -1,5 +1,5 @@
 import type { Request, Response, NextFunction } from 'express';
-import { getBlogByIdAndUser } from '../repositories/blog-repository.js';
+import { getBlogByIdAndUser, advanceBlogStep } from '../repositories/blog-repository.js';
 import {
   upsertBrief,
   getBriefByBlogId,
@@ -37,6 +37,7 @@ export async function handleSubmitBrief(
     }
 
     const brief = await upsertBrief(blogId, input, scrapeStatus);
+    await advanceBlogStep(blogId, 1);
 
     if (input.referenceUrl) {
       scrapeUrlInBackground(blogId, input.referenceUrl);

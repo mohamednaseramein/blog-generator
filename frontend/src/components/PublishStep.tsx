@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { getDraft, getBrief, recordExportEvent } from '../api/blog-api.js';
+import { getDraft, getBrief, recordExportEvent, recordFinished } from '../api/blog-api.js';
 import type { ExportSection } from '../api/blog-api.js';
 import { Button } from './ui/button.js';
 import { Toast } from './ui/toast.js';
@@ -247,7 +247,7 @@ export function PublishStep({ blogId, onBack, onFinish }: Props) {
         <Button variant="ghost" size="sm" onClick={onBack} disabled={loading}>
           ← Back to Draft
         </Button>
-        <Button variant="ghost" size="sm" onClick={onFinish}>
+        <Button variant="ghost" size="sm" onClick={() => { void recordFinished(blogId); onFinish(); }}>
           Finish →
         </Button>
       </div>

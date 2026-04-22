@@ -175,6 +175,17 @@ export async function recordExportEvent(
   }
 }
 
+export async function recordFinished(blogId: string): Promise<void> {
+  try {
+    await request(`${BASE}/${blogId}/events`, {
+      method: 'POST',
+      body: JSON.stringify({ type: 'finished' }),
+    });
+  } catch {
+    // fire-and-forget
+  }
+}
+
 export type ReferenceScrapeStatus = 'pending' | 'success' | 'failed' | 'timeout' | 'skipped';
 
 export type ReferenceExtractionStatus = 'pending' | 'success' | 'failed' | 'irrelevant';

@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 const {
   mockGetBlogByIdAndUser,
+  mockAdvanceBlogStep,
   mockGetBriefByBlogId,
   mockGetOutlineByBlogId,
   mockGetDraftByBlogId,
@@ -12,6 +13,7 @@ const {
   mockGetUserId,
 } = vi.hoisted(() => ({
   mockGetBlogByIdAndUser: vi.fn(),
+  mockAdvanceBlogStep: vi.fn(),
   mockGetBriefByBlogId: vi.fn(),
   mockGetOutlineByBlogId: vi.fn(),
   mockGetDraftByBlogId: vi.fn(),
@@ -24,6 +26,7 @@ const {
 
 vi.mock('../../repositories/blog-repository.js', () => ({
   getBlogByIdAndUser: mockGetBlogByIdAndUser,
+  advanceBlogStep: mockAdvanceBlogStep,
 }));
 
 vi.mock('../../repositories/blog-brief-repository.js', () => ({

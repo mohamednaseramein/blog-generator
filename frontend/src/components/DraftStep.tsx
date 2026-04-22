@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react';
-import { generateDraft, confirmDraft } from '../api/blog-api.js';
+import { useState, useEffect, useRef } from 'react';
+import { getDraft, generateDraft, confirmDraft } from '../api/blog-api.js';
 import { Button } from './ui/button.js';
 import { Textarea } from './ui/textarea.js';
 import { Toast } from './ui/toast.js';
@@ -15,12 +15,16 @@ export function DraftStep({ blogId, onBack, onConfirmed }: Props) {
   const [markdown, setMarkdown] = useState<string | null>(null);
   const [feedback, setFeedback] = useState('');
   const [generating, setGenerating] = useState(false);
+  const [loadingSaved, setLoadingSaved] = useState(true);
   const [confirming, setConfirming] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [iterations, setIterations] = useState(0);
+  const [fromSavedRun, setFromSavedRun] = useState(false);
+  const bootstrapped = useRef(false);
 
   async function generate(feedbackText?: string) {
     setError(null);
+    setFromSavedRun(false);
     setGenerating(true);
     try {
       const res = await generateDraft(blogId, feedbackText);
@@ -46,7 +50,38 @@ export function DraftStep({ blogId, onBack, onConfirmed }: Props) {
     }
   }
 
-  useEffect(() => { void generate(); }, []);
+  useEffect(() => {
+    if (bootstrapped.current) return;
+    bootstrapped.current = true;
+    let cancelled = false;
+
+    void (async () => {
+      setError(null);
+      setLoadingSaved(true);
+      setFromSavedRun(false);
+      try {
+        const { draft } = await getDraft(blogId);
+        if (draft.markdown.trim().length > 0) {
+          if (cancelled) return;
+          setMarkdown(draft.markdown);
+          setIterations(draft.draftIterations);
+          setFromSavedRun(true);
+          setLoadingSaved(false);
+          return;
+        }
+      } catch {
+        // 404 or error — try generation
+      }
+      if (cancelled) return;
+      setLoadingSaved(false);
+      if (cancelled) return;
+      await generate();
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [blogId]);
 
   return (
     <div className="flex flex-col gap-6">
@@ -57,17 +92,29 @@ export function DraftStep({ blogId, onBack, onConfirmed }: Props) {
         </p>
       </div>
 
-      {generating && (
+      {(loadingSaved || generating) && (
         <div className="flex flex-col items-center gap-3 py-10 text-slate-500">
           <span className="inline-block h-6 w-6 animate-spin rounded-full border-2 border-slate-200 border-t-indigo-500" />
           <p className="text-sm">
-            {iterations === 0 ? 'Generating draft…' : 'Regenerating with your feedback…'}
+            {loadingSaved
+              ? 'Loading your draft…'
+              : iterations === 0
+                ? 'Calling the model to create your draft…'
+                : 'Calling the model with your feedback…'}
           </p>
         </div>
       )}
 
-      {markdown && !generating && (
+      {markdown && !generating && !loadingSaved && (
         <div className="flex flex-col gap-2">
+          {fromSavedRun && (
+            <div
+              className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-900"
+              role="status"
+            >
+              Restored your last saved draft.
+            </div>
+          )}
           {iterations > 0 && (
             <p className="text-xs text-slate-400">Iteration {iterations}</p>
           )}
@@ -81,7 +128,7 @@ export function DraftStep({ blogId, onBack, onConfirmed }: Props) {
 
       {error && <Toast variant="error">{error}</Toast>}
 
-      {markdown && !generating && (
+      {markdown && !generating && !loadingSaved && (
         <Field
           label="Want changes? Tell the AI what to adjust:"
           hint="Leave blank if the draft reads well."
@@ -96,7 +143,7 @@ export function DraftStep({ blogId, onBack, onConfirmed }: Props) {
       )}
 
       <div className="flex flex-wrap items-center justify-between gap-3 pt-1">
-        <Button variant="ghost" size="sm" onClick={onBack} disabled={generating || confirming}>
+        <Button variant="ghost" size="sm" onClick={onBack} disabled={loadingSaved || generating || confirming}>
           ← Back to Outline
         </Button>
 
@@ -105,15 +152,17 @@ export function DraftStep({ blogId, onBack, onConfirmed }: Props) {
             <Button
               variant="ghost"
               size="sm"
-              onClick={() => void generate(feedback || undefined)}
-              disabled={generating || confirming}
+              onClick={() => void generate(feedback.trim() || undefined)}
+              disabled={loadingSaved || generating || confirming}
             >
-              {feedback ? 'Regenerate with feedback' : 'Regenerate'}
+              {feedback.trim()
+                ? 'Regenerate draft with your feedback'
+                : 'Regenerate draft'}
             </Button>
           )}
           <Button
             onClick={() => void confirm()}
-            disabled={!markdown || generating || confirming}
+            disabled={!markdown || loadingSaved || generating || confirming}
             aria-busy={confirming}
           >
             {confirming ? (

@@ -25,6 +25,12 @@ export interface BlogBriefResponse {
   wordCountMax: number;
   blogBrief: string;
   referenceUrl: string | null;
+  /** Set after at least one alignment generation; used to restore Step 2 without re-calling the model. */
+  alignmentSummary?: string | null;
+  alignment_summary?: string | null;
+  alignmentConfirmed?: boolean;
+  alignmentIterations?: number;
+  alignment_iterations?: number;
 }
 
 export async function getBrief(blogId: string): Promise<BlogBriefResponse> {
@@ -97,6 +103,37 @@ export interface AlignmentResponse {
   referencesAnalysis?: 'none_usable';
 }
 
+export interface ParsedAlignmentFromStorage {
+  summary: AlignmentSummary;
+  /** Present when the model had no usable reference insights (same as live generate). */
+  referencesAnalysis: 'none_usable' | null;
+}
+
+/** Parse persisted `blog_briefs.alignment_summary` (JSON text) for display without re-generating. */
+export function parseAlignmentSummaryFromStorage(alignmentSummary: string): ParsedAlignmentFromStorage {
+  const text = alignmentSummary.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/, '').trim();
+  const p = JSON.parse(text) as Record<string, unknown>;
+  for (const k of ['blogGoal', 'targetAudience', 'seoIntent', 'tone', 'scope'] as const) {
+    if (typeof p[k] !== 'string' || !(p[k] as string).trim()) {
+      throw new Error('Invalid stored alignment');
+    }
+  }
+  const ref = p['referencesAnalysis'];
+  return {
+    summary: {
+      blogGoal: p['blogGoal'] as string,
+      targetAudience: p['targetAudience'] as string,
+      seoIntent: p['seoIntent'] as string,
+      tone: p['tone'] as string,
+      scope: p['scope'] as string,
+      referenceUnderstanding:
+        typeof p['referenceUnderstanding'] === 'string' ? p['referenceUnderstanding'] : undefined,
+      differentiationAngle: typeof p['differentiationAngle'] === 'string' ? p['differentiationAngle'] : undefined,
+    },
+    referencesAnalysis: ref === 'none_usable' ? 'none_usable' : null,
+  };
+}
+
 export async function generateAlignment(
   blogId: string,
   feedback?: string,
@@ -127,6 +164,30 @@ export interface BlogOutline {
 
 export interface OutlineResponse {
   outline: BlogOutline & { raw: string };
+}
+
+/** GET /outline — same section shape as generate; null if no outline row yet (404). */
+export async function getOutline(
+  blogId: string,
+): Promise<{
+  outline: BlogOutline & { raw: string };
+  outlineConfirmed: boolean;
+  outlineIterations: number;
+} | null> {
+  const res = await fetch(`${BASE}/${blogId}/outline`, {
+    headers: { 'Content-Type': 'application/json' },
+  });
+  if (res.status === 404) return null;
+  const body = (await res.json()) as unknown;
+  if (!res.ok) {
+    const err = body as { error?: { message?: string } };
+    throw new Error(err.error?.message ?? 'Request failed');
+  }
+  return body as {
+    outline: BlogOutline & { raw: string };
+    outlineConfirmed: boolean;
+    outlineIterations: number;
+  };
 }
 
 export async function generateOutline(
@@ -177,7 +238,14 @@ export async function getDraft(blogId: string): Promise<{
   return request(`${BASE}/${blogId}/draft`);
 }
 
-export type ExportSection = 'all' | 'title' | 'meta' | 'slug' | 'body';
+export type ExportSection =
+  | 'all'
+  | 'all_html'
+  | 'title'
+  | 'meta'
+  | 'slug'
+  | 'body'
+  | 'body_html';
 
 export async function recordExportEvent(
   blogId: string,

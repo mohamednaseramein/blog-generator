@@ -6,7 +6,7 @@ import {
   upsertOutline,
   confirmOutline,
 } from '../repositories/blog-outline-repository.js';
-import { generateBlogOutline } from '../services/outline-service.js';
+import { generateBlogOutline, parseStoredOutlineJson } from '../services/outline-service.js';
 import type { AlignmentSummary } from '../services/alignment-service.js';
 import { AppError } from '../middleware/error-handler.js';
 import { getUserId } from '../middleware/auth.js';
@@ -86,10 +86,21 @@ export async function handleGetOutline(
     const blog = await getBlogByIdAndUser(blogId, userId);
     if (!blog) throw new AppError(404, 'NOT_FOUND', 'Blog not found');
 
-    const outline = await getOutlineByBlogId(blogId);
-    if (!outline) throw new AppError(404, 'NOT_FOUND', 'Outline not found');
+    const row = await getOutlineByBlogId(blogId);
+    if (!row) throw new AppError(404, 'NOT_FOUND', 'Outline not found');
 
-    res.json({ outline });
+    let parsed: ReturnType<typeof parseStoredOutlineJson>;
+    try {
+      parsed = parseStoredOutlineJson(row.outlineJson);
+    } catch {
+      throw new AppError(500, 'INTERNAL', 'Stored outline is invalid');
+    }
+
+    res.json({
+      outline: { ...parsed, raw: row.outlineJson },
+      outlineConfirmed: row.outlineConfirmed,
+      outlineIterations: row.outlineIterations,
+    });
   } catch (err) {
     next(err);
   }

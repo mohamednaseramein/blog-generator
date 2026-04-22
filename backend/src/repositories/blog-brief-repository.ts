@@ -48,24 +48,32 @@ export async function upsertBrief(
   input: SubmitBriefInput,
   scrapeStatus: ScrapeStatus,
 ): Promise<BlogBrief> {
+  // Re-saving the brief must not clear AI alignment (some upsert paths only write listed columns; merge explicitly to be safe).
+  const existing = await getBriefByBlogId(blogId);
+
+  const row: Record<string, unknown> = {
+    blog_id: blogId,
+    title: input.title,
+    primary_keyword: input.primaryKeyword,
+    audience_persona: input.audiencePersona,
+    tone_of_voice: input.toneOfVoice,
+    word_count_min: input.wordCountMin,
+    word_count_max: input.wordCountMax,
+    blog_brief: input.blogBrief,
+    reference_url: input.referenceUrl ?? null,
+    scrape_status: scrapeStatus,
+    updated_at: new Date().toISOString(),
+  };
+
+  if (existing) {
+    row['alignment_summary'] = existing.alignmentSummary;
+    row['alignment_confirmed'] = existing.alignmentConfirmed;
+    row['alignment_iterations'] = existing.alignmentIterations;
+  }
+
   const { data, error } = await getSupabase()
     .from('blog_briefs')
-    .upsert(
-      {
-        blog_id: blogId,
-        title: input.title,
-        primary_keyword: input.primaryKeyword,
-        audience_persona: input.audiencePersona,
-        tone_of_voice: input.toneOfVoice,
-        word_count_min: input.wordCountMin,
-        word_count_max: input.wordCountMax,
-        blog_brief: input.blogBrief,
-        reference_url: input.referenceUrl ?? null,
-        scrape_status: scrapeStatus,
-        updated_at: new Date().toISOString(),
-      },
-      { onConflict: 'blog_id' },
-    )
+    .upsert(row, { onConflict: 'blog_id' })
     .select()
     .single<BlogBriefRow>();
 

@@ -1,5 +1,11 @@
-import { useState, useEffect } from 'react';
-import { generateAlignment, confirmAlignment, type AlignmentSummary as AlignmentSummaryType } from '../api/blog-api.js';
+import { useState, useEffect, useRef } from 'react';
+import {
+  getBrief,
+  generateAlignment,
+  confirmAlignment,
+  parseAlignmentSummaryFromStorage,
+  type AlignmentSummary as AlignmentSummaryType,
+} from '../api/blog-api.js';
 import { Button } from './ui/button.js';
 import { Textarea } from './ui/textarea.js';
 import { Toast } from './ui/toast.js';
@@ -34,12 +40,17 @@ export function AlignmentSummary({ blogId, onEdit, onConfirmed }: Props) {
   const [referencesAnalysis, setReferencesAnalysis] = useState<'none_usable' | null>(null);
   const [feedback, setFeedback] = useState('');
   const [generating, setGenerating] = useState(false);
+  const [loadingSaved, setLoadingSaved] = useState(true);
   const [confirming, setConfirming] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [iterations, setIterations] = useState(0);
+  /** True when we hydrated this screen from DB without calling POST /alignment. */
+  const [fromSavedRun, setFromSavedRun] = useState(false);
+  const bootstrapped = useRef(false);
 
   async function generate(feedbackText?: string) {
     setError(null);
+    setFromSavedRun(false);
     setGenerating(true);
     try {
       const res = await generateAlignment(blogId, feedbackText);
@@ -66,8 +77,46 @@ export function AlignmentSummary({ blogId, onEdit, onConfirmed }: Props) {
     }
   }
 
-  // Auto-generate on first render — empty dep array prevents double-fire under React StrictMode
-  useEffect(() => { void generate(); }, []);
+  useEffect(() => {
+    if (bootstrapped.current) return;
+    bootstrapped.current = true;
+    let cancelled = false;
+
+    void (async () => {
+      setError(null);
+      setLoadingSaved(true);
+      setFromSavedRun(false);
+      try {
+        const brief = await getBrief(blogId);
+        const raw =
+          (brief.alignmentSummary?.trim() || brief.alignment_summary?.trim()) ?? '';
+        if (raw) {
+          try {
+            const { summary, referencesAnalysis: refA } = parseAlignmentSummaryFromStorage(raw);
+            if (cancelled) return;
+            setSummary(summary);
+            setReferencesAnalysis(refA);
+            setIterations(brief.alignmentIterations ?? brief.alignment_iterations ?? 0);
+            setFromSavedRun(true);
+            setLoadingSaved(false);
+            return;
+          } catch {
+            // stored JSON invalid — fall through to fresh generation
+          }
+        }
+      } catch {
+        // brief missing — fall through
+      }
+      if (cancelled) return;
+      setLoadingSaved(false);
+      if (cancelled) return;
+      await generate();
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [blogId]);
 
   return (
     <div className="flex flex-col gap-6">
@@ -78,22 +127,36 @@ export function AlignmentSummary({ blogId, onEdit, onConfirmed }: Props) {
         </p>
       </div>
 
-      {/* Loading state */}
-      {generating && (
+      {/* Restoring or generating */}
+      {(loadingSaved || generating) && (
         <div className="flex flex-col items-center gap-3 py-10 text-slate-500">
           <span className="inline-block h-6 w-6 animate-spin rounded-full border-2 border-slate-200 border-t-indigo-500" />
-          <p className="text-sm">{iterations === 0 ? 'Generating alignment summary…' : 'Regenerating with your feedback…'}</p>
+          <p className="text-sm">
+            {loadingSaved
+              ? 'Loading your alignment…'
+              : iterations === 0
+                ? 'Calling the model to create your alignment…'
+                : 'Calling the model with your feedback…'}
+          </p>
         </div>
       )}
 
       {/* Summary cards */}
-      {summary && !generating && (
+      {summary && !generating && !loadingSaved && (
         <div className="flex flex-col gap-3">
+          {fromSavedRun && (
+            <div
+              className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-900"
+              role="status"
+            >
+              Restored your last saved alignment.
+            </div>
+          )}
           {referencesAnalysis === 'none_usable' && (
             <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-950">
               Your reference URLs could not be turned into structured insights (scrape or analysis did not yield usable
               content). The summary below is based on your brief only. You can still paste key ideas into the brief and
-              regenerate.
+              run a new version.
             </div>
           )}
 
@@ -148,7 +211,7 @@ export function AlignmentSummary({ blogId, onEdit, onConfirmed }: Props) {
       {error && <Toast variant="error">{error}</Toast>}
 
       {/* Feedback */}
-      {summary && !generating && (
+      {summary && !generating && !loadingSaved && (
         <Field label="Something off? Tell the AI what to fix:" hint="Leave blank if the summary looks good.">
           <Textarea
             rows={3}
@@ -161,7 +224,7 @@ export function AlignmentSummary({ blogId, onEdit, onConfirmed }: Props) {
 
       {/* Actions */}
       <div className="flex flex-wrap items-center justify-between gap-3 pt-1">
-        <Button variant="ghost" size="sm" onClick={onEdit} disabled={generating || confirming}>
+        <Button variant="ghost" size="sm" onClick={onEdit} disabled={loadingSaved || generating || confirming}>
           ← Edit Inputs
         </Button>
 
@@ -170,15 +233,17 @@ export function AlignmentSummary({ blogId, onEdit, onConfirmed }: Props) {
             <Button
               variant="ghost"
               size="sm"
-              onClick={() => void generate(feedback || undefined)}
-              disabled={generating || confirming}
+              onClick={() => void generate(feedback.trim() || undefined)}
+              disabled={loadingSaved || generating || confirming}
             >
-              {feedback ? 'Regenerate with feedback' : 'Regenerate'}
+              {feedback.trim()
+                ? 'Regenerate alignment with your feedback'
+                : 'Regenerate alignment'}
             </Button>
           )}
           <Button
             onClick={() => void confirm()}
-            disabled={!summary || generating || confirming}
+            disabled={!summary || loadingSaved || generating || confirming}
             aria-busy={confirming}
           >
             {confirming ? (

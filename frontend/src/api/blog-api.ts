@@ -60,6 +60,12 @@ export async function createBlog(): Promise<{ blogId: string }> {
   return request<{ blogId: string }>(BASE, { method: 'POST' });
 }
 
+export async function completeBlog(blogId: string): Promise<{ blogId: string; currentStep: number }> {
+  return request<{ blogId: string; currentStep: number }>(`${BASE}/${blogId}/complete`, {
+    method: 'POST',
+  });
+}
+
 export async function submitBrief(
   blogId: string,
   payload: SubmitBriefPayload,

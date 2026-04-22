@@ -10,6 +10,7 @@ const {
   mockGenerateBlogDraft,
   mockGenerateMetaAndSlug,
   mockGetUserId,
+  mockAdvanceBlogStep,
 } = vi.hoisted(() => ({
   mockGetBlogByIdAndUser: vi.fn(),
   mockGetBriefByBlogId: vi.fn(),
@@ -20,10 +21,12 @@ const {
   mockGenerateBlogDraft: vi.fn(),
   mockGenerateMetaAndSlug: vi.fn(),
   mockGetUserId: vi.fn(() => 'user-1'),
+  mockAdvanceBlogStep: vi.fn(),
 }));
 
 vi.mock('../../repositories/blog-repository.js', () => ({
   getBlogByIdAndUser: mockGetBlogByIdAndUser,
+  advanceBlogStep: mockAdvanceBlogStep,
 }));
 
 vi.mock('../../repositories/blog-brief-repository.js', () => ({
@@ -180,6 +183,7 @@ describe('handleConfirmDraft', () => {
       metaDescription: 'A meta description.',
       suggestedSlug: 'sleep-tips',
     });
+    expect(mockAdvanceBlogStep).toHaveBeenCalledWith('blog-1', 5);
     expect(next).not.toHaveBeenCalled();
   });
 

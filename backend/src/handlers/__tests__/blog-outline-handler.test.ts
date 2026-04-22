@@ -8,6 +8,7 @@ const {
   mockConfirmOutline,
   mockGenerateBlogOutline,
   mockGetUserId,
+  mockAdvanceBlogStep,
 } = vi.hoisted(() => ({
   mockGetBlogByIdAndUser: vi.fn(),
   mockGetBriefByBlogId: vi.fn(),
@@ -16,10 +17,12 @@ const {
   mockConfirmOutline: vi.fn(),
   mockGenerateBlogOutline: vi.fn(),
   mockGetUserId: vi.fn(() => 'user-1'),
+  mockAdvanceBlogStep: vi.fn(),
 }));
 
 vi.mock('../../repositories/blog-repository.js', () => ({
   getBlogByIdAndUser: mockGetBlogByIdAndUser,
+  advanceBlogStep: mockAdvanceBlogStep,
 }));
 
 vi.mock('../../repositories/blog-brief-repository.js', () => ({
@@ -168,6 +171,7 @@ describe('handleConfirmOutline', () => {
     await handleConfirmOutline(req, res, next);
 
     expect(json).toHaveBeenCalledWith({ confirmed: true, blogId: 'blog-1' });
+    expect(mockAdvanceBlogStep).toHaveBeenCalledWith('blog-1', 4);
     expect(next).not.toHaveBeenCalled();
   });
 

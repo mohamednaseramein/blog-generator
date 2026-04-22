@@ -58,7 +58,7 @@ export interface BlogSummary {
 
 export async function listBlogsByUser(userId: string): Promise<BlogSummary[]> {
   // Inner join: only blogs with a saved brief. Excludes "abandoned" creates (no blog_briefs row)
-  // without relying on current_step, which can remain 0 if advanceBlogStep is not run (see GH-42).
+  // without relying on current_step for filtering (see GH-42).
   const { data, error } = await getSupabase()
     .from('blogs')
     .select('id, current_step, status, updated_at, blog_briefs!inner(title)')
@@ -88,9 +88,10 @@ export async function listBlogsByUser(userId: string): Promise<BlogSummary[]> {
 }
 
 export async function advanceBlogStep(id: string, step: number): Promise<void> {
+  const status: Blog['status'] = step >= 6 ? 'completed' : 'in_progress';
   const { error } = await getSupabase()
     .from('blogs')
-    .update({ current_step: step, status: 'in_progress', updated_at: new Date().toISOString() })
+    .update({ current_step: step, status, updated_at: new Date().toISOString() })
     .eq('id', id);
 
   if (error) throw new Error(error.message);

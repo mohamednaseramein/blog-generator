@@ -49,6 +49,17 @@ export interface BlogOutline {
   updatedAt: Date;
 }
 
+/** Persisted AI-generated markdown draft (Step 4). */
+export interface BlogDraft {
+  id: string;
+  blogId: string;
+  draftMarkdown: string;
+  draftConfirmed: boolean;
+  draftIterations: number;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
 export interface BlogReference {
   id: string;
   blogId: string;

@@ -110,3 +110,29 @@ Required JSON shape:
 
   return { sections: parsed.sections, totalEstimatedWords: parsed.totalEstimatedWords, raw: text };
 }
+
+/** Parse persisted `blog_outlines.outline_json` (same shape as AI outline JSON). */
+export function parseStoredOutlineJson(text: string): {
+  sections: OutlineSection[];
+  totalEstimatedWords: number;
+} {
+  const parsed = JSON.parse(text) as { sections: OutlineSection[]; totalEstimatedWords: number };
+  if (!Array.isArray(parsed.sections) || parsed.sections.length < 1) {
+    throw new Error('Invalid outline JSON');
+  }
+  for (const section of parsed.sections) {
+    if (
+      typeof section.title !== 'string' ||
+      typeof section.description !== 'string' ||
+      !Array.isArray(section.subsections) ||
+      typeof section.estimatedWords !== 'number'
+    ) {
+      throw new Error('Invalid outline section shape');
+    }
+  }
+  return {
+    sections: parsed.sections,
+    totalEstimatedWords:
+      typeof parsed.totalEstimatedWords === 'number' ? parsed.totalEstimatedWords : 0,
+  };
+}

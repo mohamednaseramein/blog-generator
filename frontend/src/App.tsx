@@ -3,6 +3,7 @@ import { BlogBriefForm } from './components/BlogBriefForm.js';
 import { AlignmentSummary } from './components/AlignmentSummary.js';
 import { OutlineStep } from './components/OutlineStep.js';
 import { DraftStep } from './components/DraftStep.js';
+import { PublishStep } from './components/PublishStep.js';
 import { WizardProgress } from './components/WizardProgress.js';
 import { Button } from './components/ui/button.js';
 import { Toast } from './components/ui/toast.js';
@@ -15,6 +16,7 @@ type AppState =
   | { step: 'alignment'; blogId: string }
   | { step: 'outline'; blogId: string }
   | { step: 'draft'; blogId: string }
+  | { step: 'publish'; blogId: string }
   | { step: 'done'; blogId: string };
 
 export function App() {
@@ -38,7 +40,8 @@ export function App() {
     : state.step === 'alignment' ? 2
     : state.step === 'outline' ? 3
     : state.step === 'draft' ? 4
-    : 5;
+    : state.step === 'publish' ? 5
+    : 6;
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-indigo-50">
@@ -56,7 +59,7 @@ export function App() {
         </div>
 
         {/* Wizard progress */}
-        {(state.step === 'brief' || state.step === 'alignment' || state.step === 'outline' || state.step === 'draft' || state.step === 'done') && (
+        {(state.step === 'brief' || state.step === 'alignment' || state.step === 'outline' || state.step === 'draft' || state.step === 'publish' || state.step === 'done') && (
           <div className="mb-8">
             <WizardProgress current={wizardStep} />
           </div>
@@ -122,7 +125,15 @@ export function App() {
             <DraftStep
               blogId={state.blogId}
               onBack={() => setState({ step: 'outline', blogId: state.blogId })}
-              onConfirmed={() => setState({ step: 'done', blogId: state.blogId })}
+              onConfirmed={() => setState({ step: 'publish', blogId: state.blogId })}
+            />
+          )}
+
+          {state.step === 'publish' && (
+            <PublishStep
+              blogId={state.blogId}
+              onBack={() => setState({ step: 'draft', blogId: state.blogId })}
+              onFinish={() => setState({ step: 'done', blogId: state.blogId })}
             />
           )}
 
@@ -132,9 +143,9 @@ export function App() {
                 ✓
               </div>
               <div>
-                <h2 className="text-lg font-semibold text-slate-800">Draft confirmed!</h2>
+                <h2 className="text-lg font-semibold text-slate-800">All set</h2>
                 <p className="mt-1 text-sm text-slate-500">
-                  Next up: Publish — Step 5 (coming soon).
+                  Thanks for using the wizard. Start another post whenever you are ready.
                 </p>
               </div>
               <Button variant="ghost" size="sm" onClick={() => void startNewBlog()}>

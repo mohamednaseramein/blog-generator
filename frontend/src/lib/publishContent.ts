@@ -1,3 +1,4 @@
+/// <reference types="vite/client" />
 import { marked } from 'marked';
 import DOMPurify from 'dompurify';
 
@@ -18,6 +19,8 @@ export function markdownToSafeHtml(markdown: string): string {
   return DOMPurify.sanitize(String(raw), { USE_PROFILES: { html: true } });
 }
 
+const DEFAULT_BASE_URL = 'https://blog-generator.mnaser.me';
+
 export interface FullDocumentHtmlOptions {
   title: string;
   suggestedSlug: string | null;
@@ -27,11 +30,9 @@ export interface FullDocumentHtmlOptions {
   bodyMarkdown: string;
 }
 
-/**
- * HTML `<head>` snippet with SEO meta tags — paste into your CMS head section.
- * The canonical URL uses a placeholder domain the user must replace.
- */
+/** HTML `<head>` snippet with SEO meta tags — paste into your CMS head section. */
 export function buildSeoMetaSnippet(opts: Pick<FullDocumentHtmlOptions, 'seoTitle' | 'metaDescription' | 'suggestedSlug' | 'primaryKeyword' | 'title'>): string {
+  const baseUrl = (import.meta.env['VITE_BASE_URL'] as string | undefined)?.replace(/\/$/, '') || DEFAULT_BASE_URL;
   const displayTitle = opts.seoTitle?.trim() || opts.title.trim();
   const canonicalSlug = opts.suggestedSlug?.trim() ?? '';
   const lines: string[] = [
@@ -45,7 +46,7 @@ export function buildSeoMetaSnippet(opts: Pick<FullDocumentHtmlOptions, 'seoTitl
     lines.push(`<meta name=”keywords” content=”${escapeHtml(opts.primaryKeyword.trim())}”>`);
   }
   if (canonicalSlug) {
-    lines.push(`<link rel=”canonical” href=”https://YOURDOMAIN.com/${canonicalSlug}”>`);
+    lines.push(`<link rel=”canonical” href=”${baseUrl}/${canonicalSlug}”>`);
   }
   lines.push(`<meta property=”og:type” content=”article”>`);
   if (displayTitle) {

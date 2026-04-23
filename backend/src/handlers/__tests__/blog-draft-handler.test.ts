@@ -164,6 +164,7 @@ describe('handleConfirmDraft', () => {
     mockGetDraftByBlogId.mockResolvedValue(draftRow);
     mockGetBriefByBlogId.mockResolvedValue(brief);
     mockGenerateMetaAndSlug.mockResolvedValue({
+      seoTitle: '10 Sleep Tips for Better Rest in 2026',
       metaDescription: 'A meta description.',
       suggestedSlug: 'sleep-tips',
     });
@@ -176,10 +177,12 @@ describe('handleConfirmDraft', () => {
       'blog-1',
       'A meta description.',
       'sleep-tips',
+      '10 Sleep Tips for Better Rest in 2026',
     );
     expect(json).toHaveBeenCalledWith({
       confirmed: true,
       blogId: 'blog-1',
+      seoTitle: '10 Sleep Tips for Better Rest in 2026',
       metaDescription: 'A meta description.',
       suggestedSlug: 'sleep-tips',
     });

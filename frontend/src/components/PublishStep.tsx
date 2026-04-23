@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useMemo, type ReactNode } from 'react';
 import { getDraft, getBrief, recordExportEvent, completeBlog } from '../api/blog-api.js';
 import type { ExportSection } from '../api/blog-api.js';
-import { buildFullDocumentHtml, markdownToSafeHtml } from '../lib/publishContent.js';
+import { buildFullDocumentHtml, buildSeoMetaSnippet, markdownToSafeHtml } from '../lib/publishContent.js';
 import { Button } from './ui/button.js';
 import { Toast } from './ui/toast.js';
 
@@ -109,11 +109,25 @@ function DisclosureHeader({
   );
 }
 
+function charCountClass(len: number, min: number, max: number): string {
+  if (len >= min && len <= max) return 'text-emerald-600';
+  if (len >= min - 20 && len <= max + 20) return 'text-amber-500';
+  return 'text-red-500';
+}
+
+function seoTitleCountClass(len: number): string {
+  if (len === 0) return 'text-slate-400';
+  if (len <= 60) return 'text-emerald-600';
+  return 'text-red-500';
+}
+
 export function PublishStep({ blogId, onBack, onFinish }: Props) {
   const [markdown, setMarkdown] = useState<string | null>(null);
   const [title, setTitle] = useState<string>('');
+  const [primaryKeyword, setPrimaryKeyword] = useState<string>('');
   const [metaDescription, setMetaDescription] = useState<string | null>(null);
   const [suggestedSlug, setSuggestedSlug] = useState<string | null>(null);
+  const [seoTitle, setSeoTitle] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [fieldsOpen, setFieldsOpen] = useState(false);
@@ -134,9 +148,11 @@ export function PublishStep({ blogId, onBack, onFinish }: Props) {
       setMarkdown(draftRes.draft.markdown);
       setMetaDescription(draftRes.draft.metaDescription);
       setSuggestedSlug(draftRes.draft.suggestedSlug);
+      setSeoTitle(draftRes.draft.seoTitle);
       try {
         const briefRes = await getBrief(blogId);
         setTitle(briefRes.title);
+        setPrimaryKeyword(briefRes.primaryKeyword ?? '');
       } catch {
         setTitle('');
       }
@@ -168,8 +184,14 @@ export function PublishStep({ blogId, onBack, onFinish }: Props) {
       title,
       suggestedSlug,
       metaDescription,
+      seoTitle,
+      primaryKeyword,
       bodyMarkdown: markdown ?? '',
     });
+  }
+
+  function buildSeoSnippet() {
+    return buildSeoMetaSnippet({ seoTitle, metaDescription, suggestedSlug, primaryKeyword, title });
   }
 
   return (
@@ -332,9 +354,9 @@ export function PublishStep({ blogId, onBack, onFinish }: Props) {
                 <DisclosureHeader id="publish-seo" open={seoOpen} onToggle={() => setSeoOpen((o) => !o)}>
                   <div className="min-w-0">
                     <span>SEO and social</span>
-                    {!seoOpen && (suggestedSlug || metaDescription) && (
+                    {!seoOpen && (suggestedSlug || metaDescription || seoTitle) && (
                       <p className="mt-0.5 text-xs font-normal text-slate-500">
-                        Slug and meta available — expand to view and copy.
+                        SEO title, slug, and meta available — expand to view and copy.
                       </p>
                     )}
                   </div>
@@ -346,6 +368,28 @@ export function PublishStep({ blogId, onBack, onFinish }: Props) {
                     role="region"
                     aria-labelledby="publish-seo-header"
                   >
+                    {seoTitle ? (
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="min-w-0 flex flex-col gap-0.5">
+                          <div className="flex items-center gap-2">
+                            <span className="text-xs uppercase tracking-wide text-slate-400">SEO title</span>
+                            <span className={`text-xs font-medium ${seoTitleCountClass(seoTitle.length)}`}>
+                              {seoTitle.length}/60
+                            </span>
+                          </div>
+                          <span className="text-sm leading-snug text-slate-700">{seoTitle}</span>
+                        </div>
+                        <CopyButton
+                          label="Copy SEO title"
+                          statusKey="seo_title"
+                          copyStatus={copyStatus}
+                          onCopy={() => void copy('seo_title', seoTitle, blogId, 'seo_title')}
+                        />
+                      </div>
+                    ) : (
+                      <p className="text-xs text-slate-400">SEO title not yet generated — confirm the draft to generate.</p>
+                    )}
+
                     {suggestedSlug ? (
                       <div className="flex items-center justify-between gap-2">
                         <div className="min-w-0 flex flex-col">
@@ -365,8 +409,13 @@ export function PublishStep({ blogId, onBack, onFinish }: Props) {
 
                     {metaDescription ? (
                       <div className="flex items-start justify-between gap-2">
-                        <div className="min-w-0 flex flex-col">
-                          <span className="text-xs uppercase tracking-wide text-slate-400">Meta description</span>
+                        <div className="min-w-0 flex flex-col gap-0.5">
+                          <div className="flex items-center gap-2">
+                            <span className="text-xs uppercase tracking-wide text-slate-400">Meta description</span>
+                            <span className={`text-xs font-medium ${charCountClass(metaDescription.length, 150, 160)}`}>
+                              {metaDescription.length} chars
+                            </span>
+                          </div>
                           <span className="text-sm leading-snug text-slate-700">{metaDescription}</span>
                         </div>
                         <CopyButton
@@ -378,6 +427,26 @@ export function PublishStep({ blogId, onBack, onFinish }: Props) {
                       </div>
                     ) : (
                       <p className="text-xs text-slate-400">Meta not yet generated — confirm the draft to generate.</p>
+                    )}
+
+                    {(seoTitle || metaDescription || suggestedSlug || primaryKeyword) && (
+                      <div className="flex flex-col gap-1 rounded-lg border border-slate-100 bg-slate-50 px-3 py-2">
+                        <div className="flex items-center justify-between gap-2">
+                          <div className="flex flex-col">
+                            <span className="text-xs uppercase tracking-wide text-slate-400">SEO meta snippet</span>
+                            <span className="text-xs text-slate-500">Paste into your CMS &lt;head&gt; section</span>
+                          </div>
+                          <CopyButton
+                            label="Copy snippet"
+                            statusKey="seo_snippet"
+                            copyStatus={copyStatus}
+                            onCopy={() => void copy('seo_snippet', buildSeoSnippet(), blogId, 'seo_snippet')}
+                          />
+                        </div>
+                        <pre className="mt-1 overflow-x-auto whitespace-pre-wrap break-all rounded text-xs text-slate-500">
+                          {buildSeoSnippet()}
+                        </pre>
+                      </div>
                     )}
                   </div>
                 )}

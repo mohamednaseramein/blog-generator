@@ -58,6 +58,7 @@ export interface BlogDraft {
   draftIterations: number;
   metaDescription: string | null;
   suggestedSlug: string | null;
+  seoTitle: string | null;
   createdAt: Date;
   updatedAt: Date;
 }

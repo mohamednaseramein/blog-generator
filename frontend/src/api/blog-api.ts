@@ -233,6 +233,7 @@ export async function getDraft(blogId: string): Promise<{
     draftIterations: number;
     metaDescription: string | null;
     suggestedSlug: string | null;
+    seoTitle: string | null;
   };
 }> {
   return request(`${BASE}/${blogId}/draft`);
@@ -242,6 +243,8 @@ export type ExportSection =
   | 'all'
   | 'all_html'
   | 'title'
+  | 'seo_title'
+  | 'seo_snippet'
   | 'meta'
   | 'slug'
   | 'body'

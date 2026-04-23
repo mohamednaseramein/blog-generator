@@ -14,7 +14,7 @@ export interface BlogDraftResult {
 export interface MetaAndSlug {
   metaDescription: string;
   suggestedSlug: string;
-  seoTitle: string;
+  seoTitle: string | null;
 }
 
 function outlineToPrompt(sections: OutlineSection[]): string {
@@ -117,11 +117,11 @@ Respond with valid JSON only, no markdown fences:
   try {
     parsed = JSON.parse(cleaned) as { seoTitle: string; metaDescription: string; suggestedSlug: string };
   } catch {
-    return { seoTitle: '', metaDescription: '', suggestedSlug: '' };
+    return { seoTitle: null, metaDescription: '', suggestedSlug: '' };
   }
 
   return {
-    seoTitle: (parsed.seoTitle ?? '').slice(0, 60),
+    seoTitle: parsed.seoTitle?.trim() ? parsed.seoTitle.trim().slice(0, 60) : null,
     metaDescription: (parsed.metaDescription ?? '').slice(0, 155),
     suggestedSlug: (parsed.suggestedSlug ?? '').slice(0, 60),
   };

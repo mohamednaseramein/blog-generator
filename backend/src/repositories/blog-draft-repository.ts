@@ -70,7 +70,7 @@ export async function confirmDraft(
   blogId: string,
   metaDescription: string,
   suggestedSlug: string,
-  seoTitle: string,
+  seoTitle: string | null,
 ): Promise<void> {
   const { error } = await getSupabase()
     .from('blog_drafts')

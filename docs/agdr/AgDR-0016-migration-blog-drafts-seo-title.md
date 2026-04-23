@@ -1,4 +1,4 @@
-# AgDR-0015: Add seo_title column to blog_drafts
+# AgDR-0016: Add seo_title column to blog_drafts
 
 > In the context of SEO metadata enrichment, facing the need to store a separate AI-generated SEO title alongside meta_description and suggested_slug, I decided to add a nullable TEXT column seo_title to blog_drafts, accepting that existing rows will have NULL until their drafts are re-confirmed.
 

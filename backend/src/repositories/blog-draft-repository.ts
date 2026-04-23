@@ -9,6 +9,7 @@ interface BlogDraftRow {
   draft_iterations: number;
   meta_description: string | null;
   suggested_slug: string | null;
+  seo_title: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -22,6 +23,7 @@ function toModel(row: BlogDraftRow): BlogDraft {
     draftIterations: row.draft_iterations,
     metaDescription: row.meta_description ?? null,
     suggestedSlug: row.suggested_slug ?? null,
+    seoTitle: row.seo_title ?? null,
     createdAt: new Date(row.created_at),
     updatedAt: new Date(row.updated_at),
   };
@@ -68,6 +70,7 @@ export async function confirmDraft(
   blogId: string,
   metaDescription: string,
   suggestedSlug: string,
+  seoTitle: string,
 ): Promise<void> {
   const { error } = await getSupabase()
     .from('blog_drafts')
@@ -75,6 +78,7 @@ export async function confirmDraft(
       draft_confirmed: true,
       meta_description: metaDescription,
       suggested_slug: suggestedSlug,
+      seo_title: seoTitle,
       updated_at: new Date().toISOString(),
     })
     .eq('blog_id', blogId);

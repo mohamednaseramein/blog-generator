@@ -7,7 +7,7 @@ import {
 } from '../repositories/blog-brief-repository.js';
 import { scrapeUrlInBackground } from '../services/url-scraper-service.js';
 import { requeueReferenceExtractionsForBlog } from '../services/reference-extraction-runner.js';
-import { WordCountRange, ReferenceUrl, trimInput } from '../domain/value-objects.js';
+import { BRIEF_FIELD_LIMITS, WordCountRange, ReferenceUrl, trimInput } from '../domain/value-objects.js';
 import { AppError } from '../middleware/error-handler.js';
 import { getUserId } from '../middleware/auth.js';
 import type { SubmitBriefInput } from '../domain/types.js';
@@ -129,6 +129,23 @@ function validateBriefBody(body: Record<string, unknown>): string[] {
     } catch (e) {
       errors.push((e as Error).message);
     }
+  }
+
+  const title = trimInput(String(body['title']));
+  const primaryKeyword = trimInput(String(body['primaryKeyword']));
+  const tone = trimInput(String(body['toneOfVoice']));
+  if (title.length > BRIEF_FIELD_LIMITS.title) {
+    errors.push(`title must be at most ${BRIEF_FIELD_LIMITS.title} characters`);
+  }
+  if (primaryKeyword.length > BRIEF_FIELD_LIMITS.primaryKeyword) {
+    errors.push(
+      `primaryKeyword must be at most ${BRIEF_FIELD_LIMITS.primaryKeyword} characters`,
+    );
+  }
+  if (tone.length > BRIEF_FIELD_LIMITS.toneOfVoice) {
+    errors.push(
+      `toneOfVoice must be at most ${BRIEF_FIELD_LIMITS.toneOfVoice} characters`,
+    );
   }
 
   return errors;

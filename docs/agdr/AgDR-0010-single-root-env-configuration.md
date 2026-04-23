@@ -3,7 +3,7 @@ id: AgDR-0010
 timestamp: 2026-04-22T00:00:00Z
 agent: Claude
 trigger: user-prompt
-status: accepted
+status: superseded-by AgDR-0017
 ticket: mohamednaseramein/blog-generator#28
 ---
 

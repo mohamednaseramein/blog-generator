@@ -1,4 +1,6 @@
 import { useState, useEffect, useCallback, useMemo, type ReactNode } from 'react';
+import { Check, Copy, XCircle } from 'lucide-react';
+import { clsx } from 'clsx';
 import { getDraft, getBrief, recordExportEvent, completeBlog } from '../api/blog-api.js';
 import type { ExportSection } from '../api/blog-api.js';
 import { buildFullDocumentHtml, buildSeoMetaSnippet, markdownToSafeHtml } from '../lib/publishContent.js';
@@ -29,7 +31,7 @@ function useCopyFeedback() {
 }
 
 function CopyButton({
-  label,
+  label: idleLabel,
   onCopy,
   statusKey,
   copyStatus,
@@ -40,15 +42,34 @@ function CopyButton({
   copyStatus: Record<string, 'idle' | 'success' | 'error'>;
 }) {
   const state = copyStatus[statusKey] ?? 'idle';
+  const text =
+    state === 'success' ? 'Copied' : state === 'error' ? 'Copy failed' : idleLabel;
+  const icon =
+    state === 'success' ? (
+      <Check className="h-3.5 w-3.5 shrink-0 stroke-[2.5]" aria-hidden />
+    ) : state === 'error' ? (
+      <XCircle className="h-3.5 w-3.5 shrink-0" aria-hidden />
+    ) : (
+      <Copy className="h-3.5 w-3.5 shrink-0" aria-hidden />
+    );
+
   return (
     <Button
       type="button"
       variant="ghost"
       size="sm"
       onClick={onCopy}
-      aria-label={label}
+      aria-label={idleLabel}
+      className={clsx(
+        'gap-1.5 font-medium',
+        state === 'success' &&
+          'text-emerald-600 hover:bg-emerald-50 hover:text-emerald-700 focus-visible:ring-emerald-500/40',
+        state === 'error' &&
+          'text-red-600 hover:bg-red-50 hover:text-red-700 focus-visible:ring-red-500/40',
+      )}
     >
-      {state === 'success' ? '✓ Copied' : state === 'error' ? '✗ Failed' : label}
+      {icon}
+      <span aria-live="polite">{text}</span>
     </Button>
   );
 }
@@ -291,7 +312,7 @@ export function PublishStep({ blogId, onBack, onFinish }: Props) {
                 <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center sm:gap-2">
                   <CopyButton
                     label="Copy all (Markdown)"
-                    statusKey="all_md"
+                    statusKey="all"
                     copyStatus={copyStatus}
                     onCopy={() => void copy('all', buildFullBlockMarkdown(), blogId, 'all')}
                   />
@@ -334,7 +355,7 @@ export function PublishStep({ blogId, onBack, onFinish }: Props) {
                       <div className="flex flex-col gap-1.5 sm:flex-row sm:items-center sm:gap-1">
                         <CopyButton
                           label="Copy as Markdown"
-                          statusKey="body_md"
+                          statusKey="body"
                           copyStatus={copyStatus}
                           onCopy={() => void copy('body', bodyForExport, blogId, 'body')}
                         />

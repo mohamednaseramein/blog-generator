@@ -200,11 +200,15 @@ export function ReferenceUrlCard({
     if (scrapeDone && extractionDone) return;
 
     let cancelled = false;
+    let consecutiveErrors = 0;
+    const MAX_CONSECUTIVE_ERRORS = 5;
+
     const timer = setInterval(() => {
       if (cancelled) return;
       getReferenceStatus(blogId, refId)
         .then((s) => {
           if (cancelled) return;
+          consecutiveErrors = 0;
           setScrapeStatus(s.scrapeStatus);
           setScrapeError(s.scrapeError);
           setExtractionStatus(s.extractionStatus);
@@ -224,7 +228,9 @@ export function ReferenceUrlCard({
           if (doneNow) clearInterval(timer);
         })
         .catch(() => {
-          if (!cancelled) clearInterval(timer);
+          if (cancelled) return;
+          consecutiveErrors++;
+          if (consecutiveErrors >= MAX_CONSECUTIVE_ERRORS) clearInterval(timer);
         });
     }, POLL_INTERVAL_MS);
 

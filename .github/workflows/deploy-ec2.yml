@@ -22,16 +22,31 @@ jobs:
           host: ${{ secrets.SSH_HOST }}
           username: ${{ secrets.SSH_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
-          script_stop: true
           command_timeout: 45m
           script: |
             set -e
             DEPLOY_PATH="${{ secrets.DEPLOY_PATH }}"
-            if [ -z "$DEPLOY_PATH" ]; then
-              DEPLOY_PATH="${HOME}/blog-generator"
+            _home="${HOME:-}"
+            if [ -z "${_home}" ] && command -v getent >/dev/null 2>&1; then
+              _home="$(getent passwd "$(id -un)" 2>/dev/null | cut -d: -f6)" || true
             fi
-            echo "[deploy] Using DEPLOY_PATH=${DEPLOY_PATH}"
-            cd "$DEPLOY_PATH"
+            if [ -z "${_home}" ]; then
+              _home="/home/$(id -un)"
+            fi
+            export HOME="${_home}"
+            if [ -z "${DEPLOY_PATH}" ]; then
+              DEPLOY_PATH="${_home}/blog-generator"
+            fi
+            case "${DEPLOY_PATH}" in
+              '~') DEPLOY_PATH="${_home}" ;;
+              ~/*) DEPLOY_PATH="${_home}/${DEPLOY_PATH#~/}" ;;
+            esac
+            echo "[deploy] Resolved deploy directory (HOME=${_home})"
+            if [ ! -d "${DEPLOY_PATH}" ]; then
+              echo "[deploy] ERROR: directory does not exist. Clone the repo here or set DEPLOY_PATH to the repo root (use an absolute path, not ~/... in secrets unless HOME is set)." >&2
+              exit 1
+            fi
+            cd "${DEPLOY_PATH}"
             echo "[deploy] Syncing git to origin/main"
             git fetch origin main
             git checkout -B main origin/main

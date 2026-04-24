@@ -29,7 +29,7 @@ Configure these in the repository: **Settings → Secrets and variables → Acti
 | `SSH_HOST` | Yes | Public DNS or IP of the EC2 instance (e.g. `ec2-….compute.amazonaws.com`). |
 | `SSH_USER` | Yes | SSH login (e.g. `ec2-user` on Amazon Linux). |
 | `SSH_PRIVATE_KEY` | Yes | PEM private key that matches the instance key pair (full key, `-----BEGIN … PRIVATE KEY-----` through `-----END …`). |
-| `DEPLOY_PATH` | No | Absolute path to the repo on the server. If unset, the workflow uses `$HOME/blog-generator` (expanded on the server for `SSH_USER`). |
+| `DEPLOY_PATH` | No | **Absolute** path to the repo root on the server (e.g. `/home/ec2-user/blog-generator`). If unset, the workflow uses `/home/<ssh-user>/blog-generator` after resolving `HOME` (non-interactive SSH often omits `HOME`; the workflow fixes that). If you use `~/...` in this secret, it is expanded the same way. The directory **must already exist** (clone the repo there once). |
 
 Do **not** commit keys or hostnames if you can avoid it; keep them in secrets and internal runbooks only.
 

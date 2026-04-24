@@ -11,6 +11,7 @@ AI-guided wizard for producing fully-structured blog posts — step by step, wit
 | Database | Supabase (hosted PostgreSQL + JS client) |
 | AI | Anthropic Claude API |
 | Container | Docker Compose (backend + frontend) |
+| CI/CD | GitHub Actions — deploy to EC2 on push to `main` ([docs/deployment.md](docs/deployment.md)) |
 | Testing | Vitest (unit/integration) + Playwright (E2E) |
 
 **Versioning** — the product semver lives in the root `package.json`. Sync workspaces with `npm run version:sync`, then commit; release process and SDLC map are in [docs/releases.md](docs/releases.md) and [CHANGELOG.md](CHANGELOG.md).
@@ -113,6 +114,16 @@ docker compose down
 ```
 
 > **Note:** The database is Supabase cloud — Docker Compose runs only the backend and frontend containers.
+
+---
+
+## Production deploy (GitHub Actions → EC2)
+
+Merges to **`main`** run [.github/workflows/deploy-ec2.yml](.github/workflows/deploy-ec2.yml), which SSHs into the server, syncs the repo to `origin/main`, runs [scripts/verify-deploy-env.sh](scripts/verify-deploy-env.sh) (format checks, no secret values in logs), and rebuilds containers with Docker Compose.
+
+- **Secrets** (`SSH_HOST`, `SSH_USER`, `SSH_PRIVATE_KEY`, optional `DEPLOY_PATH`) — see [docs/deployment.md](docs/deployment.md).
+- **Server setup** — git clone, `backend/.env`, Docker, and `git fetch` access to GitHub are required on the instance.
+- **Runtime** — the API logs a masked `[config]` summary at startup when environment validation passes ([docs/environment-configuration.md](docs/environment-configuration.md)).
 
 ---
 
@@ -278,11 +289,13 @@ blog-generator/
 │       │   └── ScrapeStatusIndicator.tsx
 │       ├── App.tsx
 │       └── main.tsx
-├── docs/agdr/
-│   ├── AgDR-0001-project-structure.md
-│   ├── AgDR-0002-url-scraping-approach.md
-│   ├── AgDR-0003-supabase-database-client.md
-│   └── AgDR-0004-docker-containerisation.md
+├── docs/
+│   ├── deployment.md              # EC2 + GitHub Actions production deploy
+│   └── agdr/
+│       ├── AgDR-0001-project-structure.md
+│       ├── AgDR-0002-url-scraping-approach.md
+│       ├── AgDR-0003-supabase-database-client.md
+│       └── AgDR-0004-docker-containerisation.md
 ├── docker-compose.yml
 ├── .dockerignore
 ├── .env.example

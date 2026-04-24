@@ -4,11 +4,13 @@ import cors from 'cors';
 import blogRoutes from './routes/blog-routes.js';
 import { errorHandler } from './middleware/error-handler.js';
 import { getAppVersion, getGitSha } from './version.js';
+import { validateAndLogRuntimeEnv } from './config/env.js';
+
+const { port, frontendUrl } = validateAndLogRuntimeEnv();
 
 const app = express();
-const port = process.env['PORT'] ?? 3000;
 
-app.use(cors({ origin: process.env['FRONTEND_URL'] ?? 'http://localhost:5173' }));
+app.use(cors({ origin: frontendUrl }));
 app.use(express.json());
 
 app.get('/health', (_req, res) =>
@@ -22,7 +24,7 @@ app.use('/api/blogs', blogRoutes);
 app.use(errorHandler);
 
 app.listen(port, () => {
-  console.log(`Blog Generator API running on port ${port}`);
+  console.log(`[config] Blog Generator API listening on port ${port}`);
 });
 
 export default app;

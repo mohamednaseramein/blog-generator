@@ -10,8 +10,8 @@ This app uses **one semver** for the product: the **`version` field in the root 
 | **Implement** | Add a one-line entry under `## [Unreleased]` in `CHANGELOG.md` if the change is user-visible. |
 | **Review** | PR description should mention impact for operators/users (Helps with release notes). |
 | **Test** | `npm test`, `npm run build`; after deploy, hit `GET /version` and confirm the UI footer. |
-| **Release** | Bump semver, tag `vX.Y.Z`, copy `[Unreleased]` into a dated `## [X.Y.Z]` section, deploy. |
-| **Hotfix** | `npm version patch` (or `minor` / `major`), tag, deploy; note in `CHANGELOG.md`. |
+| **Release** | Bump semver, tag `vX.Y.Z`, copy `[Unreleased]` into a dated `## [X.Y.Z]` section, merge to `main` (triggers [deploy workflow](../.github/workflows/deploy-ec2.yml)) or deploy manually per [deployment.md](./deployment.md). |
+| **Hotfix** | `npm version patch` (or `minor` / `major`), tag, merge to `main` / deploy; note in `CHANGELOG.md`. |
 
 ## How to release
 
@@ -50,3 +50,4 @@ This app uses **one semver** for the product: the **`version` field in the root 
 - [docker-compose.yml](../docker-compose.yml) — `APP_VERSION` / `GIT_SHA` build args
 - [scripts/build-env.sh](../scripts/build-env.sh) — load version + git from the repo for Docker builds
 - [scripts/sync-version.mjs](../scripts/sync-version.mjs) — copy root `version` to workspaces
+- [deployment.md](./deployment.md) — production EC2 deploy and GitHub Actions secrets

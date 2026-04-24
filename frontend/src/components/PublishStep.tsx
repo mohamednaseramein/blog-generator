@@ -142,7 +142,7 @@ export function PublishStep({ blogId, onBack, onFinish }: Props) {
     try {
       const draftRes = await getDraft(blogId);
       if (!draftRes.draft.draftConfirmed) {
-        setError('Draft is not confirmed — go back to Step 4 and confirm the draft first.');
+        setError('Draft is not confirmed - go back to Step 4 and confirm the draft first.');
         return;
       }
       setMarkdown(draftRes.draft.markdown);
@@ -197,10 +197,10 @@ export function PublishStep({ blogId, onBack, onFinish }: Props) {
   return (
     <div className="flex min-h-0 flex-col gap-6">
       <div>
-        <h2 className="text-lg font-semibold text-slate-800">Step 5 — Publish</h2>
+        <h2 className="text-lg font-semibold text-slate-800">Step 5: Publish</h2>
         <p className="mt-1 text-sm text-slate-500">
           Review your post, then use Export to copy Markdown or HTML for your CMS. Copied full posts
-          include the title, optional slug and meta, and body — matching the preview.
+          include the title, optional slug and meta, and body, matching the preview.
         </p>
       </div>
 
@@ -275,7 +275,7 @@ export function PublishStep({ blogId, onBack, onFinish }: Props) {
             )}
           </div>
 
-          {/* Export — below preview for a single scroll flow */}
+          {/* Export: below preview for a single scroll flow */}
           <div className="min-w-0 w-full">
             <div className="flex flex-col gap-4 rounded-xl border border-slate-200 bg-white p-1 shadow-sm">
               <div className="px-3 pt-3">
@@ -286,7 +286,7 @@ export function PublishStep({ blogId, onBack, onFinish }: Props) {
               <div className="flex flex-col gap-2 border-t border-slate-100 px-3 py-3">
                 <p className="text-xs font-medium text-slate-600">Full post</p>
                 <p className="text-xs text-slate-500">
-                  Title, optional slug and meta, and body — in one paste.
+                  Title, optional slug and meta, and body in one paste.
                 </p>
                 <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center sm:gap-2">
                   <CopyButton
@@ -356,7 +356,7 @@ export function PublishStep({ blogId, onBack, onFinish }: Props) {
                     <span>SEO and social</span>
                     {!seoOpen && (suggestedSlug || metaDescription || seoTitle) && (
                       <p className="mt-0.5 text-xs font-normal text-slate-500">
-                        SEO title, slug, and meta available — expand to view and copy.
+                        SEO title, slug, and meta available. Expand to view and copy.
                       </p>
                     )}
                   </div>
@@ -387,7 +387,7 @@ export function PublishStep({ blogId, onBack, onFinish }: Props) {
                         />
                       </div>
                     ) : (
-                      <p className="text-xs text-slate-400">SEO title not yet generated — confirm the draft to generate.</p>
+                      <p className="text-xs text-slate-400">SEO title not yet generated. Confirm the draft to generate.</p>
                     )}
 
                     {suggestedSlug ? (
@@ -404,7 +404,7 @@ export function PublishStep({ blogId, onBack, onFinish }: Props) {
                         />
                       </div>
                     ) : (
-                      <p className="text-xs text-slate-400">Slug not yet generated — confirm the draft to generate.</p>
+                      <p className="text-xs text-slate-400">Slug not yet generated. Confirm the draft to generate.</p>
                     )}
 
                     {metaDescription ? (
@@ -426,7 +426,7 @@ export function PublishStep({ blogId, onBack, onFinish }: Props) {
                         />
                       </div>
                     ) : (
-                      <p className="text-xs text-slate-400">Meta not yet generated — confirm the draft to generate.</p>
+                      <p className="text-xs text-slate-400">Meta not yet generated. Confirm the draft to generate.</p>
                     )}
 
                     {(seoTitle || metaDescription || suggestedSlug || primaryKeyword) && (

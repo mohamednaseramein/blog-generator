@@ -48,7 +48,7 @@ router.get('/:id/draft', requireAuth, handleGetDraft);
 
 router.post('/:id/events', requireAuth, handleRecordEvent);
 
-// Reference URLs (multi-URL support — EP-05 / US-09)
+// Reference URLs (multi-URL support, EP-05 / US-09)
 router.post('/:id/references', requireAuth, handleAddReference);
 router.get('/:id/references', requireAuth, handleListReferences);
 router.get('/:id/references/:refId/status', requireAuth, handleGetReferenceStatus);

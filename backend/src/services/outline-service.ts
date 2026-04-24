@@ -1,5 +1,6 @@
 import Anthropic from '@anthropic-ai/sdk';
 import type { BlogBrief } from '../domain/types.js';
+import { PROMPT_EMDASH_BAN, stripEmDashesDeep } from '../lib/copy-style.js';
 import type { AlignmentSummary } from './alignment-service.js';
 
 const client = new Anthropic({ apiKey: process.env['ANTHROPIC_API_KEY'] });
@@ -52,9 +53,10 @@ export async function generateBlogOutline(
 - Tone: ${brief.toneOfVoice}
 - Word count target: ~${wordTarget} words (range: ${brief.wordCountMin}–${brief.wordCountMax})${feedbackNote}
 
-Generate a structured outline. Respond with ONLY valid JSON — no markdown fences, no extra keys.
+Generate a structured outline. Respond with ONLY valid JSON. No markdown fences, no extra keys.
 
 Rules:
+- ${PROMPT_EMDASH_BAN}
 - Include 4–7 H2 sections (never fewer than 4, never more than 7)
 - Each section must have a clear, keyword-relevant title and 2–4 H3 subsections
 - Distribute estimatedWords across sections so they sum to approximately ${wordTarget}
@@ -96,7 +98,9 @@ Required JSON shape:
     throw new Error('AI returned an unexpected response format. Please try again.');
   }
 
-  for (const section of parsed.sections) {
+  const cleaned = stripEmDashesDeep(parsed);
+
+  for (const section of cleaned.sections) {
     if (
       typeof section.title !== 'string' ||
       typeof section.description !== 'string' ||
@@ -108,7 +112,11 @@ Required JSON shape:
     }
   }
 
-  return { sections: parsed.sections, totalEstimatedWords: parsed.totalEstimatedWords, raw: text };
+  return {
+    sections: cleaned.sections,
+    totalEstimatedWords: cleaned.totalEstimatedWords,
+    raw: JSON.stringify(cleaned),
+  };
 }
 
 /** Parse persisted `blog_outlines.outline_json` (same shape as AI outline JSON). */
@@ -130,9 +138,10 @@ export function parseStoredOutlineJson(text: string): {
       throw new Error('Invalid outline section shape');
     }
   }
-  return {
+  const base = {
     sections: parsed.sections,
     totalEstimatedWords:
       typeof parsed.totalEstimatedWords === 'number' ? parsed.totalEstimatedWords : 0,
   };
+  return stripEmDashesDeep(base);
 }

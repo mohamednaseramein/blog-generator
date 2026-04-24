@@ -10,7 +10,7 @@ cd "$ROOT"
 if [[ -x scripts/verify-deploy-env.sh ]]; then
   scripts/verify-deploy-env.sh .
 else
-  echo "[deploy] WARN: scripts/verify-deploy-env.sh missing or not executable — skipping env verification" >&2
+  echo "[deploy] WARN: scripts/verify-deploy-env.sh missing or not executable - skipping env verification" >&2
 fi
 
 # shellcheck disable=SC2016
@@ -48,7 +48,7 @@ if dc --env-file backend/.env up -d --help 2>&1 | grep -qE '[[:space:]]--wait[[:
   echo "[deploy] docker compose up -d --wait"
   dc --env-file backend/.env up -d --wait
 else
-  echo "[deploy] NOTE: this Compose has no 'up -d --wait' — consider upgrading to Docker Compose 2.29+"
+  echo "[deploy] NOTE: this Compose has no 'up -d --wait' - consider upgrading to Docker Compose 2.29+"
   echo "[deploy] docker compose up -d"
   dc --env-file backend/.env up -d
 fi

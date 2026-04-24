@@ -79,7 +79,7 @@ function ScrapeLine({ status, error }: { status: ReferenceScrapeStatus; error: s
   if (status === 'timeout') {
     return (
       <span className="text-xs text-amber-600">
-        ⚠ {error ?? 'Request timed out — the URL may be slow or unreachable.'}
+        ⚠ {error ?? 'Request timed out - the URL may be slow or unreachable.'}
       </span>
     );
   }
@@ -120,7 +120,7 @@ function ExtractionLine({
     return (
       <div className="flex flex-col gap-2">
         <p className="text-xs text-amber-800 leading-snug">
-          {errorDetail?.trim() ?? 'Reference analysis failed — alignment can still use the raw page text.'}
+          {errorDetail?.trim() ?? 'Reference analysis failed - alignment can still use the raw page text.'}
         </p>
         <Button
           type="button"

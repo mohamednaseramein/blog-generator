@@ -86,7 +86,7 @@ export function DraftStep({ blogId, onBack, onConfirmed }: Props) {
   return (
     <div className="flex flex-col gap-6">
       <div>
-        <h2 className="text-lg font-semibold text-slate-800">Step 4 — Blog Draft</h2>
+        <h2 className="text-lg font-semibold text-slate-800">Step 4: Blog Draft</h2>
         <p className="mt-1 text-sm text-slate-500">
           Review the AI-generated markdown. Give feedback to revise, or confirm when you are happy.
         </p>

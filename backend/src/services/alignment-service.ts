@@ -1,5 +1,6 @@
 import Anthropic from '@anthropic-ai/sdk';
 import type { BlogBrief, BlogReference } from '../domain/types.js';
+import { PROMPT_EMDASH_BAN, stripEmDashesDeep } from '../lib/copy-style.js';
 
 /** Default matches previous hardcoded model; unset env keeps prod behaviour. Override in dev, e.g. Haiku, via ANTHROPIC_MODEL. */
 export const DEFAULT_ALIGNMENT_ANTHROPIC_MODEL = 'claude-sonnet-4-6';
@@ -87,7 +88,8 @@ async function fetchAlignmentJson(prompt: string): Promise<{ raw: string; parsed
     throw new Error('AI returned an unexpected response format. Please try again.');
   }
 
-  return { raw: text, parsed };
+  const cleaned = stripEmDashesDeep(parsed);
+  return { raw: JSON.stringify(cleaned), parsed: cleaned };
 }
 
 function briefBlock(brief: BlogBrief): string {
@@ -130,11 +132,12 @@ export async function generateAlignmentSummary(
 
 ${briefBlock(brief)}
 
-## Reference insights (from automated extraction — structured, not raw page dumps)
+## Reference insights (from automated extraction - structured, not raw page dumps)
 ${snippets}
 ${feedbackNote}
 
-Respond with ONLY valid JSON — no markdown fences, no extra keys.
+${PROMPT_EMDASH_BAN}
+Respond with ONLY valid JSON. No markdown fences, no extra keys.
 The response MUST include a sixth field "differentiationAngle" because structured reference insights were provided. Do NOT include "referenceUnderstanding".
 
 Required JSON shape:
@@ -173,7 +176,8 @@ Required JSON shape:
 ${briefBlock(brief)}
 ${feedbackNote}
 
-Respond with ONLY valid JSON — no markdown fences, no extra keys. Use exactly five string fields (no reference-specific fields).
+${PROMPT_EMDASH_BAN}
+Respond with ONLY valid JSON. No markdown fences, no extra keys. Use exactly five string fields (no reference-specific fields).
 
 Required JSON shape:
 {
@@ -187,14 +191,14 @@ Required JSON shape:
     const { raw, parsed } = await fetchAlignmentJson(prompt);
     validateCoreFields(parsed);
 
-    const withMeta = {
+    const withMeta = stripEmDashesDeep({
       blogGoal: parsed['blogGoal'] as string,
       targetAudience: parsed['targetAudience'] as string,
       seoIntent: parsed['seoIntent'] as string,
       tone: parsed['tone'] as string,
       scope: parsed['scope'] as string,
       referencesAnalysis: 'none_usable' as const,
-    };
+    });
 
     return { ...withMeta, raw: JSON.stringify(withMeta) };
   }
@@ -217,7 +221,8 @@ Required JSON shape:
 ${briefBlock(brief)}
 ${scrapedNote}${feedbackNote}
 
-Respond with ONLY valid JSON — no markdown fences, no extra keys.
+${PROMPT_EMDASH_BAN}
+Respond with ONLY valid JSON. No markdown fences, no extra keys.
 The response MUST include a sixth field "referenceUnderstanding" because reference page text (or a scrape in progress pipeline) was included.
 
 Required JSON shape:
@@ -254,7 +259,8 @@ Required JSON shape:
 
 ${briefBlock(brief)}${feedbackNote}
 
-Respond with ONLY valid JSON — no markdown fences, no extra keys.
+${PROMPT_EMDASH_BAN}
+Respond with ONLY valid JSON. No markdown fences, no extra keys.
 
 Required JSON shape:
 {

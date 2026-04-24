@@ -1,5 +1,6 @@
 import Anthropic from '@anthropic-ai/sdk';
 import type { BlogBrief } from '../domain/types.js';
+import { PROMPT_EMDASH_BAN, stripEmDashes } from '../lib/copy-style.js';
 import type { AlignmentSummary } from './alignment-service.js';
 import type { OutlineSection } from './outline-service.js';
 import { resolveAlignmentAnthropicModel } from './alignment-service.js';
@@ -62,7 +63,8 @@ export async function generateBlogDraft(
 ${outlineToPrompt(sections)}${feedbackNote}
 
 ## Output rules
-- Start with a compelling introduction (no H1; use the title only as plain context — first heading should be ##).
+- ${PROMPT_EMDASH_BAN}
+- Start with a compelling introduction (no H1; use the title only as plain context. The first heading should be ##).
 - Use ## for each main section matching the outline order and titles (you may slightly refine titles for flow).
 - Use ### for sub-points where the outline had H3 items.
 - Work the primary keyword naturally into the intro and several headings.
@@ -81,8 +83,10 @@ ${outlineToPrompt(sections)}${feedbackNote}
     throw new Error('AI returned an empty draft. Please try again.');
   }
 
-  const markdown = raw.replace(/^```(?:markdown|md)?\s*/i, '').replace(/\s*```\s*$/m, '').trim();
-  return { markdown, raw };
+  const markdown = stripEmDashes(
+    raw.replace(/^```(?:markdown|md)?\s*/i, '').replace(/\s*```\s*$/m, '').trim(),
+  );
+  return { markdown, raw: stripEmDashes(raw) };
 }
 
 export async function generateMetaAndSlug(
@@ -92,6 +96,7 @@ export async function generateMetaAndSlug(
 ): Promise<MetaAndSlug> {
   const excerpt = markdown.slice(0, 1500);
   const prompt = `Given the following blog post title, primary keyword, and opening content, generate:
+${PROMPT_EMDASH_BAN}
 1. An SEO title: ≤60 characters, starts with or contains the primary keyword near the front, compelling for search results.
 2. A meta description: at most 155 characters, includes the primary keyword, entices clicks.
 3. A URL slug: lowercase, kebab-case, at most 60 characters, keyword-rich.
@@ -121,8 +126,8 @@ Respond with valid JSON only, no markdown fences:
   }
 
   return {
-    seoTitle: parsed.seoTitle?.trim() ? parsed.seoTitle.trim().slice(0, 60) : null,
-    metaDescription: (parsed.metaDescription ?? '').slice(0, 155),
-    suggestedSlug: (parsed.suggestedSlug ?? '').slice(0, 60),
+    seoTitle: parsed.seoTitle?.trim() ? stripEmDashes(parsed.seoTitle.trim().slice(0, 60)) : null,
+    metaDescription: stripEmDashes((parsed.metaDescription ?? '').slice(0, 155)),
+    suggestedSlug: stripEmDashes((parsed.suggestedSlug ?? '').slice(0, 60)),
   };
 }

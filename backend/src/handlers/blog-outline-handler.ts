@@ -7,6 +7,7 @@ import {
   confirmOutline,
 } from '../repositories/blog-outline-repository.js';
 import { generateBlogOutline, parseStoredOutlineJson } from '../services/outline-service.js';
+import { stripEmDashesDeep } from '../lib/copy-style.js';
 import type { AlignmentSummary } from '../services/alignment-service.js';
 import { AppError } from '../middleware/error-handler.js';
 import { getUserId } from '../middleware/auth.js';
@@ -26,14 +27,14 @@ export async function handleGenerateOutline(
     if (!blog) throw new AppError(404, 'NOT_FOUND', 'Blog not found');
 
     const brief = await getBriefByBlogId(blogId);
-    if (!brief) throw new AppError(404, 'NOT_FOUND', 'Brief not found — submit the brief first');
+    if (!brief) throw new AppError(404, 'NOT_FOUND', 'Brief not found - submit the brief first');
     if (!brief.alignmentConfirmed || !brief.alignmentSummary) {
       throw new AppError(400, 'BAD_REQUEST', 'Confirm alignment before generating an outline');
     }
 
     let alignment: AlignmentSummary;
     try {
-      alignment = JSON.parse(brief.alignmentSummary) as AlignmentSummary;
+      alignment = stripEmDashesDeep(JSON.parse(brief.alignmentSummary) as AlignmentSummary);
     } catch {
       throw new AppError(500, 'INTERNAL', 'Stored alignment summary is malformed');
     }
@@ -97,7 +98,13 @@ export async function handleGetOutline(
     }
 
     res.json({
-      outline: { ...parsed, raw: row.outlineJson },
+      outline: {
+        ...parsed,
+        raw: JSON.stringify({
+          sections: parsed.sections,
+          totalEstimatedWords: parsed.totalEstimatedWords,
+        }),
+      },
       outlineConfirmed: row.outlineConfirmed,
       outlineIterations: row.outlineIterations,
     });

@@ -88,7 +88,7 @@ export function OutlineStep({ blogId, onBack, onConfirmed }: Props) {
   return (
     <div className="flex flex-col gap-6">
       <div>
-        <h2 className="text-lg font-semibold text-slate-800">Step 3 — Blog Outline</h2>
+        <h2 className="text-lg font-semibold text-slate-800">Step 3: Blog Outline</h2>
         <p className="mt-1 text-sm text-slate-500">
           Review the AI-generated structure. Provide feedback or confirm to proceed to drafting.
         </p>

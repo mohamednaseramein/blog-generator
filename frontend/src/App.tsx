@@ -124,7 +124,7 @@ export function App() {
           {state.step === 'brief' && (
             <>
               <div className="mb-6">
-                <h2 className="text-lg font-semibold text-slate-800">Step 1 — Blog Brief</h2>
+                <h2 className="text-lg font-semibold text-slate-800">Step 1: Blog Brief</h2>
                 <p className="mt-1 text-sm text-slate-500">
                   Tell us about your post. The more detail you give, the better the output.
                 </p>

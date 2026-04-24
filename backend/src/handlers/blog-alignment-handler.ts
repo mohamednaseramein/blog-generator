@@ -25,7 +25,7 @@ export async function handleGenerateAlignment(
     if (!blog) throw new AppError(404, 'NOT_FOUND', 'Blog not found');
 
     const brief = await getBriefByBlogId(blogId);
-    if (!brief) throw new AppError(404, 'NOT_FOUND', 'Brief not found — submit the brief first');
+    if (!brief) throw new AppError(404, 'NOT_FOUND', 'Brief not found - submit the brief first');
 
     const references = await getReferencesByBlogId(blogId);
     const result = await generateAlignmentSummary(brief, feedbackText, references);

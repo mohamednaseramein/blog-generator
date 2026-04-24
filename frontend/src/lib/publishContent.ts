@@ -30,13 +30,13 @@ export interface FullDocumentHtmlOptions {
   bodyMarkdown: string;
 }
 
-/** HTML `<head>` snippet with SEO meta tags — paste into your CMS head section. */
+/** HTML `<head>` snippet with SEO meta tags. Paste into your CMS head section. */
 export function buildSeoMetaSnippet(opts: Pick<FullDocumentHtmlOptions, 'seoTitle' | 'metaDescription' | 'suggestedSlug' | 'primaryKeyword' | 'title'>): string {
   const baseUrl = (import.meta.env['VITE_BASE_URL'] as string | undefined)?.replace(/\/$/, '') || DEFAULT_BASE_URL;
   const displayTitle = opts.seoTitle?.trim() || opts.title.trim();
   const canonicalSlug = opts.suggestedSlug?.trim() ?? '';
   const lines: string[] = [
-    `<!-- SEO meta tags — paste into your CMS <head> section -->`,
+    `<!-- SEO meta tags. Paste into your CMS <head> section -->`,
     `<title>${escapeHtml(displayTitle)}</title>`,
   ];
   if (opts.metaDescription?.trim()) {

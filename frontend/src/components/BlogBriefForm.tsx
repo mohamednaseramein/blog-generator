@@ -49,7 +49,7 @@ const schema = z
 
 type FormValues = z.input<typeof schema>;
 
-/** New blogs have no `blog_briefs` row yet — GET /brief returns 404 with this message. */
+/** New blogs have no `blog_briefs` row yet. GET /brief returns 404 with this message. */
 function isBriefNotFoundError(e: unknown): boolean {
   return e instanceof Error && e.message === 'Brief not found';
 }
@@ -247,7 +247,7 @@ export function BlogBriefForm({ blogId, onSuccess }: Props) {
 
       <Field
         label="Reference URLs"
-        hint="Optional — add up to 5 URLs. We'll scrape each one to inform the content."
+        hint="Optional: add up to 5 URLs. We'll scrape each one to inform the content."
       >
         <ReferenceUrlList blogId={blogId} initialReferences={existingReferences} />
       </Field>

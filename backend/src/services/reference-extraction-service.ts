@@ -1,5 +1,6 @@
 import Anthropic from '@anthropic-ai/sdk';
 import type { BlogBrief } from '../domain/types.js';
+import { PROMPT_EMDASH_BAN, stripEmDashes } from '../lib/copy-style.js';
 import { resolveAlignmentAnthropicModel } from './alignment-service.js';
 
 const client = new Anthropic({ apiKey: process.env['ANTHROPIC_API_KEY'] });
@@ -67,6 +68,7 @@ export async function generateReferenceExtraction(
 
   const userContent = `You are an editorial assistant. The user is writing a blog post and added a reference URL whose text was scraped.
 
+${PROMPT_EMDASH_BAN}
 ## User's blog brief (for relevance)
 - Title: ${brief.title}
 - Primary keyword: ${brief.primaryKeyword}
@@ -81,10 +83,10 @@ ${url}
 ${slice}
 
 Return one JSON object with exactly these keys and types (no other keys):
-- "relevance": one of the strings "high", "medium", or "low" — how useful this page is for the user's specific brief
-- "summary": string — one sentence: what this page covers in relation to the brief
-- "keyAngle": string — one sentence: what angle, evidence, or gap vs typical coverage this source suggests
-- "irrelevantToBrief": boolean — true if the page is unrelated to the brief or offers no usable angle; false otherwise`;
+- "relevance": one of the strings "high", "medium", or "low" - how useful this page is for the user's specific brief
+- "summary": string - one sentence: what this page covers in relation to the brief
+- "keyAngle": string - one sentence: what angle, evidence, or gap vs typical coverage this source suggests
+- "irrelevantToBrief": boolean - true if the page is unrelated to the brief or offers no usable angle; false otherwise`;
 
   const message = await client.messages.create({
     model: resolveAlignmentAnthropicModel(),
@@ -120,5 +122,10 @@ Return one JSON object with exactly these keys and types (no other keys):
     throw new Error('AI returned an unexpected response format. Please try again.');
   }
 
-  return { ...parsed, raw: jsonText };
+  return {
+    ...parsed,
+    summary: stripEmDashes(parsed.summary),
+    keyAngle: stripEmDashes(parsed.keyAngle),
+    raw: stripEmDashes(jsonText),
+  };
 }

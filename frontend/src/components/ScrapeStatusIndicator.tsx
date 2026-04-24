@@ -42,7 +42,7 @@ export function ScrapeStatusIndicator({ blogId }: Props) {
   if (status.scrapeStatus === 'success') {
     return (
       <Toast variant="success">
-        Reference URL scraped — {status.scrapedContentLength.toLocaleString()} chars extracted.
+        Reference URL scraped. {status.scrapedContentLength.toLocaleString()} chars extracted.
       </Toast>
     );
   }

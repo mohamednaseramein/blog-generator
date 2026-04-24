@@ -9,6 +9,7 @@ import {
 } from '../repositories/blog-draft-repository.js';
 import { generateBlogDraft, generateMetaAndSlug } from '../services/draft-service.js';
 import type { AlignmentSummary } from '../services/alignment-service.js';
+import { stripEmDashes, stripEmDashesDeep } from '../lib/copy-style.js';
 import { parseStoredOutlineJson } from '../services/outline-service.js';
 import { AppError } from '../middleware/error-handler.js';
 import { getUserId } from '../middleware/auth.js';
@@ -28,20 +29,20 @@ export async function handleGenerateDraft(
     if (!blog) throw new AppError(404, 'NOT_FOUND', 'Blog not found');
 
     const brief = await getBriefByBlogId(blogId);
-    if (!brief) throw new AppError(404, 'NOT_FOUND', 'Brief not found — submit the brief first');
+    if (!brief) throw new AppError(404, 'NOT_FOUND', 'Brief not found - submit the brief first');
     if (!brief.alignmentConfirmed || !brief.alignmentSummary) {
       throw new AppError(400, 'BAD_REQUEST', 'Confirm alignment before generating a draft');
     }
 
     let alignment: AlignmentSummary;
     try {
-      alignment = JSON.parse(brief.alignmentSummary) as AlignmentSummary;
+      alignment = stripEmDashesDeep(JSON.parse(brief.alignmentSummary) as AlignmentSummary);
     } catch {
       throw new AppError(500, 'INTERNAL', 'Stored alignment summary is malformed');
     }
 
     const outlineRow = await getOutlineByBlogId(blogId);
-    if (!outlineRow) throw new AppError(404, 'NOT_FOUND', 'Outline not found — generate an outline first');
+    if (!outlineRow) throw new AppError(404, 'NOT_FOUND', 'Outline not found - generate an outline first');
     if (!outlineRow.outlineConfirmed) {
       throw new AppError(400, 'BAD_REQUEST', 'Confirm the outline before generating a draft');
     }
@@ -130,12 +131,13 @@ export async function handleGetDraft(
 
     res.json({
       draft: {
-        markdown: draft.draftMarkdown,
+        markdown: stripEmDashes(draft.draftMarkdown),
         draftConfirmed: draft.draftConfirmed,
         draftIterations: draft.draftIterations,
-        metaDescription: draft.metaDescription,
-        suggestedSlug: draft.suggestedSlug,
-        seoTitle: draft.seoTitle,
+        metaDescription:
+          draft.metaDescription != null ? stripEmDashes(draft.metaDescription) : draft.metaDescription,
+        suggestedSlug: draft.suggestedSlug != null ? stripEmDashes(draft.suggestedSlug) : draft.suggestedSlug,
+        seoTitle: draft.seoTitle != null ? stripEmDashes(draft.seoTitle) : draft.seoTitle,
       },
     });
   } catch (err) {

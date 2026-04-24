@@ -4,6 +4,10 @@ All notable changes to this project are documented in this file. The format is b
 
 ## [Unreleased]
 
+### Added
+
+- **Content style:** Ban Unicode em dash (U+2014) in AI output and harmonized UI: [`backend/src/lib/copy-style.ts`](backend/src/lib/copy-style.ts), prompt instruction `PROMPT_EMDASH_BAN`, stripping in draft/outline/alignment/reference-extraction services and key API read paths. Documented in [`docs/content-style-sdlc.md`](docs/content-style-sdlc.md) and task [`docs/tasks/feat-no-em-dash-content-style.md`](docs/tasks/feat-no-em-dash-content-style.md).
+
 ### Changed
 
 - **CI/CD** — EC2 deploy uses [`scripts/deploy-ec2.sh`](scripts/deploy-ec2.sh) (no `docker compose down` on the happy path; optional `up --wait` with Compose 2.29+; optional `DOWN_BEFORE_DEPLOY=1` / `DEPLOY_BUILD_NO_CACHE=0` on the host). Documented in [`docs/zero-downtime-sdlc.md`](docs/zero-downtime-sdlc.md) and [`docs/deployment.md`](docs/deployment.md).

@@ -1,6 +1,6 @@
 # Blog Generator
 
-AI-guided wizard for producing fully-structured blog posts — step by step, with the human in control throughout.
+AI-guided wizard for producing fully-structured blog posts, step by step, with the human in control throughout.
 
 ## Stack
 
@@ -11,10 +11,10 @@ AI-guided wizard for producing fully-structured blog posts — step by step, wit
 | Database | Supabase (hosted PostgreSQL + JS client) |
 | AI | Anthropic Claude API |
 | Container | Docker Compose (backend + frontend) |
-| CI/CD | GitHub Actions — deploy to EC2 on push to `main` ([docs/deployment.md](docs/deployment.md)) |
+| CI/CD | GitHub Actions: deploy to EC2 on push to `main` ([docs/deployment.md](docs/deployment.md)) |
 | Testing | Vitest (unit/integration) + Playwright (E2E) |
 
-**Versioning** — the product semver lives in the root `package.json`. Sync workspaces with `npm run version:sync`, then commit; release process and SDLC map are in [docs/releases.md](docs/releases.md) and [CHANGELOG.md](CHANGELOG.md).
+**Versioning:** the product semver lives in the root `package.json`. Sync workspaces with `npm run version:sync`, then commit; release process and SDLC map are in [docs/releases.md](docs/releases.md) and [CHANGELOG.md](CHANGELOG.md). **Copy style** (no em dashes in generated or user-facing product text): [docs/content-style-sdlc.md](docs/content-style-sdlc.md).
 
 ---
 
@@ -291,6 +291,7 @@ blog-generator/
 │       └── main.tsx
 ├── docs/
 │   ├── deployment.md              # EC2 + GitHub Actions production deploy
+│   ├── content-style-sdlc.md      # No U+2014 in AI / product copy (SDLC)
 │   └── agdr/
 │       ├── AgDR-0001-project-structure.md
 │       ├── AgDR-0002-url-scraping-approach.md

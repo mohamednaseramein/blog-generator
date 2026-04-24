@@ -121,7 +121,7 @@ export function AlignmentSummary({ blogId, onEdit, onConfirmed }: Props) {
   return (
     <div className="flex flex-col gap-6">
       <div>
-        <h2 className="text-lg font-semibold text-slate-800">Step 2 — AI Alignment Summary</h2>
+        <h2 className="text-lg font-semibold text-slate-800">Step 2: AI Alignment Summary</h2>
         <p className="mt-1 text-sm text-slate-500">
           Review what the AI has understood. Edit or confirm before generation begins.
         </p>

@@ -9,7 +9,7 @@ This app uses **one semver** for the product: the **`version` field in the root 
 | **Plan** | Optional: name a target version or GitHub milestone. |
 | **Implement** | Add a one-line entry under `## [Unreleased]` in `CHANGELOG.md` if the change is user-visible. |
 | **Review** | PR description should mention impact for operators/users (Helps with release notes). |
-| **Test** | `npm test`, `npm run build`; after deploy, hit `GET /version` and confirm the UI footer. |
+| **Test** | `npm test`, `npm run build`; after deploy, hit `GET /version` and confirm the UI footer. For copy changes, see [content-style-sdlc.md](./content-style-sdlc.md). |
 | **Release** | Bump semver, tag `vX.Y.Z`, copy `[Unreleased]` into a dated `## [X.Y.Z]` section, merge to `main` (triggers [deploy workflow](../.github/workflows/deploy-ec2.yml)) or deploy manually per [deployment.md](./deployment.md). |
 | **Hotfix** | `npm version patch` (or `minor` / `major`), tag, merge to `main` / deploy; note in `CHANGELOG.md`. |
 

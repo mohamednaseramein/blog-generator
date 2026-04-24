@@ -74,13 +74,13 @@ async function scrapeReference(referenceId: string, url: string): Promise<void> 
 
     if (error.code === 'ECONNABORTED' || error.message?.includes('timeout')) {
       status = 'timeout';
-      message = `Request timed out after ${timeoutMs / 1000}s — the URL may be slow or unreachable.`;
+      message = `Request timed out after ${timeoutMs / 1000}s - the URL may be slow or unreachable.`;
     } else if (error.response?.status === 401 || error.response?.status === 403) {
       message = 'This URL is private or requires login. Copy the relevant content and paste it into your Blog Brief instead.';
     } else if (error.response?.status === 404) {
-      message = 'This URL returned a 404 — the page was not found.';
+      message = 'This URL returned a 404 - the page was not found.';
     } else if (error.code === 'ENOTFOUND' || error.code === 'EAI_AGAIN') {
-      message = 'Could not reach this URL — check it is publicly accessible.';
+      message = 'Could not reach this URL - check it is publicly accessible.';
     }
 
     await updateReferenceScrapeResult(referenceId, status, null, message);

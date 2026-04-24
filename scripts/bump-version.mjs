@@ -5,8 +5,8 @@
  *   node scripts/bump-version.mjs patch|minor|major
  *   node scripts/bump-version.mjs --infer [--dry-run]
  *
- * --infer: inspects git commits since the latest v* tag (or all history if none)
- * and picks the highest bump per docs/releases.md rules.
+ * --infer: inspects git commits in range v<package.json version>..HEAD, else
+ * latest v* tag..HEAD (see docs/releases.md). No tag anchor → exits with guidance.
  */
 import { execSync } from 'node:child_process';
 import { readFileSync, writeFileSync } from 'node:fs';
@@ -86,7 +86,12 @@ function getLogRange() {
  */
 function bumpFromCommit(subject, body) {
   const text = `${subject}\n${body}`;
-  if (/^BREAKING CHANGE(\s|$)/m.test(body) || /^BREAKING-CHANGE(\s|$)/m.test(body)) {
+  if (
+    /^BREAKING CHANGE:/m.test(body) ||
+    /^BREAKING CHANGE(\s|$)/m.test(body) ||
+    /^BREAKING-CHANGE:/m.test(body) ||
+    /^BREAKING-CHANGE(\s|$)/m.test(body)
+  ) {
     return 'major';
   }
   // feat(api)!: or fix!: in subject
@@ -96,7 +101,7 @@ function bumpFromCommit(subject, body) {
   }
 
   const typeMatch = header.match(/^([a-z]+)(?:\([^)]*\))?:\s/i);
-  if (!typeMatch) return 'none';
+  if (!typeMatch) return 'patch';
   const type = typeMatch[1].toLowerCase();
 
   if (type === 'feat' || type === 'feature') return 'minor';

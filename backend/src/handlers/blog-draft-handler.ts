@@ -56,13 +56,19 @@ export async function handleGenerateDraft(
     const existingDraft = await getDraftByBlogId(blogId);
     const currentIterations = existingDraft?.draftIterations ?? 0;
 
-    const result = await generateBlogDraft(
-      brief,
-      alignment,
-      parsedOutline.sections,
-      parsedOutline.totalEstimatedWords,
-      feedbackText,
-    );
+    let result;
+    try {
+      result = await generateBlogDraft(
+        brief,
+        alignment,
+        parsedOutline.sections,
+        parsedOutline.totalEstimatedWords,
+        feedbackText,
+      );
+    } catch (err) {
+      if (err instanceof AppError) throw err;
+      throw new AppError(422, 'GENERATION_FAILED', (err as Error).message ?? 'Failed to generate draft. Please try again.');
+    }
     await upsertDraft(blogId, result.markdown, currentIterations);
 
     res.json({ draft: { markdown: result.markdown, raw: result.raw } });
@@ -92,16 +98,16 @@ export async function handleConfirmDraft(
     const title = brief?.title ?? '';
     const keyword = brief?.primaryKeyword ?? '';
 
-    const { metaDescription, suggestedSlug } = await generateMetaAndSlug(
+    const { seoTitle, metaDescription, suggestedSlug } = await generateMetaAndSlug(
       title,
       draft.draftMarkdown,
       keyword,
     );
 
-    await confirmDraft(blogId, metaDescription, suggestedSlug);
+    await confirmDraft(blogId, metaDescription, suggestedSlug, seoTitle);
     await advanceBlogStep(blogId, 5);
 
-    res.json({ confirmed: true, blogId, metaDescription, suggestedSlug });
+    res.json({ confirmed: true, blogId, seoTitle, metaDescription, suggestedSlug });
   } catch (err) {
     next(err);
   }
@@ -129,6 +135,7 @@ export async function handleGetDraft(
         draftIterations: draft.draftIterations,
         metaDescription: draft.metaDescription,
         suggestedSlug: draft.suggestedSlug,
+        seoTitle: draft.seoTitle,
       },
     });
   } catch (err) {

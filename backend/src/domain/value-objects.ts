@@ -44,6 +44,14 @@ export class ReferenceUrl {
   }
 }
 
+/** Aligned with blog_briefs column limits / TEXT fields — enforce at API to avoid DoS. */
+export const BRIEF_FIELD_LIMITS = {
+  title: 500,
+  /** DB: TEXT; keep a cap for request size. */
+  primaryKeyword: 4_000,
+  toneOfVoice: 200,
+} as const;
+
 export function trimInput(value: string): string {
   return value.trim();
 }

@@ -77,7 +77,16 @@ export async function upsertBrief(
     .select()
     .single<BlogBriefRow>();
 
-  if (error) throw new Error(error.message);
+  if (error) {
+    if (error.message.includes('varying(255)')) {
+      throw new Error(
+        `${error.message} — The database is missing migration migrate-007 (primary_keyword should be TEXT). ` +
+          `Run: npm run db:migrate --workspace=backend (requires SUPABASE_DB_URL). ` +
+          'Docker: backend CMD runs migrate.js on start; rebuild image if migrations/ are old.',
+      );
+    }
+    throw new Error(error.message);
+  }
   return toModel(data);
 }
 

@@ -1,9 +1,12 @@
+# Usage: docker compose --env-file backend/.env up
+# The --env-file flag is required for compose-level ${VAR} substitution
+# (frontend build args). env_file at service level only injects into containers.
 services:
   backend:
     build:
       context: .
       dockerfile: backend/Dockerfile
-    env_file: .env
+    env_file: backend/.env
     ports:
       - "3000:3000"
     restart: unless-stopped

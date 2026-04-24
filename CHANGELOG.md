@@ -6,6 +6,7 @@ All notable changes to this project are documented in this file. The format is b
 
 ### Added
 
+- **Versioning** — `scripts/bump-version.mjs` and `npm run version:infer` / `version:bump` infer semver from conventional commits since the release git tag; rules in [`docs/releases.md`](docs/releases.md). Root `postversion` runs `version:sync` and stages workspace `package.json` files after `npm version`.
 - **Content style:** Ban Unicode em dash (U+2014) in AI output and harmonized UI: [`backend/src/lib/copy-style.ts`](backend/src/lib/copy-style.ts), prompt instruction `PROMPT_EMDASH_BAN`, stripping in draft/outline/alignment/reference-extraction services and key API read paths. Documented in [`docs/content-style-sdlc.md`](docs/content-style-sdlc.md) and task [`docs/tasks/feat-no-em-dash-content-style.md`](docs/tasks/feat-no-em-dash-content-style.md).
 
 ### Changed

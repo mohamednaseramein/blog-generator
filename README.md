@@ -14,7 +14,7 @@ AI-guided wizard for producing fully-structured blog posts, step by step, with t
 | CI/CD | GitHub Actions: deploy to EC2 on push to `main` ([docs/deployment.md](docs/deployment.md)) |
 | Testing | Vitest (unit/integration) + Playwright (E2E) |
 
-**Versioning:** the product semver lives in the root `package.json`. Sync workspaces with `npm run version:sync`, then commit; release process and SDLC map are in [docs/releases.md](docs/releases.md) and [CHANGELOG.md](CHANGELOG.md). **Copy style** (no em dashes in generated or user-facing product text): [docs/content-style-sdlc.md](docs/content-style-sdlc.md).
+**Versioning:** the product semver lives in the root `package.json`. Sync workspaces with `npm run version:sync`, or bump with `npm run version:infer` / `npm run version:bump -- patch|minor|major` (see [docs/releases.md](docs/releases.md)); release notes in [CHANGELOG.md](CHANGELOG.md). **Copy style** (no em dashes in generated or user-facing product text): [docs/content-style-sdlc.md](docs/content-style-sdlc.md).
 
 ---
 

@@ -15,9 +15,10 @@ services:
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "wget", "-qO-", "http://localhost:3000/health"]
-      interval: 30s
+      interval: 10s
       timeout: 5s
       retries: 3
+      start_period: 60s
 
   frontend:
     build:
@@ -35,3 +36,9 @@ services:
       backend:
         condition: service_healthy
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://127.0.0.1/"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 10s

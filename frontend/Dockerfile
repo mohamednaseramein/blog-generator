@@ -31,6 +31,9 @@ LABEL org.opencontainers.image.title="blog-generator-frontend" \
   org.opencontainers.image.version="${APP_VERSION}" \
   org.opencontainers.image.revision="${GIT_SHA}"
 
+# For Compose healthcheck / `up --wait` (not included in the stock nginx image).
+RUN apk add --no-cache curl
+
 COPY --from=builder /app/frontend/dist /usr/share/nginx/html
 COPY frontend/nginx.conf /etc/nginx/conf.d/default.conf
 

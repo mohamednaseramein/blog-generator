@@ -1,5 +1,5 @@
 # Deploys Docker Compose stack on EC2 after merges to main.
-# Secrets: SSH_HOST, SSH_USER, SSH_PRIVATE_KEY (required); DEPLOY_PATH (optional).
+# Secrets: SSH_HOST, SSH_USER, SSH_PRIVATE_KEY (required); DEPLOY_PATH, GIT_CLONE_TOKEN (optional).
 # Docs: docs/deployment.md
 name: Deploy to EC2
 
@@ -18,11 +18,15 @@ jobs:
     steps:
       - name: Deploy over SSH
         uses: appleboy/ssh-action@v1.2.3
+        env:
+          GITHUB_REPO: ${{ github.repository }}
+          GIT_CLONE_TOKEN: ${{ secrets.GIT_CLONE_TOKEN }}
         with:
           host: ${{ secrets.SSH_HOST }}
           username: ${{ secrets.SSH_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           command_timeout: 45m
+          envs: GITHUB_REPO,GIT_CLONE_TOKEN
           script: |
             set -e
             DEPLOY_PATH="${{ secrets.DEPLOY_PATH }}"
@@ -43,38 +47,31 @@ jobs:
             esac
             echo "[deploy] Resolved deploy directory (HOME=${_home})"
             if [ ! -d "${DEPLOY_PATH}" ]; then
-              echo "[deploy] ERROR: directory does not exist. Clone the repo here or set DEPLOY_PATH to the repo root (use an absolute path, not ~/... in secrets unless HOME is set)." >&2
-              exit 1
+              echo "[deploy] Path missing; cloning github.com/${GITHUB_REPO} -> ${DEPLOY_PATH}"
+              _parent="$(dirname "${DEPLOY_PATH}")"
+              mkdir -p "${_parent}"
+              if [ -n "${GIT_CLONE_TOKEN:-}" ]; then
+                _url="https://x-access-token:${GIT_CLONE_TOKEN}@github.com/${GITHUB_REPO}.git"
+              else
+                _url="https://github.com/${GITHUB_REPO}.git"
+              fi
+              if ! git clone "${_url}" "${DEPLOY_PATH}"; then
+                echo "[deploy] ERROR: git clone failed. For a private repo add Actions secret GIT_CLONE_TOKEN (fine-scoped PAT: Contents read)." >&2
+                exit 1
+              fi
             fi
             cd "${DEPLOY_PATH}"
+            if [ -n "${GIT_CLONE_TOKEN:-}" ]; then
+              git remote set-url origin "https://x-access-token:${GIT_CLONE_TOKEN}@github.com/${GITHUB_REPO}.git"
+            fi
             echo "[deploy] Syncing git to origin/main"
             git fetch origin main
             git checkout -B main origin/main
             echo "[deploy] HEAD=$(git rev-parse --short HEAD) branch=$(git branch --show-current)"
-            if [ -x scripts/verify-deploy-env.sh ]; then
-              scripts/verify-deploy-env.sh .
+            if [ -x scripts/deploy-ec2.sh ]; then
+              echo "[deploy] scripts/deploy-ec2.sh (see docs/zero-downtime-sdlc.md)"
+              scripts/deploy-ec2.sh .
             else
-              echo "[deploy] WARN: scripts/verify-deploy-env.sh missing or not executable — skipping env verification"
+              echo "[deploy] ERROR: scripts/deploy-ec2.sh missing or not executable" >&2
+              exit 1
             fi
-            export APP_VERSION="$(grep -m1 '"version"' package.json | sed 's/.*"version"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/')"
-            export GIT_SHA="$(git rev-parse --short HEAD 2>/dev/null || echo "")"
-            echo "[deploy] APP_VERSION=${APP_VERSION} GIT_SHA=${GIT_SHA}"
-            dc() {
-              if docker compose version >/dev/null 2>&1; then
-                docker compose "$@"
-              elif command -v docker-compose >/dev/null 2>&1; then
-                docker-compose "$@"
-              else
-                echo "Neither 'docker compose' nor 'docker-compose' is available." >&2
-                return 1
-              fi
-            }
-            echo "[deploy] docker compose down"
-            dc --env-file backend/.env down
-            echo "[deploy] docker compose build --no-cache"
-            dc --env-file backend/.env build --no-cache
-            echo "[deploy] docker compose up -d"
-            dc --env-file backend/.env up -d
-            echo "[deploy] docker compose ps"
-            dc --env-file backend/.env ps
-            echo "[deploy] Finished successfully"

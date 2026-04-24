@@ -1,5 +1,5 @@
 # Deploys Docker Compose stack on EC2 after merges to main.
-# Secrets: SSH_HOST, SSH_USER, SSH_PRIVATE_KEY (required); DEPLOY_PATH (optional).
+# Secrets: SSH_HOST, SSH_USER, SSH_PRIVATE_KEY (required); DEPLOY_PATH, GIT_CLONE_TOKEN (optional).
 # Docs: docs/deployment.md
 name: Deploy to EC2
 
@@ -18,11 +18,15 @@ jobs:
     steps:
       - name: Deploy over SSH
         uses: appleboy/ssh-action@v1.2.3
+        env:
+          GITHUB_REPO: ${{ github.repository }}
+          GIT_CLONE_TOKEN: ${{ secrets.GIT_CLONE_TOKEN }}
         with:
           host: ${{ secrets.SSH_HOST }}
           username: ${{ secrets.SSH_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           command_timeout: 45m
+          envs: GITHUB_REPO,GIT_CLONE_TOKEN
           script: |
             set -e
             DEPLOY_PATH="${{ secrets.DEPLOY_PATH }}"
@@ -43,10 +47,23 @@ jobs:
             esac
             echo "[deploy] Resolved deploy directory (HOME=${_home})"
             if [ ! -d "${DEPLOY_PATH}" ]; then
-              echo "[deploy] ERROR: directory does not exist. Clone the repo here or set DEPLOY_PATH to the repo root (use an absolute path, not ~/... in secrets unless HOME is set)." >&2
-              exit 1
+              echo "[deploy] Path missing; cloning github.com/${GITHUB_REPO} -> ${DEPLOY_PATH}"
+              _parent="$(dirname "${DEPLOY_PATH}")"
+              mkdir -p "${_parent}"
+              if [ -n "${GIT_CLONE_TOKEN:-}" ]; then
+                _url="https://x-access-token:${GIT_CLONE_TOKEN}@github.com/${GITHUB_REPO}.git"
+              else
+                _url="https://github.com/${GITHUB_REPO}.git"
+              fi
+              if ! git clone "${_url}" "${DEPLOY_PATH}"; then
+                echo "[deploy] ERROR: git clone failed. For a private repo add Actions secret GIT_CLONE_TOKEN (fine-scoped PAT: Contents read)." >&2
+                exit 1
+              fi
             fi
             cd "${DEPLOY_PATH}"
+            if [ -n "${GIT_CLONE_TOKEN:-}" ]; then
+              git remote set-url origin "https://x-access-token:${GIT_CLONE_TOKEN}@github.com/${GITHUB_REPO}.git"
+            fi
             echo "[deploy] Syncing git to origin/main"
             git fetch origin main
             git checkout -B main origin/main

@@ -65,5 +65,6 @@ If only `docker-compose` (v1) is installed, substitute `docker-compose` for `doc
 
 ## Related documents
 
+- [AgDR-0018 — GitHub Actions EC2 deploy](./agdr/AgDR-0018-github-actions-ec2-deploy.md) — architecture decision for this pipeline.
 - [environment-configuration.md](./environment-configuration.md) — `.env` layout and Compose `--env-file`.
 - [releases.md](./releases.md) — Versioning and release checklist (includes deploy verification).

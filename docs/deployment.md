@@ -2,6 +2,8 @@
 
 This document describes how **merges to `main`** trigger an **SSH deploy** to a single EC2 host running Docker Compose. It implements [GH-59](https://github.com/mohamednaseramein/blog-generator/issues/59).
 
+**Zero-downtime note:** the server runs [`scripts/deploy-ec2.sh`](../scripts/deploy-ec2.sh) so **builds do not require a prior `docker compose down`**; see [zero-downtime-sdlc.md](./zero-downtime-sdlc.md).
+
 ## Overview
 
 | Item | Detail |
@@ -14,9 +16,9 @@ This document describes how **merges to `main`** trigger an **SSH deploy** to a 
 On the server, the job:
 
 1. **Clones** the repository into `DEPLOY_PATH` if that directory does not exist yet (uses `github.repository` from the workflow). **Private repos** need the `GIT_CLONE_TOKEN` secret (PAT with **Contents: Read**). Then fetches and resets to `origin/main`.
-2. Runs [`scripts/verify-deploy-env.sh`](../scripts/verify-deploy-env.sh) to confirm `package.json`, `backend/.env`, and required keys exist with **non-placeholder** values and plausible formats (without printing secrets).
-3. Exports `APP_VERSION` (from root `package.json`) and `GIT_SHA` (short) for image build args.
-4. Runs `docker compose --env-file backend/.env down`, `build --no-cache`, `up -d`, and `ps` (or the `docker-compose` equivalent if v1 is installed), with `[deploy]` log lines around each step.
+2. Runs [`scripts/deploy-ec2.sh`](../scripts/deploy-ec2.sh) (which in turn calls [`scripts/verify-deploy-env.sh`](../scripts/verify-deploy-env.sh) first) to confirm `package.json`, `backend/.env`, and required keys exist with **non-placeholder** values and plausible formats (without printing secrets), then **builds and recreates** containers without stopping the whole stack up front. Optional `docker compose up --wait` is used when the host’s Compose supports it (2.29+), gated on service healthchecks.
+3. `APP_VERSION` (from root `package.json`) and `GIT_SHA` (short) are set inside the deploy script for image build args.
+4. The script logs `[deploy]` lines for each major step. To force a **full** `down` before build (e.g. recover from a bad state), set `DOWN_BEFORE_DEPLOY=1` in the **host** environment for the SSH session or export it in `~/.profile` (see [zero-downtime-sdlc.md](./zero-downtime-sdlc.md)).
 
 The backend container then performs its own **[config] environment check** at startup (see [environment-configuration.md](./environment-configuration.md)).
 
@@ -48,26 +50,23 @@ Do **not** commit keys or hostnames if you can avoid it; keep them in secrets an
 3. **Docker** — Docker Engine and Compose v1 or v2; `ec2-user` must be able to run `docker` (e.g. member of `docker` group).
 4. **Resources** — `build --no-cache` is CPU/network heavy; size the instance accordingly. The workflow allows up to **45 minutes** for the remote script.
 
-## Manual deploy (same commands as CI)
+## Manual deploy (same as CI)
 
-From the repo root on the server:
+From the repo root on the server (after sync to `main` like CI):
 
 ```bash
 cd ~/blog-generator   # or your DEPLOY_PATH
 git fetch origin main
 git checkout -B main origin/main
-export APP_VERSION="$(grep -m1 '"version"' package.json | sed 's/.*"version"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/')"
-export GIT_SHA="$(git rev-parse --short HEAD 2>/dev/null || echo "")"
-docker compose --env-file backend/.env down
-docker compose --env-file backend/.env build --no-cache
-docker compose --env-file backend/.env up -d
-docker compose --env-file backend/.env ps
+./scripts/deploy-ec2.sh .
 ```
 
-If only `docker-compose` (v1) is installed, substitute `docker-compose` for `docker compose`.
+`deploy-ec2.sh` uses `docker compose` when available, otherwise `docker-compose`. For optional env vars (`DOWN_BEFORE_DEPLOY`, `DEPLOY_BUILD_NO_CACHE`), see [zero-downtime-sdlc.md](./zero-downtime-sdlc.md).
 
 ## Related documents
 
+- [zero-downtime-sdlc.md](./zero-downtime-sdlc.md) — SDLC mapping, `DOWN_BEFORE_DEPLOY` / `DEPLOY_BUILD_NO_CACHE`, and limitations.
 - [AgDR-0018 — GitHub Actions EC2 deploy](./agdr/AgDR-0018-github-actions-ec2-deploy.md) — architecture decision for this pipeline.
 - [environment-configuration.md](./environment-configuration.md) — `.env` layout and Compose `--env-file`.
 - [releases.md](./releases.md) — Versioning and release checklist (includes deploy verification).
+- [tasks/CI-zero-downtime-ec2-deploy.md](./tasks/CI-zero-downtime-ec2-deploy.md) — task ticket (driver, scope, acceptance criteria).

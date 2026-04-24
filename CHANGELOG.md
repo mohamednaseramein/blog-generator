@@ -6,6 +6,7 @@ All notable changes to this project are documented in this file. The format is b
 
 ### Changed
 
+- **CI/CD** — EC2 deploy uses [`scripts/deploy-ec2.sh`](scripts/deploy-ec2.sh) (no `docker compose down` on the happy path; optional `up --wait` with Compose 2.29+; optional `DOWN_BEFORE_DEPLOY=1` / `DEPLOY_BUILD_NO_CACHE=0` on the host). Documented in [`docs/zero-downtime-sdlc.md`](docs/zero-downtime-sdlc.md) and [`docs/deployment.md`](docs/deployment.md).
 - **CI/CD** — EC2 deploy clones the workflow’s GitHub repository into `DEPLOY_PATH` when the directory is missing; optional `GIT_CLONE_TOKEN` for private repos (`docs/deployment.md` updated).
 
 ### Added

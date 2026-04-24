@@ -119,7 +119,7 @@ docker compose down
 
 ## Production deploy (GitHub Actions → EC2)
 
-Merges to **`main`** run [.github/workflows/deploy-ec2.yml](.github/workflows/deploy-ec2.yml), which SSHs into the server, syncs the repo to `origin/main`, runs [scripts/verify-deploy-env.sh](scripts/verify-deploy-env.sh) (format checks, no secret values in logs), and rebuilds containers with Docker Compose.
+Merges to **`main`** run [.github/workflows/deploy-ec2.yml](.github/workflows/deploy-ec2.yml), which SSHs into the server, syncs the repo to `origin/main`, and runs [scripts/deploy-ec2.sh](scripts/deploy-ec2.sh) (format checks via [scripts/verify-deploy-env.sh](scripts/verify-deploy-env.sh), then a **rolling-style** `build` + `up` that avoids `docker compose down` on the success path). See [docs/deployment.md](docs/deployment.md) and [docs/zero-downtime-sdlc.md](docs/zero-downtime-sdlc.md).
 
 - **Secrets** (`SSH_HOST`, `SSH_USER`, `SSH_PRIVATE_KEY`, optional `DEPLOY_PATH`) — see [docs/deployment.md](docs/deployment.md).
 - **Server setup** — git clone, `backend/.env`, Docker, and `git fetch` access to GitHub are required on the instance.

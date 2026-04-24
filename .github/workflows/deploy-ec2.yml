@@ -68,30 +68,10 @@ jobs:
             git fetch origin main
             git checkout -B main origin/main
             echo "[deploy] HEAD=$(git rev-parse --short HEAD) branch=$(git branch --show-current)"
-            if [ -x scripts/verify-deploy-env.sh ]; then
-              scripts/verify-deploy-env.sh .
+            if [ -x scripts/deploy-ec2.sh ]; then
+              echo "[deploy] scripts/deploy-ec2.sh (see docs/zero-downtime-sdlc.md)"
+              scripts/deploy-ec2.sh .
             else
-              echo "[deploy] WARN: scripts/verify-deploy-env.sh missing or not executable — skipping env verification"
+              echo "[deploy] ERROR: scripts/deploy-ec2.sh missing or not executable" >&2
+              exit 1
             fi
-            export APP_VERSION="$(grep -m1 '"version"' package.json | sed 's/.*"version"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/')"
-            export GIT_SHA="$(git rev-parse --short HEAD 2>/dev/null || echo "")"
-            echo "[deploy] APP_VERSION=${APP_VERSION} GIT_SHA=${GIT_SHA}"
-            dc() {
-              if docker compose version >/dev/null 2>&1; then
-                docker compose "$@"
-              elif command -v docker-compose >/dev/null 2>&1; then
-                docker-compose "$@"
-              else
-                echo "Neither 'docker compose' nor 'docker-compose' is available." >&2
-                return 1
-              fi
-            }
-            echo "[deploy] docker compose down"
-            dc --env-file backend/.env down
-            echo "[deploy] docker compose build --no-cache"
-            dc --env-file backend/.env build --no-cache
-            echo "[deploy] docker compose up -d"
-            dc --env-file backend/.env up -d
-            echo "[deploy] docker compose ps"
-            dc --env-file backend/.env ps
-            echo "[deploy] Finished successfully"

@@ -34,26 +34,40 @@ export function requeueReferenceExtractionsForBlog(blogId: string): void {
 }
 
 async function runExtract(referenceId: string): Promise<void> {
-  const ref = await getReferenceById(referenceId);
-  if (!ref || ref.scrapeStatus !== 'success' || !ref.scrapedContent) return;
-
-  const brief = await getBriefByBlogId(ref.blogId);
-  if (!brief) {
-    // Brief not saved yet — keep extraction as pending; requeueReferenceExtractionsForBlog runs on POST /brief.
-    return;
-  }
-
   try {
-    const result = await generateReferenceExtraction(brief, ref.url, ref.scrapedContent);
-    const status = result.irrelevantToBrief ? 'irrelevant' : 'success';
-    await updateReferenceExtraction(referenceId, status, result.raw);
+    const ref = await getReferenceById(referenceId);
+    if (!ref || ref.scrapeStatus !== 'success' || !ref.scrapedContent) {
+      console.log(`[reference-extraction-runner] skipping ${referenceId}: scrape incomplete`);
+      return;
+    }
+
+    const brief = await getBriefByBlogId(ref.blogId);
+    if (!brief) {
+      console.log(`[reference-extraction-runner] skipping ${referenceId}: brief not saved yet`);
+      return;
+    }
+
+    console.log(`[reference-extraction-runner] starting extraction for ${referenceId}`);
+    try {
+      const result = await generateReferenceExtraction(brief, ref.url, ref.scrapedContent);
+      const status = result.irrelevantToBrief ? 'irrelevant' : 'success';
+      await updateReferenceExtraction(referenceId, status, result.raw);
+      console.log(`[reference-extraction-runner] completed ${referenceId}: status=${status}`);
+    } catch (err) {
+      const msg = userSafeExtractionError(err);
+      console.error(`[reference-extraction-runner] extraction failed for ${referenceId}:`, (err as Error).message);
+      try {
+        await updateReferenceExtraction(
+          referenceId,
+          'failed',
+          buildExtractionFailurePayload(msg),
+        );
+        console.log(`[reference-extraction-runner] marked ${referenceId} as failed`);
+      } catch (updateErr) {
+        console.error(`[reference-extraction-runner] CRITICAL: failed to update status for ${referenceId}:`, (updateErr as Error).message);
+      }
+    }
   } catch (err) {
-    const msg = userSafeExtractionError(err);
-    console.error('[reference-extraction-runner] extraction failed:', (err as Error).message);
-    await updateReferenceExtraction(
-      referenceId,
-      'failed',
-      buildExtractionFailurePayload(msg),
-    );
+    console.error(`[reference-extraction-runner] unhandled error for ${referenceId}:`, (err as Error).message);
   }
 }

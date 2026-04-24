@@ -194,6 +194,9 @@ export function App() {
 
         <p className="mt-6 text-center text-xs text-slate-400">
           Powered by Claude AI · Naser Company
+          {import.meta.env.VITE_APP_VERSION && (
+            <span className="ml-1 text-slate-300">v{import.meta.env.VITE_APP_VERSION}</span>
+          )}
         </p>
       </div>
     </div>

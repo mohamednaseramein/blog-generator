@@ -3,6 +3,9 @@ import { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
+const PRIMARY_KEYWORD_MAX = 4_000;
+const TITLE_MAX = 500;
+const TONE_MAX = 200;
 import { getBrief, submitBrief, listReferences } from '../api/blog-api.js';
 import { ReferenceUrlList } from './ReferenceUrlList.js';
 import { Button } from './ui/button.js';
@@ -12,10 +15,22 @@ import { Field } from './ui/field.js';
 import { Toast } from './ui/toast.js';
 const schema = z
     .object({
-    title: z.string().min(1, 'Title is required').transform((v) => v.trim()),
-    primaryKeyword: z.string().min(1, 'Primary keyword is required').transform((v) => v.trim()),
+    title: z
+        .string()
+        .min(1, 'Title is required')
+        .max(TITLE_MAX, `At most ${TITLE_MAX} characters`)
+        .transform((v) => v.trim()),
+    primaryKeyword: z
+        .string()
+        .min(1, 'Primary keyword is required')
+        .max(PRIMARY_KEYWORD_MAX, `At most ${PRIMARY_KEYWORD_MAX} characters`)
+        .transform((v) => v.trim()),
     audiencePersona: z.string().min(1, 'Audience persona is required').transform((v) => v.trim()),
-    toneOfVoice: z.string().min(1, 'Tone of voice is required').transform((v) => v.trim()),
+    toneOfVoice: z
+        .string()
+        .min(1, 'Tone of voice is required')
+        .max(TONE_MAX, `At most ${TONE_MAX} characters`)
+        .transform((v) => v.trim()),
     wordCountMin: z
         .number({ invalid_type_error: 'Must be a number' })
         .int()

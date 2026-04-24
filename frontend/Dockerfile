@@ -25,6 +25,12 @@ RUN npm run build --workspace=frontend
 # ── Stage 2: serve with Nginx ────────────────────────────────────────────────
 FROM nginx:1.27-alpine AS runner
 
+ARG APP_VERSION=0.1.0
+ARG GIT_SHA=
+LABEL org.opencontainers.image.title="blog-generator-frontend" \
+  org.opencontainers.image.version="${APP_VERSION}" \
+  org.opencontainers.image.revision="${GIT_SHA}"
+
 COPY --from=builder /app/frontend/dist /usr/share/nginx/html
 COPY frontend/nginx.conf /etc/nginx/conf.d/default.conf
 

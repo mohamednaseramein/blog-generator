@@ -10,7 +10,11 @@
     "dev": "concurrently \"npm run dev --workspace=backend\" \"npm run dev --workspace=frontend\"",
     "build": "npm run build --workspace=backend && npm run build --workspace=frontend",
     "test": "npm run test --workspace=backend",
-    "version:sync": "node scripts/sync-version.mjs"
+    "version:sync": "node scripts/sync-version.mjs",
+    "version:bump": "node scripts/bump-version.mjs",
+    "version:infer": "node scripts/bump-version.mjs --infer",
+    "version:infer:dry": "node scripts/bump-version.mjs --infer --dry-run",
+    "postversion": "node scripts/sync-version.mjs && git add backend/package.json frontend/package.json"
   },
   "devDependencies": {
     "concurrently": "^9.1.2"

@@ -13,6 +13,8 @@ AI-guided wizard for producing fully-structured blog posts — step by step, wit
 | Container | Docker Compose (backend + frontend) |
 | Testing | Vitest (unit/integration) + Playwright (E2E) |
 
+**Versioning** — the product semver lives in the root `package.json`. Sync workspaces with `npm run version:sync`, then commit; release process and SDLC map are in [docs/releases.md](docs/releases.md) and [CHANGELOG.md](CHANGELOG.md).
+
 ---
 
 ## Prerequisites
@@ -88,8 +90,17 @@ cp .env.example .env
 
 ### 2. Build and start
 
+To bake the current `package.json` version and git short SHA into image labels (and to expose `gitSha` from `GET /version` for the API container):
+
 ```bash
-docker compose up --build
+. scripts/build-env.sh
+docker compose --env-file backend/.env up --build
+```
+
+A minimal local run (defaults `APP_VERSION=0.1.0` if unset):
+
+```bash
+docker compose --env-file backend/.env up --build
 ```
 
 - Frontend → `http://localhost:80`
@@ -126,7 +137,33 @@ npm run typecheck --workspace=frontend
 
 ## API reference
 
-All endpoints require authentication (JWT via `Authorization: Bearer <token>`).
+### Health and version (unauthenticated)
+
+```
+GET /health
+```
+
+Response `200`:
+
+```json
+{ "status": "ok", "version": "0.1.0" }
+```
+
+```
+GET /version
+```
+
+Response `200`:
+
+```json
+{ "version": "0.1.0", "gitSha": "a1b2c3d" }
+```
+
+`gitSha` is `null` when the process was not started with a `GIT_SHA` / `APP_GIT_SHA` environment variable (e.g. local `npm run dev`).
+
+---
+
+All `/api/...` endpoints require authentication (JWT via `Authorization: Bearer <token>`).
 
 > Auth is a placeholder during EP-01 development — fully wired in EP-04.
 

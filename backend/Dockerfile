@@ -16,6 +16,14 @@ RUN npm run build --workspace=backend
 # ── Production image ────────────────────────────────────────────────────────
 FROM node:20-alpine AS runner
 
+ARG APP_VERSION=0.1.0
+ARG GIT_SHA=
+ENV APP_VERSION=$APP_VERSION
+ENV GIT_SHA=$GIT_SHA
+LABEL org.opencontainers.image.title="blog-generator-backend" \
+  org.opencontainers.image.version="${APP_VERSION}" \
+  org.opencontainers.image.revision="${GIT_SHA}"
+
 WORKDIR /app
 
 ENV NODE_ENV=production

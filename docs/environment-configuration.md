@@ -43,8 +43,15 @@ frontend build args:
 docker compose --env-file backend/.env up --build
 ```
 
+## Startup validation (backend)
+
+When the API process starts (`npm run dev`, `node dist/index.js`, or the backend container), it runs **`validateAndLogRuntimeEnv()`** in [`backend/src/config/env.ts`](../backend/src/config/env.ts): required variables must be present, match expected shapes (URLs, JWT-style Supabase keys, `sk-ant-` Anthropic key in **production**, JWT length ≥ 32), and must not contain obvious placeholder text. **`SUPABASE_ANON_KEY`** is optional in **development** (warning only); it is **required in production** (including the Docker backend image, where `NODE_ENV=production`). On success it logs a **masked** summary to stdout (`[config] …`); it never prints full secrets.
+
+For **CI deploy** to EC2, [`scripts/verify-deploy-env.sh`](../scripts/verify-deploy-env.sh) performs similar checks on the server **before** `docker compose` runs (no secret values in logs).
+
 ## Related documents
 
+- [deployment.md](./deployment.md) — production host: ensure `backend/.env` exists on EC2 before CI deploy runs Compose.
 - [AgDR-0017 — Move .env to backend/](./agdr/AgDR-0017-backend-env-colocation.md)
 - [AgDR-0010 — Single root `.env` (superseded)](./agdr/AgDR-0010-single-root-env-configuration.md)
 - [AgDR-0004 — Docker containerisation](./agdr/AgDR-0004-docker-containerisation.md)

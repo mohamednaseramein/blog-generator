@@ -1,0 +1,65 @@
+# Deploys Docker Compose stack on EC2 after merges to main.
+# Secrets: SSH_HOST, SSH_USER, SSH_PRIVATE_KEY (required); DEPLOY_PATH (optional).
+# Docs: docs/deployment.md
+name: Deploy to EC2
+
+on:
+  push:
+    branches: [main]
+
+concurrency:
+  group: deploy-ec2-production
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    name: SSH deploy
+    runs-on: ubuntu-latest
+    steps:
+      - name: Deploy over SSH
+        uses: appleboy/ssh-action@v1.2.3
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          script_stop: true
+          command_timeout: 45m
+          script: |
+            set -e
+            DEPLOY_PATH="${{ secrets.DEPLOY_PATH }}"
+            if [ -z "$DEPLOY_PATH" ]; then
+              DEPLOY_PATH="${HOME}/blog-generator"
+            fi
+            echo "[deploy] Using DEPLOY_PATH=${DEPLOY_PATH}"
+            cd "$DEPLOY_PATH"
+            echo "[deploy] Syncing git to origin/main"
+            git fetch origin main
+            git checkout -B main origin/main
+            echo "[deploy] HEAD=$(git rev-parse --short HEAD) branch=$(git branch --show-current)"
+            if [ -x scripts/verify-deploy-env.sh ]; then
+              scripts/verify-deploy-env.sh .
+            else
+              echo "[deploy] WARN: scripts/verify-deploy-env.sh missing or not executable — skipping env verification"
+            fi
+            export APP_VERSION="$(grep -m1 '"version"' package.json | sed 's/.*"version"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/')"
+            export GIT_SHA="$(git rev-parse --short HEAD 2>/dev/null || echo "")"
+            echo "[deploy] APP_VERSION=${APP_VERSION} GIT_SHA=${GIT_SHA}"
+            dc() {
+              if docker compose version >/dev/null 2>&1; then
+                docker compose "$@"
+              elif command -v docker-compose >/dev/null 2>&1; then
+                docker-compose "$@"
+              else
+                echo "Neither 'docker compose' nor 'docker-compose' is available." >&2
+                return 1
+              fi
+            }
+            echo "[deploy] docker compose down"
+            dc --env-file backend/.env down
+            echo "[deploy] docker compose build --no-cache"
+            dc --env-file backend/.env build --no-cache
+            echo "[deploy] docker compose up -d"
+            dc --env-file backend/.env up -d
+            echo "[deploy] docker compose ps"
+            dc --env-file backend/.env ps
+            echo "[deploy] Finished successfully"

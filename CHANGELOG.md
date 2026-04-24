@@ -4,7 +4,10 @@ All notable changes to this project are documented in this file. The format is b
 
 ## [Unreleased]
 
-- (nothing yet)
+### Added
+
+- **CI/CD** — GitHub Actions workflow [`.github/workflows/deploy-ec2.yml`](.github/workflows/deploy-ec2.yml) deploys Docker Compose on EC2 after pushes to `main`; documented in [`docs/deployment.md`](docs/deployment.md) (README and release docs updated).
+- **Config** — API startup validates `backend`/container env (URLs, JWT-shaped Supabase keys, Anthropic `sk-ant-` in production, JWT length, optional `SUPABASE_DB_URL` / `SCRAPE_TIMEOUT_MS` / `ANTHROPIC_MODEL`) and logs a masked `[config]` summary; see [`backend/src/config/env.ts`](backend/src/config/env.ts). Deploy runs [`scripts/verify-deploy-env.sh`](scripts/verify-deploy-env.sh) on the host before Compose.
 
 ## [0.1.0] — 2026-04-24
 

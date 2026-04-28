@@ -172,6 +172,7 @@ export function BlogBriefForm({ blogId, activeProfileId, onSuccess }) {
             cancelled = true;
         };
     }, [activeProfileId, dirtyFields.audiencePersona, dirtyFields.toneOfVoice, getValues, loadingBrief, prefillSource, reset]);
+    }, [activeProfileId, dirtyFields.audiencePersona, dirtyFields.toneOfVoice, getValues, loadingBrief, prefillSource, reset]);
     async function onSubmit(values) {
         setSubmitError(null);
         try {

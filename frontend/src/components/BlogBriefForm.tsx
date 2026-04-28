@@ -181,7 +181,15 @@ export function BlogBriefForm({ blogId, activeProfileId, onSuccess }: Props) {
     return () => {
       cancelled = true;
     };
-  }, [activeProfileId, dirtyFields.audiencePersona, dirtyFields.toneOfVoice, getValues, loadingBrief, prefillSource, reset]);
+  }, [
+    activeProfileId,
+    dirtyFields.audiencePersona,
+    dirtyFields.toneOfVoice,
+    getValues,
+    loadingBrief,
+    prefillSource,
+    reset,
+  ]);
 
   async function onSubmit(values: FormValues) {
     setSubmitError(null);

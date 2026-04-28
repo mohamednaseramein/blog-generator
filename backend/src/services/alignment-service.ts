@@ -28,6 +28,12 @@ export interface AlignmentSummary {
 
 export interface AlignmentGenerationResult extends AlignmentSummary {
   referencesAnalysis?: 'none_usable';
+  /**
+   * References excluded from the prompt to prevent low-signal / off-brief content
+   * from biasing the generation. Returned to the client for user visibility,
+   * but not persisted inside the stored alignment JSON.
+   */
+  ignoredReferences?: { url: string; reason: string }[];
   systemPrompt: string;
 }
 
@@ -112,9 +118,14 @@ export async function generateAlignmentSummary(
   const profileContext = buildProfileContext(brief);
 
   const refs = references ?? [];
+  const ignoredLowRelevance = refs
+    .filter((r) => r.extractionStatus === 'irrelevant')
+    .map((r) => ({ url: r.url, reason: 'Marked as low relevance to your brief.' }));
   const hasTableRefs = refs.length > 0;
   const anyScrapePending = refs.some((r) => r.scrapeStatus === 'pending');
-  const successfulScrapeRefs = refs.filter((r) => r.scrapeStatus === 'success' && r.scrapedContent);
+  const successfulScrapeRefs = refs.filter(
+    (r) => r.scrapeStatus === 'success' && r.scrapedContent && r.extractionStatus !== 'irrelevant',
+  );
   const anyExtractionPendingOnSuccess = refs.some(
     (r) => r.scrapeStatus === 'success' && r.extractionStatus === 'pending',
   );
@@ -173,6 +184,7 @@ Required JSON shape:
       scope: parsed['scope'] as string,
       differentiationAngle,
       raw,
+      ...(ignoredLowRelevance.length ? { ignoredReferences: ignoredLowRelevance } : {}),
       systemPrompt: prompt,
     };
   }
@@ -209,7 +221,12 @@ Required JSON shape:
       referencesAnalysis: 'none_usable' as const,
     });
 
-    return { ...withMeta, raw: JSON.stringify(withMeta), systemPrompt: prompt };
+    return {
+      ...withMeta,
+      raw: JSON.stringify(withMeta),
+      ...(ignoredLowRelevance.length ? { ignoredReferences: ignoredLowRelevance } : {}),
+      systemPrompt: prompt,
+    };
   }
 
   const hasReference = successfulScrapeRefs.length > 0 || !!brief.scrapedContent;
@@ -263,6 +280,7 @@ Required JSON shape:
       scope: parsed['scope'] as string,
       referenceUnderstanding,
       raw,
+      ...(ignoredLowRelevance.length ? { ignoredReferences: ignoredLowRelevance } : {}),
       systemPrompt: prompt,
     };
   }
@@ -295,6 +313,7 @@ Required JSON shape:
     tone: parsed['tone'] as string,
     scope: parsed['scope'] as string,
     raw,
+    ...(ignoredLowRelevance.length ? { ignoredReferences: ignoredLowRelevance } : {}),
     systemPrompt: prompt,
   };
 }

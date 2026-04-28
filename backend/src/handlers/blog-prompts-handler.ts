@@ -5,6 +5,7 @@ import { getOutlineByBlogId } from '../repositories/blog-outline-repository.js';
 import { getDraftByBlogId } from '../repositories/blog-draft-repository.js';
 import { AppError } from '../middleware/error-handler.js';
 import { getUserId } from '../middleware/auth.js';
+import { resolveAlignmentAnthropicModel } from '../services/alignment-service.js';
 
 type PromptStep = 'alignment' | 'outline' | 'draft';
 
@@ -81,7 +82,7 @@ export async function handleGetPrompt(
 
     res.json({
       step,
-      model: 'claude-sonnet-4-6',
+      model: resolveAlignmentAnthropicModel(),
       systemPrompt,
       generatedAt: generatedAt?.toISOString(),
     });

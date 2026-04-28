@@ -173,9 +173,26 @@ export async function handleUpdateProfile(
     const errors: string[] = [];
 
     if ('name' in body) {
-      const name = body.name as string;
-      if (name.length < FIELD_LIMITS.name.min || name.length > FIELD_LIMITS.name.max) {
-        errors.push(`name must be between ${FIELD_LIMITS.name.min} and ${FIELD_LIMITS.name.max} chars`);
+      if (typeof body.name !== 'string' || body.name.length < FIELD_LIMITS.name.min || body.name.length > FIELD_LIMITS.name.max) {
+        errors.push(`name must be a string between ${FIELD_LIMITS.name.min} and ${FIELD_LIMITS.name.max} chars`);
+      }
+    }
+
+    if ('authorRole' in body) {
+      if (typeof body.authorRole !== 'string' || body.authorRole.length < 1 || body.authorRole.length > FIELD_LIMITS.authorRole.max) {
+        errors.push(`authorRole must be a string between 1 and ${FIELD_LIMITS.authorRole.max} chars`);
+      }
+    }
+
+    if ('audiencePersona' in body) {
+      if (typeof body.audiencePersona !== 'string' || body.audiencePersona.length < 1 || body.audiencePersona.length > FIELD_LIMITS.audiencePersona.max) {
+        errors.push(`audiencePersona must be a string between 1 and ${FIELD_LIMITS.audiencePersona.max} chars`);
+      }
+    }
+
+    if ('toneOfVoice' in body) {
+      if (typeof body.toneOfVoice !== 'string' || body.toneOfVoice.length < 1 || body.toneOfVoice.length > FIELD_LIMITS.toneOfVoice.max) {
+        errors.push(`toneOfVoice must be a string between 1 and ${FIELD_LIMITS.toneOfVoice.max} chars`);
       }
     }
 
@@ -186,9 +203,8 @@ export async function handleUpdateProfile(
     }
 
     if ('voiceNote' in body) {
-      const voiceNote = body.voiceNote as string;
-      if (voiceNote.length > FIELD_LIMITS.voiceNote.max) {
-        errors.push(`voiceNote must be up to ${FIELD_LIMITS.voiceNote.max} chars`);
+      if (typeof body.voiceNote !== 'string' || body.voiceNote.length > FIELD_LIMITS.voiceNote.max) {
+        errors.push(`voiceNote must be a string up to ${FIELD_LIMITS.voiceNote.max} chars`);
       }
     }
 

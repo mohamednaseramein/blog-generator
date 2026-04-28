@@ -1,5 +1,6 @@
 import { getSupabase } from '../db/supabase.js';
-import type { AuthorProfile } from '../domain/types.js';
+import type { AuthorProfile, BlogIntent } from '../domain/types.js';
+import { AppError } from '../middleware/error-handler.js';
 
 interface AuthorProfileRow {
   id: string;
@@ -21,7 +22,7 @@ function toModel(row: AuthorProfileRow): AuthorProfile {
     name: row.name,
     authorRole: row.author_role,
     audiencePersona: row.audience_persona,
-    intent: row.intent as any, // validated in handler
+    intent: row.intent as BlogIntent,
     toneOfVoice: row.tone_of_voice,
     voiceNote: row.voice_note,
     isPredefined: row.is_predefined,
@@ -97,7 +98,7 @@ export async function createProfile(
 export async function cloneProfileFromPredefined(predefinedId: string): Promise<AuthorProfile> {
   const predefined = await getProfileById(predefinedId);
   if (!predefined) {
-    throw new Error(`Predefined profile ${predefinedId} not found`);
+    throw new AppError(404, 'NOT_FOUND', `Predefined profile ${predefinedId} not found`);
   }
 
   const newName = `${predefined.name} (Copy)`;
@@ -124,11 +125,11 @@ export async function updateProfile(
 ): Promise<AuthorProfile> {
   const profile = await getProfileById(id);
   if (!profile) {
-    throw new Error(`Profile ${id} not found`);
+    throw new AppError(404, 'NOT_FOUND', `Profile ${id} not found`);
   }
 
   if (profile.isPredefined) {
-    throw new Error(`Cannot edit predefined profile ${id}`);
+    throw new AppError(403, 'FORBIDDEN', 'Cannot edit a predefined profile');
   }
 
   const { data, error } = await getSupabase()
@@ -154,11 +155,11 @@ export async function updateProfile(
 export async function deleteProfile(id: string): Promise<void> {
   const profile = await getProfileById(id);
   if (!profile) {
-    throw new Error(`Profile ${id} not found`);
+    throw new AppError(404, 'NOT_FOUND', `Profile ${id} not found`);
   }
 
   if (profile.isPredefined) {
-    throw new Error(`Cannot delete predefined profile ${id}`);
+    throw new AppError(403, 'FORBIDDEN', 'Cannot delete a predefined profile');
   }
 
   const { error } = await getSupabase().from('author_profiles').delete().eq('id', id);

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type { AuthorProfile } from '../api/profile-api.js';
 import { listProfiles } from '../api/profile-api.js';
 import { Button } from './ui/button.js';
@@ -14,6 +14,7 @@ export function ProfileSwitcher({ activeProfileId, onProfileChange, onManageProf
   const [isOpen, setIsOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
 
   const activeProfile = profiles.find((p) => p.id === activeProfileId);
 
@@ -32,14 +33,29 @@ export function ProfileSwitcher({ activeProfileId, onProfileChange, onManageProf
     void loadProfiles();
   }, []);
 
+  useEffect(() => {
+    function handleClickOutside(e: MouseEvent) {
+      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
+        setIsOpen(false);
+      }
+    }
+    if (isOpen) document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [isOpen]);
+
   if (!activeProfile || profiles.length === 0) {
     return null;
   }
 
+  const dropdownId = 'profile-switcher-menu';
+
   return (
-    <div className="relative inline-block">
+    <div className="relative inline-block" ref={containerRef}>
       <button
         onClick={() => setIsOpen(!isOpen)}
+        aria-haspopup="listbox"
+        aria-expanded={isOpen}
+        aria-controls={dropdownId}
         className="flex items-center gap-2 rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-50"
         disabled={isLoading}
       >
@@ -56,7 +72,12 @@ export function ProfileSwitcher({ activeProfileId, onProfileChange, onManageProf
       </button>
 
       {isOpen && (
-        <div className="absolute right-0 top-full z-50 mt-1 w-56 rounded-lg border border-slate-200 bg-white shadow-lg">
+        <div
+          id={dropdownId}
+          role="listbox"
+          aria-label="Select author profile"
+          className="absolute right-0 top-full z-50 mt-1 w-56 rounded-lg border border-slate-200 bg-white shadow-lg"
+        >
           {error && (
             <div className="border-b border-slate-200 px-4 py-2 text-sm text-red-600">
               Error loading profiles
@@ -67,6 +88,8 @@ export function ProfileSwitcher({ activeProfileId, onProfileChange, onManageProf
             {profiles.map((profile) => (
               <button
                 key={profile.id}
+                role="option"
+                aria-selected={profile.id === activeProfileId}
                 onClick={() => {
                   onProfileChange(profile);
                   setIsOpen(false);

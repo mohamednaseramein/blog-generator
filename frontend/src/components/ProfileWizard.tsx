@@ -1,11 +1,11 @@
 import { useState, useEffect } from 'react';
 import type { AuthorProfile, CreateProfilePayload } from '../api/profile-api.js';
-import { getPredefinedProfiles, cloneProfile, createProfile } from '../api/profile-api.js';
+import { getPredefinedProfiles, cloneProfile, createProfile, updateProfile } from '../api/profile-api.js';
 import { ProfileForm } from './ProfileForm.js';
 import { Button } from './ui/button.js';
 import { Toast } from './ui/toast.js';
 
-type WizardStep = 'pick' | 'customize' | 'done';
+type WizardStep = 'pick' | 'customize';
 
 interface Props {
   onProfileSelected: (profile: AuthorProfile) => void;
@@ -59,10 +59,16 @@ export function ProfileWizard({ onProfileSelected }: Props) {
 
   async function handleCustomizeAndSave(values: CreateProfilePayload) {
     if (!selectedProfile) return;
-    onProfileSelected({
-      ...selectedProfile,
-      ...values,
-    });
+    setIsLoading(true);
+    setError(null);
+    try {
+      const { profile: updated } = await updateProfile(selectedProfile.id, values);
+      onProfileSelected(updated);
+    } catch (e) {
+      setError((e as Error).message);
+    } finally {
+      setIsLoading(false);
+    }
   }
 
   if (step === 'pick') {

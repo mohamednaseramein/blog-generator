@@ -20,7 +20,7 @@ export function buildProfileContext(brief: BlogBrief): string {
     `You are a ${brief.authorRole} writing a blog post.`,
     '',
     `Audience: ${brief.audiencePersona}.`,
-    `Goal: ${INTENT_DESCRIPTIONS[brief.intent]}.`,
+    `Goal: ${INTENT_DESCRIPTIONS[brief.intent] ?? brief.intent}.`,
     `Tone: ${brief.toneOfVoice}.`,
   ];
 
@@ -33,19 +33,20 @@ export function buildProfileContext(brief: BlogBrief): string {
 
 /**
  * Sanitize voiceNote to prevent prompt injection:
- * - Strip backticks and triple-quotes
+ * - Collapse newlines (primary injection vector)
+ * - Strip backticks, triple-quotes, and angle brackets
  * - Limit to 500 chars
  */
 function sanitizeVoiceNote(voiceNote: string): string {
   if (!voiceNote) return '';
 
-  // Remove backticks and triple-quotes
   let sanitized = voiceNote
+    .replace(/[\r\n]+/g, ' ')   // collapse newlines — primary injection vector
+    .replace(/[<>]/g, '')        // strip angle brackets
     .replace(/`/g, '')
     .replace(/"""/g, '')
     .replace(/'''/g, '');
 
-  // Limit to 500 chars
   if (sanitized.length > 500) {
     sanitized = sanitized.substring(0, 497) + '...';
   }

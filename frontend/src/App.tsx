@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { BlogBriefForm } from './components/BlogBriefForm.js';
 import { AlignmentSummary } from './components/AlignmentSummary.js';
 import { OutlineStep } from './components/OutlineStep.js';
@@ -6,11 +6,14 @@ import { DraftStep } from './components/DraftStep.js';
 import { PublishStep } from './components/PublishStep.js';
 import { WizardProgress } from './components/WizardProgress.js';
 import { BlogHistory } from './components/BlogHistory.js';
+import { ProfileWizard } from './components/ProfileWizard.js';
 import { Button } from './components/ui/button.js';
 import { Toast } from './components/ui/toast.js';
 import { createBlog } from './api/blog-api.js';
+import { listProfiles } from './api/profile-api.js';
 
 type AppState =
+  | { step: 'profile-wizard' }
   | { step: 'idle' }
   | { step: 'history' }
   | { step: 'creating' }
@@ -30,9 +33,37 @@ const STEP_TO_APP: Record<number, AppState['step']> = {
   6: 'publish', // completed blogs open on Publish so content can be re-copied
 };
 
+const ACTIVE_PROFILE_KEY = 'blog-generator:active-profile-id';
+
 export function App() {
   const [state, setState] = useState<AppState>({ step: 'idle' });
   const [error, setError] = useState<string | null>(null);
+  const [activeProfileId, setActiveProfileId] = useState<string | null>(() => {
+    return localStorage.getItem(ACTIVE_PROFILE_KEY);
+  });
+
+  // Load profiles on mount and check if we need to show the profile wizard
+  useEffect(() => {
+    async function loadProfiles() {
+      try {
+        const { profiles: loaded } = await listProfiles();
+
+        // If no active profile or it doesn't exist, show the wizard
+        if (!activeProfileId || !loaded.find((p) => p.id === activeProfileId)) {
+          if (loaded.length === 0) {
+            setState({ step: 'profile-wizard' });
+          } else {
+            // Set the first profile as active if none is selected
+            setActiveProfileId(loaded[0].id);
+            localStorage.setItem(ACTIVE_PROFILE_KEY, loaded[0].id);
+          }
+        }
+      } catch (e) {
+        setError((e as Error).message);
+      }
+    }
+    void loadProfiles();
+  }, [activeProfileId]);
 
   async function startNewBlog() {
     setError(null);
@@ -54,7 +85,7 @@ export function App() {
     setState({ step, blogId });
   }
 
-  const wizardStep = state.step === 'idle' || state.step === 'history' || state.step === 'creating' ? 1
+  const wizardStep = state.step === 'profile-wizard' || state.step === 'idle' || state.step === 'history' || state.step === 'creating' ? 1
     : state.step === 'brief' ? 1
     : state.step === 'alignment' ? 2
     : state.step === 'outline' ? 3
@@ -86,6 +117,16 @@ export function App() {
 
         {/* Card */}
         <div className="rounded-2xl bg-white shadow-sm ring-1 ring-slate-200 p-6 sm:p-8">
+
+          {state.step === 'profile-wizard' && (
+            <ProfileWizard
+              onProfileSelected={(profile) => {
+                setActiveProfileId(profile.id);
+                localStorage.setItem(ACTIVE_PROFILE_KEY, profile.id);
+                setState({ step: 'idle' });
+              }}
+            />
+          )}
 
           {state.step === 'idle' && (
             <div className="flex flex-col items-center gap-6 py-8 text-center">

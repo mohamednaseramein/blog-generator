@@ -65,7 +65,7 @@ export function BlogBriefForm({ blogId, activeProfileId, onSuccess }) {
     const [loadingBrief, setLoadingBrief] = useState(true);
     const [existingReferences, setExistingReferences] = useState([]);
     const [prefillSource, setPrefillSource] = useState(null);
-    const { register, handleSubmit, reset, getValues, formState: { errors, isSubmitting, isDirty }, } = useForm({ resolver: zodResolver(schema) });
+    const { register, handleSubmit, reset, getValues, formState: { errors, isSubmitting, dirtyFields }, } = useForm({ resolver: zodResolver(schema) });
     useEffect(() => {
         let cancelled = false;
         setLoadingBrief(true);
@@ -148,7 +148,7 @@ export function BlogBriefForm({ blogId, activeProfileId, onSuccess }) {
             return;
         if (prefillSource !== 'profile' && prefillSource !== 'empty')
             return;
-        if (isDirty)
+        if (dirtyFields.audiencePersona || dirtyFields.toneOfVoice)
             return;
         let cancelled = false;
         void (async () => {
@@ -171,7 +171,8 @@ export function BlogBriefForm({ blogId, activeProfileId, onSuccess }) {
         return () => {
             cancelled = true;
         };
-    }, [activeProfileId, getValues, isDirty, loadingBrief, prefillSource, reset]);
+    }, [activeProfileId, dirtyFields.audiencePersona, dirtyFields.toneOfVoice, getValues, loadingBrief, prefillSource, reset]);
+    }, [activeProfileId, dirtyFields.audiencePersona, dirtyFields.toneOfVoice, getValues, loadingBrief, prefillSource, reset]);
     async function onSubmit(values) {
         setSubmitError(null);
         try {

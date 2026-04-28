@@ -83,7 +83,7 @@ export function BlogBriefForm({ blogId, activeProfileId, onSuccess }: Props) {
     handleSubmit,
     reset,
     getValues,
-    formState: { errors, isSubmitting, isDirty },
+    formState: { errors, isSubmitting, dirtyFields },
   } = useForm<FormValues>({ resolver: zodResolver(schema) });
 
   useEffect(() => {
@@ -159,7 +159,7 @@ export function BlogBriefForm({ blogId, activeProfileId, onSuccess }: Props) {
     if (!activeProfileId) return;
     if (loadingBrief) return;
     if (prefillSource !== 'profile' && prefillSource !== 'empty') return;
-    if (isDirty) return;
+    if (dirtyFields.audiencePersona || dirtyFields.toneOfVoice) return;
 
     let cancelled = false;
     void (async () => {
@@ -181,7 +181,15 @@ export function BlogBriefForm({ blogId, activeProfileId, onSuccess }: Props) {
     return () => {
       cancelled = true;
     };
-  }, [activeProfileId, getValues, isDirty, loadingBrief, prefillSource, reset]);
+  }, [
+    activeProfileId,
+    dirtyFields.audiencePersona,
+    dirtyFields.toneOfVoice,
+    getValues,
+    loadingBrief,
+    prefillSource,
+    reset,
+  ]);
 
   async function onSubmit(values: FormValues) {
     setSubmitError(null);

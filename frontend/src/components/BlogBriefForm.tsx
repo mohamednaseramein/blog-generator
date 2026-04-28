@@ -7,6 +7,7 @@ const PRIMARY_KEYWORD_MAX = 4_000;
 const TITLE_MAX = 500;
 const TONE_MAX = 200;
 import { getBrief, submitBrief, listReferences, type BlogReference } from '../api/blog-api.js';
+import { getProfile } from '../api/profile-api.js';
 import { ReferenceUrlList } from './ReferenceUrlList.js';
 import { Button } from './ui/button.js';
 import { Input } from './ui/input.js';
@@ -66,26 +67,30 @@ const EMPTY_BRIEF_FORM: FormValues = {
 
 interface Props {
   blogId: string;
+  activeProfileId?: string | null;
   onSuccess: () => void;
 }
 
-export function BlogBriefForm({ blogId, onSuccess }: Props) {
+export function BlogBriefForm({ blogId, activeProfileId, onSuccess }: Props) {
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [loadingBrief, setLoadingBrief] = useState(true);
   const [existingReferences, setExistingReferences] = useState<BlogReference[]>([]);
+  const [prefillSource, setPrefillSource] = useState<'brief' | 'profile' | 'empty' | null>(null);
 
   const {
     register,
     handleSubmit,
     reset,
-    formState: { errors, isSubmitting },
+    getValues,
+    formState: { errors, isSubmitting, isDirty },
   } = useForm<FormValues>({ resolver: zodResolver(schema) });
 
   useEffect(() => {
     let cancelled = false;
     setLoadingBrief(true);
     setLoadError(null);
+    setPrefillSource(null);
 
     void (async () => {
       try {
@@ -105,10 +110,32 @@ export function BlogBriefForm({ blogId, onSuccess }: Props) {
             wordCountMax: brief.wordCountMax,
             blogBrief: brief.blogBrief,
           });
+          setPrefillSource('brief');
         } catch (e) {
           if (cancelled) return;
           if (isBriefNotFoundError(e)) {
-            reset(EMPTY_BRIEF_FORM);
+            // New blog — pre-fill from active profile if available
+            if (activeProfileId) {
+              try {
+                const { profile } = await getProfile(activeProfileId);
+                if (!cancelled) {
+                  reset({
+                    ...EMPTY_BRIEF_FORM,
+                    audiencePersona: profile.audiencePersona,
+                    toneOfVoice: profile.toneOfVoice,
+                  });
+                  setPrefillSource('profile');
+                }
+              } catch {
+                if (!cancelled) {
+                  reset(EMPTY_BRIEF_FORM);
+                  setPrefillSource('empty');
+                }
+              }
+            } else {
+              reset(EMPTY_BRIEF_FORM);
+              setPrefillSource('empty');
+            }
           } else {
             throw e;
           }
@@ -123,7 +150,38 @@ export function BlogBriefForm({ blogId, onSuccess }: Props) {
     })();
 
     return () => { cancelled = true; };
-  }, [blogId, reset]);
+  }, [blogId, reset, activeProfileId]);
+
+  useEffect(() => {
+    // If the user switches profiles while working on a *new* blog (no saved brief),
+    // update the persona/tone defaults from the selected profile.
+    // Avoid clobbering user edits once they start typing.
+    if (!activeProfileId) return;
+    if (loadingBrief) return;
+    if (prefillSource !== 'profile' && prefillSource !== 'empty') return;
+    if (isDirty) return;
+
+    let cancelled = false;
+    void (async () => {
+      try {
+        const { profile } = await getProfile(activeProfileId);
+        if (cancelled) return;
+        const current = getValues();
+        reset({
+          ...current,
+          audiencePersona: profile.audiencePersona,
+          toneOfVoice: profile.toneOfVoice,
+        });
+        setPrefillSource('profile');
+      } catch {
+        // ignore — keep existing form values
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [activeProfileId, getValues, isDirty, loadingBrief, prefillSource, reset]);
 
   async function onSubmit(values: FormValues) {
     setSubmitError(null);

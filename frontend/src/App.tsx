@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { BlogBriefForm } from './components/BlogBriefForm.js';
 import { AlignmentSummary } from './components/AlignmentSummary.js';
 import { OutlineStep } from './components/OutlineStep.js';
@@ -6,11 +6,18 @@ import { DraftStep } from './components/DraftStep.js';
 import { PublishStep } from './components/PublishStep.js';
 import { WizardProgress } from './components/WizardProgress.js';
 import { BlogHistory } from './components/BlogHistory.js';
+import { ProfileWizard } from './components/ProfileWizard.js';
+import { ProfileSwitcher } from './components/ProfileSwitcher.js';
+import { ProfileSettings } from './components/ProfileSettings.js';
+import { ViewPromptPanel } from './components/ViewPromptPanel.js';
 import { Button } from './components/ui/button.js';
 import { Toast } from './components/ui/toast.js';
 import { createBlog } from './api/blog-api.js';
+import { listProfiles } from './api/profile-api.js';
 
 type AppState =
+  | { step: 'profile-wizard' }
+  | { step: 'profile-settings' }
   | { step: 'idle' }
   | { step: 'history' }
   | { step: 'creating' }
@@ -30,9 +37,38 @@ const STEP_TO_APP: Record<number, AppState['step']> = {
   6: 'publish', // completed blogs open on Publish so content can be re-copied
 };
 
+const ACTIVE_PROFILE_KEY = 'blog-generator:active-profile-id';
+
+function setActiveProfile(id: string, setter: (id: string) => void) {
+  setter(id);
+  localStorage.setItem(ACTIVE_PROFILE_KEY, id);
+}
+
 export function App() {
   const [state, setState] = useState<AppState>({ step: 'idle' });
   const [error, setError] = useState<string | null>(null);
+  const [activeProfileId, setActiveProfileId] = useState<string | null>(() => {
+    return localStorage.getItem(ACTIVE_PROFILE_KEY);
+  });
+
+  useEffect(() => {
+    async function loadProfiles() {
+      try {
+        const { profiles: loaded } = await listProfiles();
+
+        if (!activeProfileId || !loaded.find((p) => p.id === activeProfileId)) {
+          if (loaded.length === 0) {
+            setState({ step: 'profile-wizard' });
+          } else {
+            setActiveProfile(loaded[0].id, setActiveProfileId);
+          }
+        }
+      } catch (e) {
+        setError((e as Error).message);
+      }
+    }
+    void loadProfiles();
+  }, [activeProfileId]);
 
   async function startNewBlog() {
     setError(null);
@@ -47,20 +83,19 @@ export function App() {
   }
 
   function resumeBlog(blogId: string, currentStep: number) {
-    // DB default is 0; legacy rows may never have had advanceBlogStep. Treat 0 as "brief" (1).
     const s = currentStep < 1 ? 1 : currentStep;
     const step = STEP_TO_APP[s] ?? 'brief';
     if (step === 'idle' || step === 'history' || step === 'creating') return;
     setState({ step, blogId });
   }
 
-  const wizardStep = state.step === 'idle' || state.step === 'history' || state.step === 'creating' ? 1
-    : state.step === 'brief' ? 1
+  const wizardStep =
+    state.step === 'brief' ? 1
     : state.step === 'alignment' ? 2
     : state.step === 'outline' ? 3
     : state.step === 'draft' ? 4
     : state.step === 'publish' ? 5
-    : 6;
+    : 1;
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-indigo-50">
@@ -87,6 +122,23 @@ export function App() {
         {/* Card */}
         <div className="rounded-2xl bg-white shadow-sm ring-1 ring-slate-200 p-6 sm:p-8">
 
+          {state.step === 'profile-wizard' && (
+            <ProfileWizard
+              onProfileSelected={(profile) => {
+                setActiveProfile(profile.id, setActiveProfileId);
+                setState({ step: 'idle' });
+              }}
+            />
+          )}
+
+          {state.step === 'profile-settings' && (
+            <ProfileSettings
+              activeProfileId={activeProfileId}
+              onActiveProfileChange={(id) => setActiveProfile(id, setActiveProfileId)}
+              onBack={() => setState({ step: 'idle' })}
+            />
+          )}
+
           {state.step === 'idle' && (
             <div className="flex flex-col items-center gap-6 py-8 text-center">
               <div className="max-w-sm">
@@ -104,6 +156,12 @@ export function App() {
                   My blogs
                 </Button>
               </div>
+              <button
+                onClick={() => setState({ step: 'profile-settings' })}
+                className="text-xs text-slate-400 hover:text-slate-600 underline"
+              >
+                Manage author profiles
+              </button>
             </div>
           )}
 
@@ -123,41 +181,58 @@ export function App() {
 
           {state.step === 'brief' && (
             <>
-              <div className="mb-6">
-                <h2 className="text-lg font-semibold text-slate-800">Step 1: Blog Brief</h2>
-                <p className="mt-1 text-sm text-slate-500">
-                  Tell us about your post. The more detail you give, the better the output.
-                </p>
+              <div className="mb-6 flex items-start justify-between">
+                <div>
+                  <h2 className="text-lg font-semibold text-slate-800">Step 1: Blog Brief</h2>
+                  <p className="mt-1 text-sm text-slate-500">
+                    Tell us about your post. The more detail you give, the better the output.
+                  </p>
+                </div>
+                <ProfileSwitcher
+                  activeProfileId={activeProfileId}
+                  onProfileChange={(profile) => setActiveProfile(profile.id, setActiveProfileId)}
+                  onManageProfiles={() => setState({ step: 'profile-settings' })}
+                />
               </div>
               <BlogBriefForm
                 blogId={state.blogId}
+                activeProfileId={activeProfileId}
                 onSuccess={() => setState({ step: 'alignment', blogId: state.blogId })}
               />
             </>
           )}
 
           {state.step === 'alignment' && (
-            <AlignmentSummary
-              blogId={state.blogId}
-              onEdit={() => setState({ step: 'brief', blogId: state.blogId })}
-              onConfirmed={() => setState({ step: 'outline', blogId: state.blogId })}
-            />
+            <>
+              <AlignmentSummary
+                blogId={state.blogId}
+                onEdit={() => setState({ step: 'brief', blogId: state.blogId })}
+                onConfirmed={() => setState({ step: 'outline', blogId: state.blogId })}
+              />
+              <ViewPromptPanel blogId={state.blogId} step="alignment" />
+            </>
           )}
 
           {state.step === 'outline' && (
-            <OutlineStep
-              blogId={state.blogId}
-              onBack={() => setState({ step: 'alignment', blogId: state.blogId })}
-              onConfirmed={() => setState({ step: 'draft', blogId: state.blogId })}
-            />
+            <>
+              <OutlineStep
+                blogId={state.blogId}
+                onBack={() => setState({ step: 'alignment', blogId: state.blogId })}
+                onConfirmed={() => setState({ step: 'draft', blogId: state.blogId })}
+              />
+              <ViewPromptPanel blogId={state.blogId} step="outline" />
+            </>
           )}
 
           {state.step === 'draft' && (
-            <DraftStep
-              blogId={state.blogId}
-              onBack={() => setState({ step: 'outline', blogId: state.blogId })}
-              onConfirmed={() => setState({ step: 'publish', blogId: state.blogId })}
-            />
+            <>
+              <DraftStep
+                blogId={state.blogId}
+                onBack={() => setState({ step: 'outline', blogId: state.blogId })}
+                onConfirmed={() => setState({ step: 'publish', blogId: state.blogId })}
+              />
+              <ViewPromptPanel blogId={state.blogId} step="draft" />
+            </>
           )}
 
           {state.step === 'publish' && (

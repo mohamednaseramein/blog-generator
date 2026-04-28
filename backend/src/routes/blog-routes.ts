@@ -28,6 +28,7 @@ import {
   handleDeleteReference,
 } from '../handlers/blog-references-handler.js';
 import { handleRecordEvent } from '../handlers/blog-events-handler.js';
+import { handleGetPrompt } from '../handlers/blog-prompts-handler.js';
 
 const router = Router();
 
@@ -54,5 +55,8 @@ router.get('/:id/references', requireAuth, handleListReferences);
 router.get('/:id/references/:refId/status', requireAuth, handleGetReferenceStatus);
 router.post('/:id/references/:refId/retry-extraction', requireAuth, handleRetryReferenceExtraction);
 router.delete('/:id/references/:refId', requireAuth, handleDeleteReference);
+
+// Prompt debugging / inspection
+router.get('/:id/prompts/:step', requireAuth, handleGetPrompt);
 
 export default router;

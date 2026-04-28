@@ -2,6 +2,7 @@ import Anthropic from '@anthropic-ai/sdk';
 import type { BlogBrief } from '../domain/types.js';
 import { PROMPT_EMDASH_BAN, stripEmDashesDeep } from '../lib/copy-style.js';
 import type { AlignmentSummary } from './alignment-service.js';
+import { buildProfileContext } from './profile-context-service.js';
 
 const client = new Anthropic({ apiKey: process.env['ANTHROPIC_API_KEY'] });
 
@@ -21,6 +22,7 @@ export interface BlogOutline {
   sections: OutlineSection[];
   totalEstimatedWords: number;
   raw: string;
+  systemPrompt: string;
 }
 
 export async function generateBlogOutline(
@@ -28,6 +30,7 @@ export async function generateBlogOutline(
   alignment: AlignmentSummary,
   feedback?: string,
 ): Promise<BlogOutline> {
+  const profileContext = buildProfileContext(brief);
   const wordTarget = Math.round((brief.wordCountMin + brief.wordCountMax) / 2);
 
   const feedbackNote = feedback
@@ -38,7 +41,9 @@ export async function generateBlogOutline(
     ? `\n- Reference understanding: ${alignment.referenceUnderstanding}`
     : '';
 
-  const prompt = `You are an expert content strategist. Using the confirmed alignment summary and blog brief below, generate a detailed, hierarchical blog outline.
+  const prompt = `${profileContext}
+
+You are also an expert content strategist. Using the confirmed alignment summary and blog brief below, generate a detailed, hierarchical blog outline.
 
 ## Confirmed Alignment
 - Blog goal: ${alignment.blogGoal}
@@ -116,6 +121,7 @@ Required JSON shape:
     sections: cleaned.sections,
     totalEstimatedWords: cleaned.totalEstimatedWords,
     raw: JSON.stringify(cleaned),
+    systemPrompt: prompt,
   };
 }
 

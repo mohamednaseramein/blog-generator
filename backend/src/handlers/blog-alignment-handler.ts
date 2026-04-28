@@ -29,12 +29,13 @@ export async function handleGenerateAlignment(
 
     const references = await getReferencesByBlogId(blogId);
     const result = await generateAlignmentSummary(brief, feedbackText, references);
-    await updateAlignmentSummary(blogId, result.raw);
+    await updateAlignmentSummary(blogId, result.raw, result.systemPrompt);
 
-    const { referencesAnalysis, ...summary } = result;
+    const { referencesAnalysis, ignoredReferences, ...summary } = result;
     res.json({
       summary,
       ...(referencesAnalysis ? { referencesAnalysis } : {}),
+      ...(ignoredReferences?.length ? { ignoredReferences } : {}),
     });
   } catch (err) {
     next(err);

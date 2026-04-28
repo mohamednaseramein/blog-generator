@@ -25,6 +25,7 @@ interface BlogBriefRow {
   alignment_summary: string | null;
   alignment_confirmed: boolean;
   alignment_iterations: number;
+  alignment_system_prompt: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -50,6 +51,7 @@ function toModel(row: BlogBriefRow): BlogBrief {
     alignmentSummary: row.alignment_summary,
     alignmentConfirmed: row.alignment_confirmed,
     alignmentIterations: row.alignment_iterations,
+    alignmentSystemPrompt: row.alignment_system_prompt ?? null,
     createdAt: new Date(row.created_at),
     updatedAt: new Date(row.updated_at),
   };
@@ -145,6 +147,7 @@ export async function updateScrapeResult(
 export async function updateAlignmentSummary(
   blogId: string,
   summary: string,
+  systemPrompt?: string,
 ): Promise<void> {
   const { data, error: fetchError } = await getSupabase()
     .from('blog_briefs')
@@ -159,6 +162,7 @@ export async function updateAlignmentSummary(
     .update({
       alignment_summary: summary,
       alignment_iterations: (data?.alignment_iterations ?? 0) + 1,
+      ...(systemPrompt && { alignment_system_prompt: systemPrompt }),
       updated_at: new Date().toISOString(),
     })
     .eq('blog_id', blogId);

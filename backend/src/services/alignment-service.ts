@@ -1,6 +1,7 @@
 import Anthropic from '@anthropic-ai/sdk';
 import type { BlogBrief, BlogReference } from '../domain/types.js';
 import { PROMPT_EMDASH_BAN, stripEmDashesDeep } from '../lib/copy-style.js';
+import { buildProfileContext } from './profile-context-service.js';
 
 /** Default matches previous hardcoded model; unset env keeps prod behaviour. Override in dev, e.g. Haiku, via ANTHROPIC_MODEL. */
 export const DEFAULT_ALIGNMENT_ANTHROPIC_MODEL = 'claude-sonnet-4-6';
@@ -27,6 +28,13 @@ export interface AlignmentSummary {
 
 export interface AlignmentGenerationResult extends AlignmentSummary {
   referencesAnalysis?: 'none_usable';
+  /**
+   * References excluded from the prompt to prevent low-signal / off-brief content
+   * from biasing the generation. Returned to the client for user visibility,
+   * but not persisted inside the stored alignment JSON.
+   */
+  ignoredReferences?: { url: string; reason: string }[];
+  systemPrompt: string;
 }
 
 interface ExtractionSnippet {
@@ -107,10 +115,17 @@ export async function generateAlignmentSummary(
   feedback?: string,
   references?: BlogReference[],
 ): Promise<AlignmentGenerationResult> {
+  const profileContext = buildProfileContext(brief);
+
   const refs = references ?? [];
+  const ignoredLowRelevance = refs
+    .filter((r) => r.extractionStatus === 'irrelevant')
+    .map((r) => ({ url: r.url, reason: 'Marked as low relevance to your brief.' }));
   const hasTableRefs = refs.length > 0;
   const anyScrapePending = refs.some((r) => r.scrapeStatus === 'pending');
-  const successfulScrapeRefs = refs.filter((r) => r.scrapeStatus === 'success' && r.scrapedContent);
+  const successfulScrapeRefs = refs.filter(
+    (r) => r.scrapeStatus === 'success' && r.scrapedContent && r.extractionStatus !== 'irrelevant',
+  );
   const anyExtractionPendingOnSuccess = refs.some(
     (r) => r.scrapeStatus === 'success' && r.extractionStatus === 'pending',
   );
@@ -128,7 +143,9 @@ export async function generateAlignmentSummary(
       )
       .join('');
 
-    const prompt = `You are an expert content strategist. A user has filled in a blog brief. Analyse it and produce a structured alignment summary so the user can confirm you have understood their intent before content generation begins.
+    const prompt = `${profileContext}
+
+You are also an expert content strategist. A user has filled in a blog brief. Analyse it and produce a structured alignment summary so the user can confirm you have understood their intent before content generation begins.
 
 ${briefBlock(brief)}
 
@@ -167,11 +184,15 @@ Required JSON shape:
       scope: parsed['scope'] as string,
       differentiationAngle,
       raw,
+      ...(ignoredLowRelevance.length ? { ignoredReferences: ignoredLowRelevance } : {}),
+      systemPrompt: prompt,
     };
   }
 
   if (hasTableRefs && !anyScrapePending && !anyExtractionPendingOnSuccess && extractionSnippets.length === 0) {
-    const prompt = `You are an expert content strategist. A user has filled in a blog brief. They also added reference URLs, but automated analysis did not produce usable structured insights from those pages (scrapes failed, timed out, or extraction marked them as not useful). Do not invent content from pages you have not seen. Base your analysis only on the blog brief.
+    const prompt = `${profileContext}
+
+You are also an expert content strategist. A user has filled in a blog brief. They also added reference URLs, but automated analysis did not produce usable structured insights from those pages (scrapes failed, timed out, or extraction marked them as not useful). Do not invent content from pages you have not seen. Base your analysis only on the blog brief.
 
 ${briefBlock(brief)}
 ${feedbackNote}
@@ -200,7 +221,12 @@ Required JSON shape:
       referencesAnalysis: 'none_usable' as const,
     });
 
-    return { ...withMeta, raw: JSON.stringify(withMeta) };
+    return {
+      ...withMeta,
+      raw: JSON.stringify(withMeta),
+      ...(ignoredLowRelevance.length ? { ignoredReferences: ignoredLowRelevance } : {}),
+      systemPrompt: prompt,
+    };
   }
 
   const hasReference = successfulScrapeRefs.length > 0 || !!brief.scrapedContent;
@@ -216,7 +242,9 @@ Required JSON shape:
             .join('')
         : `\nReference content scraped (${brief.scrapedContent!.length} chars): ${brief.scrapedContent!.slice(0, 800)}…`;
 
-    const prompt = `You are an expert content strategist. A user has filled in a blog brief. Analyse it and produce a structured alignment summary so the user can confirm you have understood their intent before content generation begins.
+    const prompt = `${profileContext}
+
+You are also an expert content strategist. A user has filled in a blog brief. Analyse it and produce a structured alignment summary so the user can confirm you have understood their intent before content generation begins.
 
 ${briefBlock(brief)}
 ${scrapedNote}${feedbackNote}
@@ -252,10 +280,14 @@ Required JSON shape:
       scope: parsed['scope'] as string,
       referenceUnderstanding,
       raw,
+      ...(ignoredLowRelevance.length ? { ignoredReferences: ignoredLowRelevance } : {}),
+      systemPrompt: prompt,
     };
   }
 
-  const prompt = `You are an expert content strategist. A user has filled in a blog brief. Analyse it and produce a structured alignment summary so the user can confirm you have understood their intent before content generation begins.
+  const prompt = `${profileContext}
+
+You are also an expert content strategist. A user has filled in a blog brief. Analyse it and produce a structured alignment summary so the user can confirm you have understood their intent before content generation begins.
 
 ${briefBlock(brief)}${feedbackNote}
 
@@ -281,5 +313,7 @@ Required JSON shape:
     tone: parsed['tone'] as string,
     scope: parsed['scope'] as string,
     raw,
+    ...(ignoredLowRelevance.length ? { ignoredReferences: ignoredLowRelevance } : {}),
+    systemPrompt: prompt,
   };
 }

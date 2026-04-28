@@ -10,6 +10,7 @@ interface BlogDraftRow {
   meta_description: string | null;
   suggested_slug: string | null;
   seo_title: string | null;
+  system_prompt: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -24,6 +25,7 @@ function toModel(row: BlogDraftRow): BlogDraft {
     metaDescription: row.meta_description ?? null,
     suggestedSlug: row.suggested_slug ?? null,
     seoTitle: row.seo_title ?? null,
+    systemPrompt: row.system_prompt ?? null,
     createdAt: new Date(row.created_at),
     updatedAt: new Date(row.updated_at),
   };
@@ -45,6 +47,7 @@ export async function upsertDraft(
   blogId: string,
   draftMarkdown: string,
   currentIterations: number,
+  systemPrompt?: string,
 ): Promise<BlogDraft> {
   const { data, error } = await getSupabase()
     .from('blog_drafts')
@@ -54,6 +57,7 @@ export async function upsertDraft(
         draft_markdown: draftMarkdown,
         draft_iterations: currentIterations + 1,
         draft_confirmed: false,
+        ...(systemPrompt && { system_prompt: systemPrompt }),
         updated_at: new Date().toISOString(),
       },
       { onConflict: 'blog_id' },

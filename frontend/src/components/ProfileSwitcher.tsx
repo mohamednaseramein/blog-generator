@@ -14,6 +14,7 @@ export function ProfileSwitcher({ activeProfileId, onProfileChange, onManageProf
   const [isOpen, setIsOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [selectedProfile, setSelectedProfile] = useState<AuthorProfile | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
 
   const activeProfile = profiles.find((p) => p.id === activeProfileId);
@@ -34,6 +35,14 @@ export function ProfileSwitcher({ activeProfileId, onProfileChange, onManageProf
   }, []);
 
   useEffect(() => {
+    if (!activeProfileId) {
+      setSelectedProfile(null);
+      return;
+    }
+    setSelectedProfile(profiles.find((p) => p.id === activeProfileId) ?? null);
+  }, [activeProfileId, profiles]);
+
+  useEffect(() => {
     function handleClickOutside(e: MouseEvent) {
       if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
         setIsOpen(false);
@@ -47,6 +56,7 @@ export function ProfileSwitcher({ activeProfileId, onProfileChange, onManageProf
     return null;
   }
 
+  const displayedProfile = selectedProfile ?? activeProfile;
   const dropdownId = 'profile-switcher-menu';
 
   return (
@@ -60,7 +70,7 @@ export function ProfileSwitcher({ activeProfileId, onProfileChange, onManageProf
         disabled={isLoading}
       >
         <span className="text-slate-600">Profile:</span>
-        <span className="font-semibold text-slate-900">{activeProfile.name}</span>
+        <span className="font-semibold text-slate-900">{displayedProfile.name}</span>
         <svg
           className={`h-4 w-4 transition-transform ${isOpen ? 'rotate-180' : ''}`}
           fill="none"
@@ -92,6 +102,7 @@ export function ProfileSwitcher({ activeProfileId, onProfileChange, onManageProf
                 aria-selected={profile.id === activeProfileId}
                 onClick={() => {
                   onProfileChange(profile);
+                  setSelectedProfile(profile);
                   setIsOpen(false);
                 }}
                 className={`w-full px-4 py-3 text-left text-sm transition-colors ${

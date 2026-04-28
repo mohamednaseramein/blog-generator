@@ -60,12 +60,13 @@ export function ProfileSettings({ activeProfileId, onActiveProfileChange, onBack
         setError(null);
         try {
             await deleteProfile(profile.id);
-            setProfiles((prev) => prev.filter((p) => p.id !== profile.id));
-            if (activeProfileId === profile.id) {
-                const remaining = profiles.filter((p) => p.id !== profile.id);
-                if (remaining.length > 0)
-                    onActiveProfileChange(remaining[0].id);
-            }
+            setProfiles((prev) => {
+                const next = prev.filter((p) => p.id !== profile.id);
+                if (activeProfileId === profile.id && next.length > 0) {
+                    onActiveProfileChange(next[0].id);
+                }
+                return next;
+            });
             setSuccessMsg(`Profile "${profile.name}" deleted.`);
         }
         catch (e) {

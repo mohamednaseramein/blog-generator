@@ -10,7 +10,15 @@ import { requeueReferenceExtractionsForBlog } from '../services/reference-extrac
 import { BRIEF_FIELD_LIMITS, WordCountRange, ReferenceUrl, trimInput } from '../domain/value-objects.js';
 import { AppError } from '../middleware/error-handler.js';
 import { getUserId } from '../middleware/auth.js';
-import type { SubmitBriefInput } from '../domain/types.js';
+import type { BlogIntent, SubmitBriefInput } from '../domain/types.js';
+
+const VALID_BLOG_INTENTS = new Set<BlogIntent>([
+  'thought_leadership',
+  'seo',
+  'product_announcement',
+  'newsletter',
+  'deep_dive',
+]);
 
 export async function handleSubmitBrief(
   req: Request,
@@ -148,11 +156,18 @@ function validateBriefBody(body: Record<string, unknown>): string[] {
     );
   }
 
+  if (body['intent'] !== undefined && body['intent'] !== null && body['intent'] !== '') {
+    const intent = String(body['intent']) as BlogIntent;
+    if (!VALID_BLOG_INTENTS.has(intent)) {
+      errors.push(`intent must be one of: ${[...VALID_BLOG_INTENTS].join(', ')}`);
+    }
+  }
+
   return errors;
 }
 
 function buildInput(body: Record<string, unknown>): SubmitBriefInput {
-  return {
+  const input: SubmitBriefInput = {
     title: trimInput(String(body['title'])),
     primaryKeyword: trimInput(String(body['primaryKeyword'])),
     audiencePersona: trimInput(String(body['audiencePersona'])),
@@ -165,4 +180,22 @@ function buildInput(body: Record<string, unknown>): SubmitBriefInput {
         ? trimInput(String(body['referenceUrl']))
         : undefined,
   };
+
+  if (body['authorRole'] !== undefined && body['authorRole'] !== null && body['authorRole'] !== '') {
+    input.authorRole = trimInput(String(body['authorRole']));
+  }
+  if (body['intent'] !== undefined && body['intent'] !== null && body['intent'] !== '') {
+    input.intent = String(body['intent']) as BlogIntent;
+  }
+  if (body['voiceNote'] !== undefined && body['voiceNote'] !== null) {
+    input.voiceNote = trimInput(String(body['voiceNote']));
+  }
+  if (body['profileId'] !== undefined) {
+    input.profileId =
+      body['profileId'] === null || body['profileId'] === ''
+        ? null
+        : String(body['profileId']);
+  }
+
+  return input;
 }

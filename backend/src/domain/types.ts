@@ -2,12 +2,27 @@ export type BlogStatus = 'draft' | 'in_progress' | 'completed';
 export type ScrapeStatus = 'pending' | 'success' | 'failed' | 'skipped';
 export type ReferenceScrapeStatus = 'pending' | 'success' | 'failed' | 'timeout' | 'skipped';
 export type ReferenceExtractionStatus = 'pending' | 'success' | 'failed' | 'irrelevant';
+export type BlogIntent = 'thought_leadership' | 'seo' | 'product_announcement' | 'newsletter' | 'deep_dive';
 
 export interface Blog {
   id: string;
   userId: string;
   status: BlogStatus;
   currentStep: number;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface AuthorProfile {
+  id: string;
+  name: string;
+  authorRole: string;
+  audiencePersona: string;
+  intent: BlogIntent;
+  toneOfVoice: string;
+  voiceNote: string;
+  isPredefined: boolean;
+  voiceSampleText: string | null;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -25,6 +40,10 @@ export interface BlogBrief {
   referenceUrl: string | null;
   scrapedContent: string | null;
   scrapeStatus: ScrapeStatus;
+  authorRole: string;
+  intent: BlogIntent;
+  voiceNote: string;
+  profileId: string | null;
   alignmentSummary: string | null;
   alignmentConfirmed: boolean;
   alignmentIterations: number;
@@ -85,6 +104,11 @@ export interface SubmitBriefInput {
   wordCountMin: number;
   wordCountMax: number;
   blogBrief: string;
+  /** Omitted until author-profile UI lands; repository backfills from existing row or migration defaults. */
+  authorRole?: string;
+  intent?: BlogIntent;
+  voiceNote?: string;
+  profileId?: string | null;
   /** @deprecated Use blog_references table instead. Kept for backwards compat during transition. */
   referenceUrl?: string;
 }

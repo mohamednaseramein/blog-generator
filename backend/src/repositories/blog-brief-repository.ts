@@ -1,5 +1,9 @@
 import { getSupabase } from '../db/supabase.js';
-import type { BlogBrief, ScrapeStatus, SubmitBriefInput } from '../domain/types.js';
+import type { BlogBrief, BlogIntent, ScrapeStatus, SubmitBriefInput } from '../domain/types.js';
+
+const DEFAULT_AUTHOR_ROLE = 'Subject matter expert';
+const DEFAULT_INTENT: BlogIntent = 'thought_leadership';
+const DEFAULT_VOICE_NOTE = '';
 
 interface BlogBriefRow {
   id: string;
@@ -14,6 +18,10 @@ interface BlogBriefRow {
   reference_url: string | null;
   scraped_content: string | null;
   scrape_status: string;
+  author_role: string;
+  intent: string;
+  voice_note: string;
+  profile_id: string | null;
   alignment_summary: string | null;
   alignment_confirmed: boolean;
   alignment_iterations: number;
@@ -35,6 +43,10 @@ function toModel(row: BlogBriefRow): BlogBrief {
     referenceUrl: row.reference_url,
     scrapedContent: row.scraped_content,
     scrapeStatus: row.scrape_status as ScrapeStatus,
+    authorRole: row.author_role,
+    intent: row.intent as BlogIntent,
+    voiceNote: row.voice_note,
+    profileId: row.profile_id,
     alignmentSummary: row.alignment_summary,
     alignmentConfirmed: row.alignment_confirmed,
     alignmentIterations: row.alignment_iterations,
@@ -51,6 +63,17 @@ export async function upsertBrief(
   // Re-saving the brief must not clear AI alignment (some upsert paths only write listed columns; merge explicitly to be safe).
   const existing = await getBriefByBlogId(blogId);
 
+  const authorRole =
+    input.authorRole !== undefined && input.authorRole !== ''
+      ? input.authorRole
+      : (existing?.authorRole ?? DEFAULT_AUTHOR_ROLE);
+  const intent: BlogIntent =
+    input.intent !== undefined ? input.intent : (existing?.intent ?? DEFAULT_INTENT);
+  const voiceNote =
+    input.voiceNote !== undefined ? input.voiceNote : (existing?.voiceNote ?? DEFAULT_VOICE_NOTE);
+  const profileId =
+    input.profileId !== undefined ? input.profileId : (existing?.profileId ?? null);
+
   const row: Record<string, unknown> = {
     blog_id: blogId,
     title: input.title,
@@ -62,6 +85,10 @@ export async function upsertBrief(
     blog_brief: input.blogBrief,
     reference_url: input.referenceUrl ?? null,
     scrape_status: scrapeStatus,
+    author_role: authorRole,
+    intent,
+    voice_note: voiceNote,
+    profile_id: profileId,
     updated_at: new Date().toISOString(),
   };
 

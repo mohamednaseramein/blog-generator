@@ -43,7 +43,7 @@ export async function handleGenerateOutline(
     const currentIterations = existingOutline?.outlineIterations ?? 0;
 
     const outline = await generateBlogOutline(brief, alignment, feedbackText);
-    await upsertOutline(blogId, outline.raw, currentIterations);
+    await upsertOutline(blogId, outline.raw, currentIterations, outline.systemPrompt);
 
     res.json({ outline });
   } catch (err) {

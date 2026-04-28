@@ -41,6 +41,7 @@ export async function upsertOutline(
   blogId: string,
   outlineJson: string,
   currentIterations: number,
+  systemPrompt?: string,
 ): Promise<BlogOutline> {
   const { data, error } = await getSupabase()
     .from('blog_outlines')
@@ -50,6 +51,7 @@ export async function upsertOutline(
         outline_json: outlineJson,
         outline_iterations: currentIterations + 1,
         outline_confirmed: false,
+        ...(systemPrompt && { system_prompt: systemPrompt }),
         updated_at: new Date().toISOString(),
       },
       { onConflict: 'blog_id' },

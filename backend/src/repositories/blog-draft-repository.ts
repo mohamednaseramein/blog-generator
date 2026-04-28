@@ -47,6 +47,7 @@ export async function upsertDraft(
   blogId: string,
   draftMarkdown: string,
   currentIterations: number,
+  systemPrompt?: string,
 ): Promise<BlogDraft> {
   const { data, error } = await getSupabase()
     .from('blog_drafts')
@@ -56,6 +57,7 @@ export async function upsertDraft(
         draft_markdown: draftMarkdown,
         draft_iterations: currentIterations + 1,
         draft_confirmed: false,
+        ...(systemPrompt && { system_prompt: systemPrompt }),
         updated_at: new Date().toISOString(),
       },
       { onConflict: 'blog_id' },

@@ -4,12 +4,14 @@ import { PROMPT_EMDASH_BAN, stripEmDashes } from '../lib/copy-style.js';
 import type { AlignmentSummary } from './alignment-service.js';
 import type { OutlineSection } from './outline-service.js';
 import { resolveAlignmentAnthropicModel } from './alignment-service.js';
+import { buildProfileContext } from './profile-context-service.js';
 
 const client = new Anthropic({ apiKey: process.env['ANTHROPIC_API_KEY'] });
 
 export interface BlogDraftResult {
   markdown: string;
   raw: string;
+  systemPrompt: string;
 }
 
 export interface MetaAndSlug {
@@ -34,6 +36,7 @@ export async function generateBlogDraft(
   totalEstimatedWords: number,
   feedback?: string,
 ): Promise<BlogDraftResult> {
+  const profileContext = buildProfileContext(brief);
   const wordTarget = Math.round((brief.wordCountMin + brief.wordCountMax) / 2);
   const feedbackNote = feedback
     ? `\n\nThe user has provided the following feedback on the previous draft. Revise the full post accordingly:\n"${feedback}"`
@@ -43,7 +46,9 @@ export async function generateBlogDraft(
     ? `\n- Reference understanding: ${alignment.referenceUnderstanding}`
     : '';
 
-  const prompt = `You are an expert blog writer. Write a complete, publication-ready blog post in **Markdown** (no JSON).
+  const prompt = `${profileContext}
+
+You are also an expert blog writer. Write a complete, publication-ready blog post in **Markdown** (no JSON).
 
 ## Confirmed alignment
 - Blog goal: ${alignment.blogGoal}
@@ -86,7 +91,7 @@ ${outlineToPrompt(sections)}${feedbackNote}
   const markdown = stripEmDashes(
     raw.replace(/^```(?:markdown|md)?\s*/i, '').replace(/\s*```\s*$/m, '').trim(),
   );
-  return { markdown, raw: stripEmDashes(raw) };
+  return { markdown, raw: stripEmDashes(raw), systemPrompt: prompt };
 }
 
 export async function generateMetaAndSlug(

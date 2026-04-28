@@ -147,6 +147,7 @@ export async function updateScrapeResult(
 export async function updateAlignmentSummary(
   blogId: string,
   summary: string,
+  systemPrompt?: string,
 ): Promise<void> {
   const { data, error: fetchError } = await getSupabase()
     .from('blog_briefs')
@@ -161,6 +162,7 @@ export async function updateAlignmentSummary(
     .update({
       alignment_summary: summary,
       alignment_iterations: (data?.alignment_iterations ?? 0) + 1,
+      ...(systemPrompt && { alignment_system_prompt: systemPrompt }),
       updated_at: new Date().toISOString(),
     })
     .eq('blog_id', blogId);

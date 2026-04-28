@@ -70,7 +70,7 @@ export async function handleGenerateDraft(
       if (err instanceof AppError) throw err;
       throw new AppError(422, 'GENERATION_FAILED', (err as Error).message ?? 'Failed to generate draft. Please try again.');
     }
-    await upsertDraft(blogId, result.markdown, currentIterations);
+    await upsertDraft(blogId, result.markdown, currentIterations, result.systemPrompt);
 
     res.json({ draft: { markdown: result.markdown, raw: result.raw } });
   } catch (err) {

@@ -4,6 +4,7 @@ import { AppError } from '../middleware/error-handler.js';
 
 interface AuthorProfileRow {
   id: string;
+  user_id: string | null;
   name: string;
   author_role: string;
   audience_persona: string;
@@ -19,6 +20,7 @@ interface AuthorProfileRow {
 function toModel(row: AuthorProfileRow): AuthorProfile {
   return {
     id: row.id,
+    userId: row.user_id,
     name: row.name,
     authorRole: row.author_role,
     audiencePersona: row.audience_persona,
@@ -32,10 +34,11 @@ function toModel(row: AuthorProfileRow): AuthorProfile {
   };
 }
 
-export async function getAllProfiles(): Promise<AuthorProfile[]> {
+export async function getAllProfiles(userId: string): Promise<AuthorProfile[]> {
   const { data, error } = await getSupabase()
     .from('author_profiles')
     .select()
+    .or(`is_predefined.eq.true,user_id.eq.${userId}`)
     .order('is_predefined', { ascending: false })
     .order('created_at', { ascending: true })
     .returns<AuthorProfileRow[]>();
@@ -56,11 +59,12 @@ export async function getPredefinedProfiles(): Promise<AuthorProfile[]> {
   return data.map(toModel);
 }
 
-export async function getProfileById(id: string): Promise<AuthorProfile | null> {
+export async function getProfileById(userId: string, id: string): Promise<AuthorProfile | null> {
   const { data, error } = await getSupabase()
     .from('author_profiles')
     .select()
     .eq('id', id)
+    .or(`is_predefined.eq.true,user_id.eq.${userId}`)
     .single<AuthorProfileRow>();
 
   if (error?.code === 'PGRST116') return null;
@@ -69,6 +73,7 @@ export async function getProfileById(id: string): Promise<AuthorProfile | null> 
 }
 
 export async function createProfile(
+  userId: string,
   name: string,
   authorRole: string,
   audiencePersona: string,
@@ -79,6 +84,7 @@ export async function createProfile(
   const { data, error } = await getSupabase()
     .from('author_profiles')
     .insert({
+      user_id: userId,
       name,
       author_role: authorRole,
       audience_persona: audiencePersona,
@@ -95,14 +101,27 @@ export async function createProfile(
   return toModel(data);
 }
 
-export async function cloneProfileFromPredefined(predefinedId: string): Promise<AuthorProfile> {
-  const predefined = await getProfileById(predefinedId);
+export async function cloneProfileFromPredefined(userId: string, predefinedId: string): Promise<AuthorProfile> {
+  const { data, error } = await getSupabase()
+    .from('author_profiles')
+    .select()
+    .eq('id', predefinedId)
+    .eq('is_predefined', true)
+    .single<AuthorProfileRow>();
+
+  if (error?.code === 'PGRST116') {
+    throw new AppError(404, 'NOT_FOUND', `Predefined profile ${predefinedId} not found`);
+  }
+  if (error) throw new Error(error.message);
+
+  const predefined = toModel(data);
   if (!predefined) {
     throw new AppError(404, 'NOT_FOUND', `Predefined profile ${predefinedId} not found`);
   }
 
   const newName = `${predefined.name} (Copy)`;
   return createProfile(
+    userId,
     newName,
     predefined.authorRole,
     predefined.audiencePersona,
@@ -113,6 +132,7 @@ export async function cloneProfileFromPredefined(predefinedId: string): Promise<
 }
 
 export async function updateProfile(
+  userId: string,
   id: string,
   updates: {
     name?: string;
@@ -123,7 +143,7 @@ export async function updateProfile(
     voiceNote?: string;
   },
 ): Promise<AuthorProfile> {
-  const profile = await getProfileById(id);
+  const profile = await getProfileById(userId, id);
   if (!profile) {
     throw new AppError(404, 'NOT_FOUND', `Profile ${id} not found`);
   }
@@ -144,6 +164,7 @@ export async function updateProfile(
       updated_at: new Date().toISOString(),
     })
     .eq('id', id)
+    .eq('user_id', userId)
     .select()
     .single<AuthorProfileRow>();
 
@@ -152,8 +173,8 @@ export async function updateProfile(
   return toModel(data);
 }
 
-export async function deleteProfile(id: string): Promise<void> {
-  const profile = await getProfileById(id);
+export async function deleteProfile(userId: string, id: string): Promise<void> {
+  const profile = await getProfileById(userId, id);
   if (!profile) {
     throw new AppError(404, 'NOT_FOUND', `Profile ${id} not found`);
   }
@@ -162,7 +183,11 @@ export async function deleteProfile(id: string): Promise<void> {
     throw new AppError(403, 'FORBIDDEN', 'Cannot delete a predefined profile');
   }
 
-  const { error } = await getSupabase().from('author_profiles').delete().eq('id', id);
+  const { error } = await getSupabase()
+    .from('author_profiles')
+    .delete()
+    .eq('id', id)
+    .eq('user_id', userId);
 
   if (error) throw new Error(error.message);
   console.log(`[profile-repository] deleted profile id=${id}`);

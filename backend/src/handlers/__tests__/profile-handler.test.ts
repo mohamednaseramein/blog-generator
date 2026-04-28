@@ -14,6 +14,7 @@ vi.mock('../../repositories/profile-repository.js');
 
 const SAMPLE_PROFILE = {
   id: 'p-1',
+  userId: '00000000-0000-0000-0000-000000000001',
   name: 'Test Profile',
   authorRole: 'CTO',
   audiencePersona: 'Engineers',
@@ -46,6 +47,7 @@ describe('handleListProfiles', () => {
     vi.mocked(repo.getAllProfiles).mockResolvedValue([SAMPLE_PROFILE]);
     const { res, json } = makeRes();
     await handleListProfiles(makeReq(), res, next);
+    expect(repo.getAllProfiles).toHaveBeenCalledWith('00000000-0000-0000-0000-000000000001');
     expect(json).toHaveBeenCalledWith({ profiles: [SAMPLE_PROFILE] });
   });
 });
@@ -54,6 +56,7 @@ describe('handleGetProfile', () => {
   it('returns 404 when profile not found', async () => {
     vi.mocked(repo.getProfileById).mockResolvedValue(null);
     await handleGetProfile(makeReq({}, { id: 'missing' }), makeRes().res, next);
+    expect(repo.getProfileById).toHaveBeenCalledWith('00000000-0000-0000-0000-000000000001', 'missing');
     expect(next).toHaveBeenCalledWith(expect.objectContaining({ status: 404 }));
   });
 });
@@ -90,6 +93,15 @@ describe('handleCreateProfile — validation', () => {
       name: 'Test Profile', authorRole: 'CTO', audiencePersona: 'Engineers',
       intent: 'thought_leadership', toneOfVoice: 'Direct',
     }), res, next);
+    expect(repo.createProfile).toHaveBeenCalledWith(
+      '00000000-0000-0000-0000-000000000001',
+      'Test Profile',
+      'CTO',
+      'Engineers',
+      'thought_leadership',
+      'Direct',
+      '',
+    );
     expect(status).toHaveBeenCalledWith(201);
   });
 
@@ -97,7 +109,7 @@ describe('handleCreateProfile — validation', () => {
     vi.mocked(repo.cloneProfileFromPredefined).mockResolvedValue(SAMPLE_PROFILE);
     const { res, status } = makeRes();
     await handleCreateProfile(makeReq({ cloneFromPredefinedId: 'pred-1' }), res, next);
-    expect(repo.cloneProfileFromPredefined).toHaveBeenCalledWith('pred-1');
+    expect(repo.cloneProfileFromPredefined).toHaveBeenCalledWith('00000000-0000-0000-0000-000000000001', 'pred-1');
     expect(status).toHaveBeenCalledWith(201);
   });
 });
@@ -108,6 +120,11 @@ describe('handleUpdateProfile — predefined guard', () => {
       new AppError(403, 'FORBIDDEN', 'Cannot edit a predefined profile'),
     );
     await handleUpdateProfile(makeReq({ name: 'New' }, { id: 'pred-1' }), makeRes().res, next);
+    expect(repo.updateProfile).toHaveBeenCalledWith(
+      '00000000-0000-0000-0000-000000000001',
+      'pred-1',
+      expect.any(Object),
+    );
     expect(next).toHaveBeenCalledWith(expect.objectContaining({ status: 403 }));
   });
 
@@ -124,6 +141,7 @@ describe('handleDeleteProfile — predefined guard', () => {
       new AppError(403, 'FORBIDDEN', 'Cannot delete a predefined profile'),
     );
     await handleDeleteProfile(makeReq({}, { id: 'pred-1' }), makeRes().res, next);
+    expect(repo.deleteProfile).toHaveBeenCalledWith('00000000-0000-0000-0000-000000000001', 'pred-1');
     expect(next).toHaveBeenCalledWith(expect.objectContaining({ status: 403 }));
   });
 });

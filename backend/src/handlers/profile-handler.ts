@@ -10,6 +10,7 @@ import {
 } from '../repositories/profile-repository.js';
 import { AppError } from '../middleware/error-handler.js';
 import type { BlogIntent } from '../domain/types.js';
+import { getUserId } from '../middleware/auth.js';
 
 const VALID_INTENTS = new Set<BlogIntent>([
   'thought_leadership',
@@ -77,12 +78,13 @@ function validateCloneInput(body: unknown): string[] {
 }
 
 export async function handleListProfiles(
-  _req: Request,
+  req: Request,
   res: Response,
   next: NextFunction,
 ): Promise<void> {
   try {
-    const profiles = await getAllProfiles();
+    const userId = getUserId(req);
+    const profiles = await getAllProfiles(userId);
     res.json({ profiles });
   } catch (err) {
     next(err);
@@ -108,8 +110,9 @@ export async function handleGetProfile(
   next: NextFunction,
 ): Promise<void> {
   try {
+    const userId = getUserId(req);
     const id = req.params['id'] as string;
-    const profile = await getProfileById(id);
+    const profile = await getProfileById(userId, id);
     if (!profile) {
       throw new AppError(404, 'NOT_FOUND', 'Profile not found');
     }
@@ -126,6 +129,7 @@ export async function handleCreateProfile(
   next: NextFunction,
 ): Promise<void> {
   try {
+    const userId = getUserId(req);
     const body = req.body as unknown;
 
     // Check if cloning from predefined
@@ -133,7 +137,7 @@ export async function handleCreateProfile(
     if (cloneErrors.length === 0) {
       const b = body as Record<string, unknown>;
       const cloneFromId = b.cloneFromPredefinedId as string;
-      const profile = await cloneProfileFromPredefined(cloneFromId);
+      const profile = await cloneProfileFromPredefined(userId, cloneFromId);
       res.status(201).json({ profile });
       return;
     }
@@ -146,6 +150,7 @@ export async function handleCreateProfile(
 
     const b = body as Record<string, unknown>;
     const profile = await createProfile(
+      userId,
       b.name as string,
       b.authorRole as string,
       b.audiencePersona as string,
@@ -166,6 +171,7 @@ export async function handleUpdateProfile(
   next: NextFunction,
 ): Promise<void> {
   try {
+    const userId = getUserId(req);
     const id = req.params['id'] as string;
     const body = req.body as Record<string, unknown>;
 
@@ -221,7 +227,7 @@ export async function handleUpdateProfile(
       ...(body.voiceNote !== undefined && { voiceNote: body.voiceNote as string }),
     };
 
-    const profile = await updateProfile(id, updates);
+    const profile = await updateProfile(userId, id, updates);
     res.json({ profile });
   } catch (err) {
     next(err);
@@ -234,8 +240,9 @@ export async function handleDeleteProfile(
   next: NextFunction,
 ): Promise<void> {
   try {
+    const userId = getUserId(req);
     const id = req.params['id'] as string;
-    await deleteProfile(id);
+    await deleteProfile(userId, id);
     res.status(204).send();
   } catch (err) {
     next(err);

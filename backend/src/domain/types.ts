@@ -15,6 +15,8 @@ export interface Blog {
 
 export interface AuthorProfile {
   id: string;
+  /** Null for predefined/global templates. */
+  userId: string | null;
   name: string;
   authorRole: string;
   audiencePersona: string;

@@ -11,6 +11,18 @@ type PromptStep = 'alignment' | 'outline' | 'draft';
 
 const VALID_STEPS = new Set<PromptStep>(['alignment', 'outline', 'draft']);
 
+function resolvePromptStepModel(step: PromptStep): string {
+  // Today we use a single env var for all steps, but alignment has an explicit helper.
+  // Keep this switch so the API response stays honest if we split models later.
+  switch (step) {
+    case 'alignment':
+      return resolveAlignmentAnthropicModel();
+    case 'outline':
+    case 'draft':
+      return process.env['ANTHROPIC_MODEL']?.trim() || 'claude-sonnet-4-6';
+  }
+}
+
 export async function handleGetPrompt(
   req: Request,
   res: Response,
@@ -82,7 +94,7 @@ export async function handleGetPrompt(
 
     res.json({
       step,
-      model: resolveAlignmentAnthropicModel(),
+      model: resolvePromptStepModel(step as PromptStep),
       systemPrompt,
       generatedAt: generatedAt?.toISOString(),
     });

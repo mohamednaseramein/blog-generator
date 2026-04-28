@@ -7,6 +7,7 @@ interface BlogOutlineRow {
   outline_json: string;
   outline_confirmed: boolean;
   outline_iterations: number;
+  system_prompt: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -18,6 +19,7 @@ function toModel(row: BlogOutlineRow): BlogOutline {
     outlineJson: row.outline_json,
     outlineConfirmed: row.outline_confirmed,
     outlineIterations: row.outline_iterations,
+    systemPrompt: row.system_prompt ?? null,
     createdAt: new Date(row.created_at),
     updatedAt: new Date(row.updated_at),
   };

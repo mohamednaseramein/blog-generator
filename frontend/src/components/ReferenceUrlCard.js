@@ -41,7 +41,7 @@ function ScrapeLine({ status, error }) {
         return _jsx("span", { className: "text-xs font-medium text-green-600", children: "\u2713 Page fetched" });
     }
     if (status === 'timeout') {
-        return (_jsxs("span", { className: "text-xs text-amber-600", children: ["\u26A0 ", error ?? 'Request timed out — the URL may be slow or unreachable.'] }));
+        return (_jsxs("span", { className: "text-xs text-amber-600", children: ["\u26A0 ", error ?? 'Request timed out - the URL may be slow or unreachable.'] }));
     }
     return (_jsxs("span", { className: "text-xs text-red-600", children: ["\u2717 ", error ?? 'Could not fetch this URL. Copy relevant content into your Blog Brief instead.'] }));
 }
@@ -52,7 +52,7 @@ function ExtractionLine({ scrapeStatus, extractionStatus, extractionJson, errorD
         return (_jsxs("span", { className: "flex items-center gap-1.5 text-xs text-slate-500", children: [_jsx("span", { className: "inline-block h-3 w-3 animate-spin rounded-full border-2 border-slate-200 border-t-violet-500" }), "Analysing reference\u2026"] }));
     }
     if (extractionStatus === 'failed') {
-        return (_jsxs("div", { className: "flex flex-col gap-2", children: [_jsx("p", { className: "text-xs text-amber-800 leading-snug", children: errorDetail?.trim() ?? 'Reference analysis failed — alignment can still use the raw page text.' }), _jsx(Button, { type: "button", variant: "ghost", size: "sm", className: "h-8 w-fit border border-amber-200 text-xs text-amber-900 hover:bg-amber-50", onClick: onRetry, disabled: retrying, children: retrying ? 'Retrying…' : 'Retry analysis' })] }));
+        return (_jsxs("div", { className: "flex flex-col gap-2", children: [_jsx("p", { className: "text-xs text-amber-800 leading-snug", children: errorDetail?.trim() ?? 'Reference analysis failed - alignment can still use the raw page text.' }), _jsx(Button, { type: "button", variant: "ghost", size: "sm", className: "h-8 w-fit border border-amber-200 text-xs text-amber-900 hover:bg-amber-50", onClick: onRetry, disabled: retrying, children: retrying ? 'Retrying…' : 'Retry analysis' })] }));
     }
     if (extractionStatus === 'irrelevant') {
         return _jsx("span", { className: "text-xs text-slate-600", children: "Marked as low relevance to your brief." });
@@ -86,6 +86,8 @@ export function ReferenceUrlCard({ blogId, refId, url, initialStatus, initialErr
         if (scrapeDone && extractionDone)
             return;
         let cancelled = false;
+        let consecutiveErrors = 0;
+        const MAX_CONSECUTIVE_ERRORS = 5;
         const timer = setInterval(() => {
             if (cancelled)
                 return;
@@ -93,6 +95,7 @@ export function ReferenceUrlCard({ blogId, refId, url, initialStatus, initialErr
                 .then((s) => {
                 if (cancelled)
                     return;
+                consecutiveErrors = 0;
                 setScrapeStatus(s.scrapeStatus);
                 setScrapeError(s.scrapeError);
                 setExtractionStatus(s.extractionStatus);
@@ -110,7 +113,10 @@ export function ReferenceUrlCard({ blogId, refId, url, initialStatus, initialErr
                     clearInterval(timer);
             })
                 .catch(() => {
-                if (!cancelled)
+                if (cancelled)
+                    return;
+                consecutiveErrors++;
+                if (consecutiveErrors >= MAX_CONSECUTIVE_ERRORS)
                     clearInterval(timer);
             });
         }, POLL_INTERVAL_MS);

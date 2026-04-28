@@ -1,0 +1,168 @@
+import { getSupabase } from '../db/supabase.js';
+import type { AuthorProfile } from '../domain/types.js';
+
+interface AuthorProfileRow {
+  id: string;
+  name: string;
+  author_role: string;
+  audience_persona: string;
+  intent: string;
+  tone_of_voice: string;
+  voice_note: string;
+  is_predefined: boolean;
+  voice_sample_text: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+function toModel(row: AuthorProfileRow): AuthorProfile {
+  return {
+    id: row.id,
+    name: row.name,
+    authorRole: row.author_role,
+    audiencePersona: row.audience_persona,
+    intent: row.intent as any, // validated in handler
+    toneOfVoice: row.tone_of_voice,
+    voiceNote: row.voice_note,
+    isPredefined: row.is_predefined,
+    voiceSampleText: row.voice_sample_text ?? null,
+    createdAt: new Date(row.created_at),
+    updatedAt: new Date(row.updated_at),
+  };
+}
+
+export async function getAllProfiles(): Promise<AuthorProfile[]> {
+  const { data, error } = await getSupabase()
+    .from('author_profiles')
+    .select()
+    .order('is_predefined', { ascending: false })
+    .order('created_at', { ascending: true })
+    .returns<AuthorProfileRow[]>();
+
+  if (error) throw new Error(error.message);
+  return data.map(toModel);
+}
+
+export async function getPredefinedProfiles(): Promise<AuthorProfile[]> {
+  const { data, error } = await getSupabase()
+    .from('author_profiles')
+    .select()
+    .eq('is_predefined', true)
+    .order('created_at', { ascending: true })
+    .returns<AuthorProfileRow[]>();
+
+  if (error) throw new Error(error.message);
+  return data.map(toModel);
+}
+
+export async function getProfileById(id: string): Promise<AuthorProfile | null> {
+  const { data, error } = await getSupabase()
+    .from('author_profiles')
+    .select()
+    .eq('id', id)
+    .single<AuthorProfileRow>();
+
+  if (error?.code === 'PGRST116') return null;
+  if (error) throw new Error(error.message);
+  return toModel(data);
+}
+
+export async function createProfile(
+  name: string,
+  authorRole: string,
+  audiencePersona: string,
+  intent: string,
+  toneOfVoice: string,
+  voiceNote: string,
+): Promise<AuthorProfile> {
+  const { data, error } = await getSupabase()
+    .from('author_profiles')
+    .insert({
+      name,
+      author_role: authorRole,
+      audience_persona: audiencePersona,
+      intent,
+      tone_of_voice: toneOfVoice,
+      voice_note: voiceNote,
+      is_predefined: false,
+    })
+    .select()
+    .single<AuthorProfileRow>();
+
+  if (error) throw new Error(error.message);
+  console.log(`[profile-repository] created profile id=${data.id} name="${name}"`);
+  return toModel(data);
+}
+
+export async function cloneProfileFromPredefined(predefinedId: string): Promise<AuthorProfile> {
+  const predefined = await getProfileById(predefinedId);
+  if (!predefined) {
+    throw new Error(`Predefined profile ${predefinedId} not found`);
+  }
+
+  const newName = `${predefined.name} (Copy)`;
+  return createProfile(
+    newName,
+    predefined.authorRole,
+    predefined.audiencePersona,
+    predefined.intent,
+    predefined.toneOfVoice,
+    predefined.voiceNote,
+  );
+}
+
+export async function updateProfile(
+  id: string,
+  updates: {
+    name?: string;
+    authorRole?: string;
+    audiencePersona?: string;
+    intent?: string;
+    toneOfVoice?: string;
+    voiceNote?: string;
+  },
+): Promise<AuthorProfile> {
+  const profile = await getProfileById(id);
+  if (!profile) {
+    throw new Error(`Profile ${id} not found`);
+  }
+
+  if (profile.isPredefined) {
+    throw new Error(`Cannot edit predefined profile ${id}`);
+  }
+
+  const { data, error } = await getSupabase()
+    .from('author_profiles')
+    .update({
+      ...(updates.name !== undefined && { name: updates.name }),
+      ...(updates.authorRole !== undefined && { author_role: updates.authorRole }),
+      ...(updates.audiencePersona !== undefined && { audience_persona: updates.audiencePersona }),
+      ...(updates.intent !== undefined && { intent: updates.intent }),
+      ...(updates.toneOfVoice !== undefined && { tone_of_voice: updates.toneOfVoice }),
+      ...(updates.voiceNote !== undefined && { voice_note: updates.voiceNote }),
+      updated_at: new Date().toISOString(),
+    })
+    .eq('id', id)
+    .select()
+    .single<AuthorProfileRow>();
+
+  if (error) throw new Error(error.message);
+  console.log(`[profile-repository] updated profile id=${id}`);
+  return toModel(data);
+}
+
+export async function deleteProfile(id: string): Promise<void> {
+  const profile = await getProfileById(id);
+  if (!profile) {
+    throw new Error(`Profile ${id} not found`);
+  }
+
+  if (profile.isPredefined) {
+    throw new Error(`Cannot delete predefined profile ${id}`);
+  }
+
+  const { error } = await getSupabase().from('author_profiles').delete().eq('id', id);
+
+  if (error) throw new Error(error.message);
+  console.log(`[profile-repository] deleted profile id=${id}`);
+}

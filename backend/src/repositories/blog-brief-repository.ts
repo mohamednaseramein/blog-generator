@@ -25,6 +25,7 @@ interface BlogBriefRow {
   alignment_summary: string | null;
   alignment_confirmed: boolean;
   alignment_iterations: number;
+  alignment_system_prompt: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -50,6 +51,7 @@ function toModel(row: BlogBriefRow): BlogBrief {
     alignmentSummary: row.alignment_summary,
     alignmentConfirmed: row.alignment_confirmed,
     alignmentIterations: row.alignment_iterations,
+    alignmentSystemPrompt: row.alignment_system_prompt ?? null,
     createdAt: new Date(row.created_at),
     updatedAt: new Date(row.updated_at),
   };

@@ -47,6 +47,7 @@ export interface BlogBrief {
   alignmentSummary: string | null;
   alignmentConfirmed: boolean;
   alignmentIterations: number;
+  alignmentSystemPrompt: string | null;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -64,6 +65,7 @@ export interface BlogOutline {
   outlineJson: string;
   outlineConfirmed: boolean;
   outlineIterations: number;
+  systemPrompt: string | null;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -78,6 +80,7 @@ export interface BlogDraft {
   metaDescription: string | null;
   suggestedSlug: string | null;
   seoTitle: string | null;
+  systemPrompt: string | null;
   createdAt: Date;
   updatedAt: Date;
 }

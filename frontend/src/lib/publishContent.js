@@ -16,13 +16,13 @@ export function markdownToSafeHtml(markdown) {
     return DOMPurify.sanitize(String(raw), { USE_PROFILES: { html: true } });
 }
 const DEFAULT_BASE_URL = 'https://blog-generator.mnaser.me';
-/** HTML `<head>` snippet with SEO meta tags — paste into your CMS head section. */
+/** HTML `<head>` snippet with SEO meta tags. Paste into your CMS head section. */
 export function buildSeoMetaSnippet(opts) {
     const baseUrl = import.meta.env['VITE_BASE_URL']?.replace(/\/$/, '') || DEFAULT_BASE_URL;
     const displayTitle = opts.seoTitle?.trim() || opts.title.trim();
     const canonicalSlug = opts.suggestedSlug?.trim() ?? '';
     const lines = [
-        `<!-- SEO meta tags — paste into your CMS <head> section -->`,
+        `<!-- SEO meta tags. Paste into your CMS <head> section -->`,
         `<title>${escapeHtml(displayTitle)}</title>`,
     ];
     if (opts.metaDescription?.trim()) {

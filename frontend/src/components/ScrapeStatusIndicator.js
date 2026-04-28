@@ -27,7 +27,7 @@ export function ScrapeStatusIndicator({ blogId }) {
         return (_jsxs("div", { role: "status", "aria-live": "polite", className: "flex items-center gap-2 text-sm text-slate-500", children: [_jsx("span", { className: "inline-block h-3.5 w-3.5 animate-spin rounded-full border-2 border-slate-300 border-t-indigo-500" }), "Scraping reference URL\u2026"] }));
     }
     if (status.scrapeStatus === 'success') {
-        return (_jsxs(Toast, { variant: "success", children: ["Reference URL scraped \u2014 ", status.scrapedContentLength.toLocaleString(), " chars extracted."] }));
+        return (_jsxs(Toast, { variant: "success", children: ["Reference URL scraped. ", status.scrapedContentLength.toLocaleString(), " chars extracted."] }));
     }
     return (_jsx(Toast, { variant: "error", children: "Reference URL could not be scraped (403 or timeout). Your blog will proceed without it." }));
 }

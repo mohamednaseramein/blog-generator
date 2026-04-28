@@ -81,7 +81,7 @@ export function OutlineStep({ blogId, onBack, onConfirmed }) {
             cancelled = true;
         };
     }, [blogId]);
-    return (_jsxs("div", { className: "flex flex-col gap-6", children: [_jsxs("div", { children: [_jsx("h2", { className: "text-lg font-semibold text-slate-800", children: "Step 3 \u2014 Blog Outline" }), _jsx("p", { className: "mt-1 text-sm text-slate-500", children: "Review the AI-generated structure. Provide feedback or confirm to proceed to drafting." })] }), (loadingSaved || generating) && (_jsxs("div", { className: "flex flex-col items-center gap-3 py-10 text-slate-500", children: [_jsx("span", { className: "inline-block h-6 w-6 animate-spin rounded-full border-2 border-slate-200 border-t-indigo-500" }), _jsx("p", { className: "text-sm", children: loadingSaved
+    return (_jsxs("div", { className: "flex flex-col gap-6", children: [_jsxs("div", { children: [_jsx("h2", { className: "text-lg font-semibold text-slate-800", children: "Step 3: Blog Outline" }), _jsx("p", { className: "mt-1 text-sm text-slate-500", children: "Review the AI-generated structure. Provide feedback or confirm to proceed to drafting." })] }), (loadingSaved || generating) && (_jsxs("div", { className: "flex flex-col items-center gap-3 py-10 text-slate-500", children: [_jsx("span", { className: "inline-block h-6 w-6 animate-spin rounded-full border-2 border-slate-200 border-t-indigo-500" }), _jsx("p", { className: "text-sm", children: loadingSaved
                             ? 'Loading your outline…'
                             : iterations === 0
                                 ? 'Calling the model to create your outline…'

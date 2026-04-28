@@ -10,6 +10,7 @@ interface BlogDraftRow {
   meta_description: string | null;
   suggested_slug: string | null;
   seo_title: string | null;
+  system_prompt: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -24,6 +25,7 @@ function toModel(row: BlogDraftRow): BlogDraft {
     metaDescription: row.meta_description ?? null,
     suggestedSlug: row.suggested_slug ?? null,
     seoTitle: row.seo_title ?? null,
+    systemPrompt: row.system_prompt ?? null,
     createdAt: new Date(row.created_at),
     updatedAt: new Date(row.updated_at),
   };

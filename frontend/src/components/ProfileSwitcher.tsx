@@ -97,6 +97,7 @@ export function ProfileSwitcher({ activeProfileId, onProfileChange, onManageProf
           <div className="max-h-64 overflow-y-auto">
             {profiles.map((profile) => (
               <button
+                type="button"
                 key={profile.id}
                 role="option"
                 aria-selected={profile.id === activeProfileId}

@@ -69,10 +69,6 @@ jobs:
             if [ -x scripts/deploy-ec2.sh ]; then
               echo "[deploy] Starting deployment script..."
               scripts/deploy-ec2.sh .
-              
-              # Optional: Add an explicit nightly cleanup cron instruction
-              echo "[deploy] Setting up automated weekly cleanup"
-              (crontab -l 2>/dev/null | grep -v "docker system prune"; echo "0 3 * * 0 docker system prune -a -f --volumes --filter 'until=168h'") | crontab -
             else
               echo "[deploy] ERROR: scripts/deploy-ec2.sh missing or not executable" >&2
               exit 1

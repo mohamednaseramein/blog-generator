@@ -7,6 +7,7 @@ import { PublishStep } from './components/PublishStep.js';
 import { WizardProgress } from './components/WizardProgress.js';
 import { BlogHistory } from './components/BlogHistory.js';
 import { ProfileWizard } from './components/ProfileWizard.js';
+import { ProfileSwitcher } from './components/ProfileSwitcher.js';
 import { Button } from './components/ui/button.js';
 import { Toast } from './components/ui/toast.js';
 import { createBlog } from './api/blog-api.js';
@@ -164,11 +165,20 @@ export function App() {
 
           {state.step === 'brief' && (
             <>
-              <div className="mb-6">
-                <h2 className="text-lg font-semibold text-slate-800">Step 1: Blog Brief</h2>
-                <p className="mt-1 text-sm text-slate-500">
-                  Tell us about your post. The more detail you give, the better the output.
-                </p>
+              <div className="mb-6 flex items-start justify-between">
+                <div>
+                  <h2 className="text-lg font-semibold text-slate-800">Step 1: Blog Brief</h2>
+                  <p className="mt-1 text-sm text-slate-500">
+                    Tell us about your post. The more detail you give, the better the output.
+                  </p>
+                </div>
+                <ProfileSwitcher
+                  activeProfileId={activeProfileId}
+                  onProfileChange={(profile) => {
+                    setActiveProfileId(profile.id);
+                    localStorage.setItem(ACTIVE_PROFILE_KEY, profile.id);
+                  }}
+                />
               </div>
               <BlogBriefForm
                 blogId={state.blogId}

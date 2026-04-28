@@ -2,7 +2,7 @@ import { jsx as _jsx, jsxs as _jsxs } from "react/jsx-runtime";
 import { useEffect, useState } from 'react';
 import { listProfiles } from '../api/profile-api.js';
 import { Button } from './ui/button.js';
-export function ProfileSwitcher({ activeProfileId, onProfileChange }) {
+export function ProfileSwitcher({ activeProfileId, onProfileChange, onManageProfiles }) {
     const [profiles, setProfiles] = useState([]);
     const [isOpen, setIsOpen] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
@@ -32,8 +32,8 @@ export function ProfileSwitcher({ activeProfileId, onProfileChange }) {
                                 setIsOpen(false);
                             }, className: `w-full px-4 py-3 text-left text-sm transition-colors ${profile.id === activeProfileId
                                 ? 'bg-indigo-50 text-indigo-900'
-                                : 'hover:bg-slate-50 text-slate-700'}`, children: [_jsx("div", { className: "font-semibold", children: profile.name }), _jsx("div", { className: "mt-0.5 text-xs text-slate-500", children: profile.authorRole })] }, profile.id))) }), _jsx("div", { className: "border-t border-slate-200 px-4 py-2", children: _jsx(Button, { variant: "ghost", size: "sm", onClick: () => {
+                                : 'hover:bg-slate-50 text-slate-700'}`, children: [_jsx("div", { className: "font-semibold", children: profile.name }), _jsx("div", { className: "mt-0.5 text-xs text-slate-500", children: profile.authorRole })] }, profile.id))) }), onManageProfiles && (_jsx("div", { className: "border-t border-slate-200 px-4 py-2", children: _jsx(Button, { variant: "ghost", size: "sm", onClick: () => {
                                 setIsOpen(false);
-                                // TODO: navigate to profile settings
-                            }, className: "w-full text-xs", children: "\u2699\uFE0F Manage Profiles" }) })] }))] }));
+                                onManageProfiles();
+                            }, className: "w-full text-xs", children: "\u2699 Manage Profiles" }) }))] }))] }));
 }

@@ -6,9 +6,10 @@ import { Button } from './ui/button.js';
 interface Props {
   activeProfileId: string | null;
   onProfileChange: (profile: AuthorProfile) => void;
+  onManageProfiles?: () => void;
 }
 
-export function ProfileSwitcher({ activeProfileId, onProfileChange }: Props) {
+export function ProfileSwitcher({ activeProfileId, onProfileChange, onManageProfiles }: Props) {
   const [profiles, setProfiles] = useState<AuthorProfile[]>([]);
   const [isOpen, setIsOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -82,19 +83,21 @@ export function ProfileSwitcher({ activeProfileId, onProfileChange }: Props) {
             ))}
           </div>
 
-          <div className="border-t border-slate-200 px-4 py-2">
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => {
-                setIsOpen(false);
-                // TODO: navigate to profile settings
-              }}
-              className="w-full text-xs"
-            >
-              ⚙️ Manage Profiles
-            </Button>
-          </div>
+          {onManageProfiles && (
+            <div className="border-t border-slate-200 px-4 py-2">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => {
+                  setIsOpen(false);
+                  onManageProfiles();
+                }}
+                className="w-full text-xs"
+              >
+                ⚙ Manage Profiles
+              </Button>
+            </div>
+          )}
         </div>
       )}
     </div>

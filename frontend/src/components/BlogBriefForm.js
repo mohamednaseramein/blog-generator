@@ -7,6 +7,7 @@ const PRIMARY_KEYWORD_MAX = 4_000;
 const TITLE_MAX = 500;
 const TONE_MAX = 200;
 import { getBrief, submitBrief, listReferences } from '../api/blog-api.js';
+import { getProfile } from '../api/profile-api.js';
 import { ReferenceUrlList } from './ReferenceUrlList.js';
 import { Button } from './ui/button.js';
 import { Input } from './ui/input.js';
@@ -58,7 +59,7 @@ const EMPTY_BRIEF_FORM = {
     wordCountMax: 1500,
     blogBrief: '',
 };
-export function BlogBriefForm({ blogId, onSuccess }) {
+export function BlogBriefForm({ blogId, activeProfileId, onSuccess }) {
     const [submitError, setSubmitError] = useState(null);
     const [loadError, setLoadError] = useState(null);
     const [loadingBrief, setLoadingBrief] = useState(true);
@@ -92,7 +93,26 @@ export function BlogBriefForm({ blogId, onSuccess }) {
                     if (cancelled)
                         return;
                     if (isBriefNotFoundError(e)) {
-                        reset(EMPTY_BRIEF_FORM);
+                        // New blog — pre-fill from active profile if available
+                        if (activeProfileId) {
+                            try {
+                                const { profile } = await getProfile(activeProfileId);
+                                if (!cancelled) {
+                                    reset({
+                                        ...EMPTY_BRIEF_FORM,
+                                        audiencePersona: profile.audiencePersona,
+                                        toneOfVoice: profile.toneOfVoice,
+                                    });
+                                }
+                            }
+                            catch {
+                                if (!cancelled)
+                                    reset(EMPTY_BRIEF_FORM);
+                            }
+                        }
+                        else {
+                            reset(EMPTY_BRIEF_FORM);
+                        }
                     }
                     else {
                         throw e;

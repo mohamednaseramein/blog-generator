@@ -7,6 +7,7 @@ const PRIMARY_KEYWORD_MAX = 4_000;
 const TITLE_MAX = 500;
 const TONE_MAX = 200;
 import { getBrief, submitBrief, listReferences, type BlogReference } from '../api/blog-api.js';
+import { getProfile } from '../api/profile-api.js';
 import { ReferenceUrlList } from './ReferenceUrlList.js';
 import { Button } from './ui/button.js';
 import { Input } from './ui/input.js';
@@ -66,10 +67,11 @@ const EMPTY_BRIEF_FORM: FormValues = {
 
 interface Props {
   blogId: string;
+  activeProfileId?: string | null;
   onSuccess: () => void;
 }
 
-export function BlogBriefForm({ blogId, onSuccess }: Props) {
+export function BlogBriefForm({ blogId, activeProfileId, onSuccess }: Props) {
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [loadingBrief, setLoadingBrief] = useState(true);
@@ -108,7 +110,23 @@ export function BlogBriefForm({ blogId, onSuccess }: Props) {
         } catch (e) {
           if (cancelled) return;
           if (isBriefNotFoundError(e)) {
-            reset(EMPTY_BRIEF_FORM);
+            // New blog — pre-fill from active profile if available
+            if (activeProfileId) {
+              try {
+                const { profile } = await getProfile(activeProfileId);
+                if (!cancelled) {
+                  reset({
+                    ...EMPTY_BRIEF_FORM,
+                    audiencePersona: profile.audiencePersona,
+                    toneOfVoice: profile.toneOfVoice,
+                  });
+                }
+              } catch {
+                if (!cancelled) reset(EMPTY_BRIEF_FORM);
+              }
+            } else {
+              reset(EMPTY_BRIEF_FORM);
+            }
           } else {
             throw e;
           }

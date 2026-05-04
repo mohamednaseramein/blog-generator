@@ -100,9 +100,24 @@ export async function demoteUser(req: Request, res: Response) {
 
   try {
     const supabase = getSupabase();
-    
-    // Last-admin protection
-    const { count } = await supabase.from('users').select('*', { count: 'exact' }).eq('role', 'admin').is('deactivated_at', null);
+
+    const { data: targetUser, error: targetError } = await supabase
+      .from('users')
+      .select('role')
+      .eq('id', id)
+      .single();
+    if (targetError) throw targetError;
+
+    if (targetUser?.role !== 'admin') {
+      res.json({ success: true });
+      return;
+    }
+
+    const { count } = await supabase
+      .from('users')
+      .select('*', { count: 'exact' })
+      .eq('role', 'admin')
+      .is('deactivated_at', null);
     if (count && count <= 1) {
       res.status(409).json({ error: 'LAST_ADMIN', message: 'Cannot demote the last admin' });
       return;

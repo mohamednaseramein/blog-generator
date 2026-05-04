@@ -1,6 +1,7 @@
+import { authedFetch } from '../lib/authed-fetch.js';
 const BASE = '/api/profiles';
 async function request(url, options) {
-    const res = await fetch(url, {
+    const res = await authedFetch(url, {
         headers: { 'Content-Type': 'application/json' },
         ...options,
     });

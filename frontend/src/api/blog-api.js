@@ -1,9 +1,10 @@
+import { authedFetch } from '../lib/authed-fetch.js';
 const BASE = '/api/blogs';
 export async function getBrief(blogId) {
     return request(`${BASE}/${blogId}/brief`);
 }
 async function request(url, options) {
-    const res = await fetch(url, {
+    const res = await authedFetch(url, {
         headers: { 'Content-Type': 'application/json' },
         ...options,
     });
@@ -70,7 +71,7 @@ export async function confirmAlignment(blogId) {
 }
 /** GET /outline — same section shape as generate; null if no outline row yet (404). */
 export async function getOutline(blogId) {
-    const res = await fetch(`${BASE}/${blogId}/outline`, {
+    const res = await authedFetch(`${BASE}/${blogId}/outline`, {
         headers: { 'Content-Type': 'application/json' },
     });
     if (res.status === 404)

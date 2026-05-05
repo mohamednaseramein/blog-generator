@@ -12,6 +12,8 @@ export function UserSettingsMenu() {
   const location = useLocation();
   const [isOpen, setIsOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  const itemRefs = useRef<Array<HTMLButtonElement | null>>([]);
 
   useEffect(() => {
     function handleClickOutside(e: MouseEvent) {
@@ -21,6 +23,27 @@ export function UserSettingsMenu() {
     }
     if (isOpen) document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [isOpen]);
+
+  useEffect(() => {
+    function handleKeyDown(e: KeyboardEvent) {
+      if (!isOpen) return;
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        setIsOpen(false);
+        triggerRef.current?.focus();
+      }
+    }
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen]);
+
+  useEffect(() => {
+    if (isOpen) {
+      queueMicrotask(() => {
+        itemRefs.current[0]?.focus();
+      });
+    }
   }, [isOpen]);
 
   const items: MenuItem[] = [
@@ -54,6 +77,7 @@ export function UserSettingsMenu() {
     <div className="relative inline-block text-left" ref={containerRef}>
       <button
         type="button"
+        ref={triggerRef}
         onClick={() => setIsOpen((v) => !v)}
         aria-haspopup="menu"
         aria-expanded={isOpen}
@@ -76,7 +100,7 @@ export function UserSettingsMenu() {
           aria-label="User settings"
           className="absolute right-0 z-50 mt-2 w-44 rounded-lg border border-slate-200 bg-white p-1 shadow-lg"
         >
-          {items.map((item) => {
+          {items.map((item, idx) => {
             const base =
               'flex w-full items-center rounded-md px-3 py-2 text-left text-sm transition-colors';
             const cls =
@@ -89,6 +113,9 @@ export function UserSettingsMenu() {
                 type="button"
                 role="menuitem"
                 className={cls}
+                ref={(el) => {
+                  itemRefs.current[idx] = el;
+                }}
                 onClick={async () => {
                   setIsOpen(false);
                   await item.onClick();

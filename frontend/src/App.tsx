@@ -12,7 +12,6 @@ import CheckEmailPage from './pages/auth/CheckEmailPage';
 import VerifyPage from './pages/auth/VerifyPage';
 import ForgotPasswordPage from './pages/auth/ForgotPasswordPage';
 import ResetPasswordPage from './pages/auth/ResetPasswordPage';
-import OAuthCallbackPage from './pages/auth/OAuthCallbackPage';
 
 // Admin Pages (Stubs for now)
 const AdminUsersPage = () => <div className="p-8">Admin Users</div>;
@@ -44,7 +43,6 @@ export function App() {
             <Route path="/verify" element={<VerifyPage />} />
             <Route path="/forgot-password" element={<ForgotPasswordPage />} />
             <Route path="/reset-password" element={<ResetPasswordPage />} />
-            <Route path="/auth/callback" element={<OAuthCallbackPage />} />
 
             {/* Protected App Routes */}
             <Route element={<ProtectedRoute />}>

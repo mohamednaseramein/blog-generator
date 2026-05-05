@@ -126,9 +126,12 @@ jobs:
             {
               # Prefer dedicated VITE_* pipeline vars for the frontend build, but keep
               # SUPABASE_* for backward compatibility and server-side usage.
-              printf 'SUPABASE_URL=%s\n' "${VITE_SUPABASE_URL:-${SUPABASE_URL:-}}"
+              _sb_url="${VITE_SUPABASE_URL:-${SUPABASE_URL:-}}"
+              _sb_anon="${VITE_SUPABASE_ANON_KEY:-${SUPABASE_ANON_KEY:-}}"
+
+              printf 'SUPABASE_URL=%s\n' "${_sb_url}"
               printf 'SUPABASE_SERVICE_ROLE_KEY=%s\n' "${SUPABASE_SERVICE_ROLE_KEY:-}"
-              printf 'SUPABASE_ANON_KEY=%s\n' "${VITE_SUPABASE_ANON_KEY:-${SUPABASE_ANON_KEY:-}}"
+              printf 'SUPABASE_ANON_KEY=%s\n' "${_sb_anon}"
               printf 'SUPABASE_DB_URL=%s\n' "${SUPABASE_DB_URL:-}"
               printf '\n'
               printf 'PORT=3000\n'
@@ -141,6 +144,10 @@ jobs:
               printf 'JWT_SECRET=%s\n' "${JWT_SECRET:-}"
               printf '\n'
               printf 'VITE_BASE_URL=%s\n' "${VITE_BASE_URL:-}"
+
+              # Frontend build args (Dockerfile ARG/ENV). These are public vars in the bundle.
+              printf 'VITE_SUPABASE_URL=%s\n' "${_sb_url}"
+              printf 'VITE_SUPABASE_ANON_KEY=%s\n' "${_sb_anon}"
             } > "${_tmp_env}"
             chmod 600 "${_tmp_env}" || true
 

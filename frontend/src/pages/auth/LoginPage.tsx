@@ -11,6 +11,25 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
+  const handleGoogleLogin = async () => {
+    setError(null);
+    setLoading(true);
+    try {
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          redirectTo: `${window.location.origin}/auth/callback`,
+        },
+      });
+      if (error) setError(error.message);
+      // On success, user is redirected away to Google. No further action here.
+    } catch {
+      setError('An unexpected error occurred');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
@@ -109,10 +128,16 @@ export default function LoginPage() {
               </div>
             </div>
 
-            <div className="mt-6 text-center text-sm">
+            <div className="mt-6 space-y-3">
+              <Button type="button" className="w-full" variant="ghost" disabled={loading} onClick={() => void handleGoogleLogin()}>
+                Continue with Google
+              </Button>
+
+              <div className="text-center text-sm">
               <Link to="/register" className="font-medium text-indigo-600 hover:text-indigo-500">
                 Create a new account
               </Link>
+              </div>
             </div>
           </div>
         </div>

@@ -81,7 +81,26 @@ jobs:
             
             echo "[deploy] Writing backend/.env from GitHub Actions Environment (development)"
             umask 077
-            mkdir -p backend
+            mkdir -p backend 2>/dev/null || true
+            if [ ! -w backend ]; then
+              echo "[deploy] WARN: backend/ is not writable; attempting sudo permission fix"
+              if command -v sudo >/dev/null 2>&1; then
+                sudo mkdir -p backend
+                sudo chown -R "$(id -un)":"$(id -gn)" backend || true
+                sudo chmod -R u+rwX backend || true
+              fi
+            fi
+            if [ -e backend/.env ] && [ ! -w backend/.env ]; then
+              echo "[deploy] WARN: backend/.env exists but is not writable; attempting sudo remove"
+              if command -v sudo >/dev/null 2>&1; then
+                sudo rm -f backend/.env || true
+              fi
+            fi
+            if [ ! -w backend ]; then
+              echo "[deploy] ERROR: backend/ is not writable; cannot create backend/.env" >&2
+              ls -ld backend || true
+              exit 1
+            fi
             _frontend_url="${VITE_BASE_URL:-}"
             {
               printf 'SUPABASE_URL=%s\n' "${SUPABASE_URL:-}"

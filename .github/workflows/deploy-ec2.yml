@@ -5,27 +5,37 @@ on:
     branches: [main]
 
 concurrency:
-  group: deploy-ec2-production
+  group: deploy-ec2-development
   cancel-in-progress: false
 
 jobs:
   deploy:
     name: SSH deploy
     runs-on: ubuntu-latest
+    environment:
+      name: development
     steps:
       - name: Deploy over SSH
         uses: appleboy/ssh-action@v1.2.3
         env:
           GITHUB_REPO: ${{ github.repository }}
           GIT_CLONE_TOKEN: ${{ secrets.GIT_CLONE_TOKEN }}
+          SUPABASE_URL: ${{ vars.SUPABASE_URL }}
+          SUPABASE_ANON_KEY: ${{ vars.SUPABASE_ANON_KEY }}
+          SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+          VITE_BASE_URL: ${{ vars.VITE_BASE_URL }}
+          ANTHROPIC_MODEL: ${{ vars.ANTHROPIC_MODEL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          JWT_SECRET: ${{ secrets.JWT_SECRET }}
         with:
           host: ${{ secrets.SSH_HOST }}
           username: ${{ secrets.SSH_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           command_timeout: 45m
-          envs: GITHUB_REPO,GIT_CLONE_TOKEN
+          envs: GITHUB_REPO,GIT_CLONE_TOKEN,SUPABASE_URL,SUPABASE_ANON_KEY,SUPABASE_DB_URL,VITE_BASE_URL,ANTHROPIC_MODEL,SUPABASE_SERVICE_ROLE_KEY,ANTHROPIC_API_KEY,JWT_SECRET
           script: |
-            set -e
+            set -euo pipefail
             DEPLOY_PATH="${{ secrets.DEPLOY_PATH }}"
             _home="${HOME:-}"
             if [ -z "${_home}" ] && command -v getent >/dev/null 2>&1; then
@@ -58,14 +68,40 @@ jobs:
               fi
             fi
             cd "${DEPLOY_PATH}"
+            _origin_clean="https://github.com/${GITHUB_REPO}.git"
+            _origin_auth="${_origin_clean}"
             if [ -n "${GIT_CLONE_TOKEN:-}" ]; then
-              git remote set-url origin "https://x-access-token:${GIT_CLONE_TOKEN}@github.com/${GITHUB_REPO}.git"
+              _origin_auth="https://x-access-token:${GIT_CLONE_TOKEN}@github.com/${GITHUB_REPO}.git"
             fi
             echo "[deploy] Syncing git to origin/main"
-            git fetch origin main
+            git -c remote.origin.url="${_origin_auth}" fetch origin main
             git checkout -B main origin/main
+            git remote set-url origin "${_origin_clean}" || true
             echo "[deploy] HEAD=$(git rev-parse --short HEAD) branch=$(git branch --show-current)"
             
+            echo "[deploy] Writing backend/.env from GitHub Actions Environment (development)"
+            umask 077
+            mkdir -p backend
+            _frontend_url="${VITE_BASE_URL:-}"
+            {
+              printf 'SUPABASE_URL=%s\n' "${SUPABASE_URL:-}"
+              printf 'SUPABASE_SERVICE_ROLE_KEY=%s\n' "${SUPABASE_SERVICE_ROLE_KEY:-}"
+              printf 'SUPABASE_ANON_KEY=%s\n' "${SUPABASE_ANON_KEY:-}"
+              printf 'SUPABASE_DB_URL=%s\n' "${SUPABASE_DB_URL:-}"
+              printf '\n'
+              printf 'PORT=3000\n'
+              printf 'NODE_ENV=production\n'
+              printf 'FRONTEND_URL=%s\n' "${_frontend_url:-}"
+              printf '\n'
+              printf 'ANTHROPIC_API_KEY=%s\n' "${ANTHROPIC_API_KEY:-}"
+              printf 'ANTHROPIC_MODEL=%s\n' "${ANTHROPIC_MODEL:-}"
+              printf '\n'
+              printf 'JWT_SECRET=%s\n' "${JWT_SECRET:-}"
+              printf '\n'
+              printf 'VITE_BASE_URL=%s\n' "${VITE_BASE_URL:-}"
+            } > backend/.env
+            chmod 600 backend/.env || true
+
             if [ -x scripts/deploy-ec2.sh ]; then
               echo "[deploy] Starting deployment script..."
               scripts/deploy-ec2.sh .

@@ -36,7 +36,7 @@ Configure these in the repository: **Settings → Secrets and variables → Acti
 
 Do **not** commit keys or hostnames if you can avoid it; keep them in secrets and internal runbooks only.
 
-**First deploy after auto-clone:** create **`backend/.env`** on the server (copy from `backend/.env.example` and fill values). Until it exists, `verify-deploy-env.sh` / Compose will fail with a clear error.
+The deploy workflow writes **`backend/.env`** on the server from the GitHub Actions **Environment** (`development`) using `vars.*` + `secrets.*`. This keeps configuration centrally controlled and avoids copying any committed `.env` files.
 
 ### Optional hardening
 
@@ -46,7 +46,7 @@ Do **not** commit keys or hostnames if you can avoid it; keep them in secrets an
 ## EC2 prerequisites
 
 1. **Git** — `git` installed. The workflow clones on first run if `DEPLOY_PATH` is empty, or refreshes an existing clone. Private repos need **`GIT_CLONE_TOKEN`** (or preconfigure `origin` with a deploy key and skip the token secret if you manage auth only on the host).
-2. **`backend/.env`** — Present on the server (gitignored). Compose needs it for runtime and for compose-level variable substitution; see [environment-configuration.md](./environment-configuration.md).
+2. **GitHub Actions Environment values** — ensure the `development` environment has the required `vars` / `secrets` configured (see `.github/workflows/deploy-ec2.yml`). The workflow generates `backend/.env` before running Compose.
 3. **Docker** — Docker Engine and Compose v1 or v2; `ec2-user` must be able to run `docker` (e.g. member of `docker` group).
 4. **Resources** — `build --no-cache` is CPU/network heavy; size the instance accordingly. The workflow allows up to **45 minutes** for the remote script.
 

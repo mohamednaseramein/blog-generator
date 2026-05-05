@@ -2,6 +2,25 @@ import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { supabase } from '../../lib/supabase';
 
+const debugAuth =
+  (import.meta as unknown as { env?: Record<string, unknown> }).env?.VITE_DEBUG_AUTH === 'true' ||
+  (import.meta as unknown as { env?: Record<string, unknown> }).env?.DEV === true;
+
+function authLog(message: string, meta?: Record<string, unknown>) {
+  if (!debugAuth) return;
+  // Keep logs copy/paste friendly and avoid leaking tokens.
+  if (meta) console.debug(`[auth-callback] ${message}`, meta);
+  else console.debug(`[auth-callback] ${message}`);
+}
+
+function redactedUrlForLogs(url: URL) {
+  const out = new URL(url.toString());
+  if (out.searchParams.has('code')) out.searchParams.set('code', '<redacted>');
+  if (out.searchParams.has('error_description')) out.searchParams.set('error_description', '<redacted>');
+  if (out.hash) out.hash = '#<redacted>';
+  return out.toString();
+}
+
 export default function OAuthCallbackPage() {
   const [status, setStatus] = useState<'verifying' | 'success' | 'error'>('verifying');
   const [errorMessage, setErrorMessage] = useState<string>('Google sign-in failed or expired.');
@@ -15,19 +34,39 @@ export default function OAuthCallbackPage() {
       setStatus(next);
     };
 
-    const timer = setTimeout(() => finish('error'), 12000);
-
     const url = new URL(window.location.href);
     const code = url.searchParams.get('code');
     const errorParam = url.searchParams.get('error');
     const errorDescription = url.searchParams.get('error_description');
     const errorCode = url.searchParams.get('error_code');
 
+    authLog('mounted', {
+      origin: window.location.origin,
+      href: redactedUrlForLogs(url),
+      hasCode: Boolean(code),
+      hasHash: Boolean(url.hash),
+      error: errorParam || undefined,
+      errorCode: errorCode || undefined,
+    });
+
     const clearCallbackUrl = () => {
       // Clear sensitive/verbose callback params once Supabase has had a chance
       // to read them (PKCE query `code` or implicit hash tokens).
       window.history.replaceState({}, document.title, '/auth/callback');
     };
+
+    // If the callback is PKCE (`?code=`), we can clear immediately after capturing it.
+    // If the callback is implicit (`#access_token=`), we must NOT clear until after getSession().
+    if (code || errorParam) {
+      clearCallbackUrl();
+      authLog('sanitized URL early (code/error present)');
+    }
+
+    const timer = setTimeout(() => {
+      authLog('timeout waiting for session');
+      finish('error');
+      clearCallbackUrl();
+    }, 30000);
 
     // Supabase OAuth commonly returns an auth code (PKCE) that must be exchanged for a session.
     const init = async () => {
@@ -37,45 +76,57 @@ export default function OAuthCallbackPage() {
           setErrorMessage(parts.join(': ').slice(0, 180));
         }
         finish('error');
-        clearCallbackUrl();
+        authLog('provider returned error', { error: errorParam, errorCode, errorDescription: errorDescription ? '<redacted>' : undefined });
         return;
       }
 
       if (code) {
+        authLog('exchanging PKCE code for session');
         const { data, error } = await supabase.auth.exchangeCodeForSession(code);
         if (error) {
+          authLog('exchangeCodeForSession failed', { message: error.message, name: (error as unknown as { name?: string }).name });
           setErrorMessage(error.message || 'Google sign-in failed. Please try again.');
           finish('error');
-          clearCallbackUrl();
           return;
         }
         if (data.session) {
+          authLog('exchangeCodeForSession success', { userId: data.session.user.id });
           finish('success');
-          clearCallbackUrl();
           return;
         }
       }
 
       // Fallback: if a session already exists (hash-token flows), treat as success.
+      authLog('checking getSession fallback');
       const { data } = await supabase.auth.getSession();
       if (data.session) {
+        authLog('getSession found session', { userId: data.session.user.id });
         finish('success');
-        clearCallbackUrl();
         return;
       }
 
       // No session created; now it's safe to clear the URL.
       clearCallbackUrl();
+      authLog('no session found after callback');
     };
 
-    void init().catch(() => finish('error'));
+    void init().catch((err: unknown) => {
+      authLog('init threw', {
+        message: (err as { message?: string } | null)?.message,
+        name: (err as { name?: string } | null)?.name,
+      });
+      finish('error');
+      clearCallbackUrl();
+    });
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       if (event === 'SIGNED_IN' && session) {
+        authLog('onAuthStateChange SIGNED_IN', { userId: session.user.id });
         finish('success');
       }
       if (event === 'SIGNED_OUT') {
         // If the callback returns but we never get a session, treat as error after timeout.
+        authLog('onAuthStateChange SIGNED_OUT during callback');
         setStatus('verifying');
       }
     });

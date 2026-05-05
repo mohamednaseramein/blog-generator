@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { supabase } from '../../lib/supabase';
 import { Button } from '../../components/ui/button';
+import type { AuthError } from '@supabase/supabase-js';
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
@@ -22,7 +23,14 @@ export default function LoginPage() {
       });
 
       if (error) {
-        setError('Invalid email or password');
+        const authErr = error as AuthError & { code?: string };
+        const code = authErr.code || '';
+        const msg = authErr.message?.toLowerCase?.() || '';
+        if (code === 'email_not_confirmed' || msg.includes('email not confirmed') || msg.includes('not confirmed')) {
+          setError('Email not verified. Please verify your email and try again.');
+        } else {
+          setError('Invalid email or password');
+        }
       } else {
         navigate('/');
       }

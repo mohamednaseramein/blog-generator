@@ -4,6 +4,7 @@ import { supabase } from '../../lib/supabase';
 
 export default function OAuthCallbackPage() {
   const [status, setStatus] = useState<'verifying' | 'success' | 'error'>('verifying');
+  const [errorMessage, setErrorMessage] = useState<string>('Google sign-in failed or expired.');
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -19,6 +20,8 @@ export default function OAuthCallbackPage() {
     const url = new URL(window.location.href);
     const code = url.searchParams.get('code');
     const errorParam = url.searchParams.get('error');
+    const errorDescription = url.searchParams.get('error_description');
+    const errorCode = url.searchParams.get('error_code');
 
     // Clear sensitive/verbose callback params as early as possible.
     // This keeps the code out of copy/paste, screenshots, and referrers.
@@ -27,6 +30,10 @@ export default function OAuthCallbackPage() {
     // Supabase OAuth commonly returns an auth code (PKCE) that must be exchanged for a session.
     const init = async () => {
       if (errorParam) {
+        const parts = [errorCode, errorDescription].filter(Boolean) as string[];
+        if (parts.length) {
+          setErrorMessage(parts.join(': ').slice(0, 180));
+        }
         finish('error');
         return;
       }
@@ -34,6 +41,7 @@ export default function OAuthCallbackPage() {
       if (code) {
         const { data, error } = await supabase.auth.exchangeCodeForSession(code);
         if (error) {
+          setErrorMessage(error.message || 'Google sign-in failed. Please try again.');
           finish('error');
           return;
         }
@@ -79,7 +87,7 @@ export default function OAuthCallbackPage() {
         {status === 'success' && <p className="text-green-600">Signed in! Redirecting…</p>}
         {status === 'error' && (
           <div className="space-y-3">
-            <p className="text-red-600">Google sign-in failed or expired.</p>
+            <p className="text-red-600">{errorMessage}</p>
             <Link className="underline text-indigo-600 hover:text-indigo-500" to="/login">
               Back to login
             </Link>

@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { BlogBriefForm } from '../components/BlogBriefForm.js';
 import { AlignmentSummary } from '../components/AlignmentSummary.js';
 import { OutlineStep } from '../components/OutlineStep.js';
@@ -47,6 +48,7 @@ function setActiveProfile(id: string, setter: (id: string) => void) {
 
 export default function Dashboard() {
   const { logout, role } = useAuth();
+  const navigate = useNavigate();
   const [state, setState] = useState<AppState>({ step: 'idle' });
   const [error, setError] = useState<string | null>(null);
   const [activeProfileId, setActiveProfileId] = useState<string | null>(() => {
@@ -113,7 +115,15 @@ export default function Dashboard() {
             Create a fully-structured, SEO-ready blog post in minutes.
           </p>
           <div className="mt-4 flex justify-center">
-             <button onClick={logout} className="text-sm text-red-600 hover:underline">Log out</button>
+             <button
+               onClick={async () => {
+                 await logout();
+                 navigate('/login', { replace: true });
+               }}
+               className="text-sm text-red-600 hover:underline"
+             >
+               Log out
+             </button>
              {role === 'admin' && (
                <a href="/admin/users" className="ml-4 text-sm text-indigo-600 hover:underline">Admin Dashboard</a>
              )}

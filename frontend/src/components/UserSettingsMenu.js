@@ -1,0 +1,82 @@
+import { jsx as _jsx, jsxs as _jsxs } from "react/jsx-runtime";
+import { useEffect, useRef, useState } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
+export function UserSettingsMenu() {
+    const { logout } = useAuth();
+    const navigate = useNavigate();
+    const location = useLocation();
+    const [isOpen, setIsOpen] = useState(false);
+    const containerRef = useRef(null);
+    const triggerRef = useRef(null);
+    const itemRefs = useRef([]);
+    useEffect(() => {
+        function handleClickOutside(e) {
+            if (containerRef.current && !containerRef.current.contains(e.target)) {
+                setIsOpen(false);
+            }
+        }
+        if (isOpen)
+            document.addEventListener('mousedown', handleClickOutside);
+        return () => document.removeEventListener('mousedown', handleClickOutside);
+    }, [isOpen]);
+    useEffect(() => {
+        function handleKeyDown(e) {
+            if (!isOpen)
+                return;
+            if (e.key === 'Escape') {
+                e.preventDefault();
+                setIsOpen(false);
+                triggerRef.current?.focus();
+            }
+        }
+        document.addEventListener('keydown', handleKeyDown);
+        return () => document.removeEventListener('keydown', handleKeyDown);
+    }, [isOpen]);
+    useEffect(() => {
+        if (isOpen) {
+            queueMicrotask(() => {
+                itemRefs.current[0]?.focus();
+            });
+        }
+    }, [isOpen]);
+    const items = [
+        {
+            type: 'link',
+            label: 'My profile',
+            onClick: () => navigate('/profile'),
+        },
+        {
+            type: 'link',
+            label: 'My blogs',
+            onClick: () => {
+                if (location.pathname === '/') {
+                    navigate('/', { replace: true, state: { open: 'history' } });
+                }
+                else {
+                    navigate('/', { state: { open: 'history' } });
+                }
+            },
+        },
+        {
+            type: 'danger',
+            label: 'Logout',
+            onClick: async () => {
+                await logout();
+                navigate('/login', { replace: true });
+            },
+        },
+    ];
+    return (_jsxs("div", { className: "relative inline-block text-left", ref: containerRef, children: [_jsxs("button", { type: "button", ref: triggerRef, onClick: () => setIsOpen((v) => !v), "aria-haspopup": "menu", "aria-expanded": isOpen, className: "inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 shadow-sm hover:bg-slate-50", children: [_jsx("span", { className: "text-slate-500", children: "Settings" }), _jsx("svg", { className: `h-4 w-4 transition-transform ${isOpen ? 'rotate-180' : ''}`, fill: "none", stroke: "currentColor", viewBox: "0 0 24 24", children: _jsx("path", { strokeLinecap: "round", strokeLinejoin: "round", strokeWidth: 2, d: "M19 9l-7 7-7-7" }) })] }), isOpen && (_jsx("div", { role: "menu", "aria-label": "User settings", className: "absolute right-0 z-50 mt-2 w-44 rounded-lg border border-slate-200 bg-white p-1 shadow-lg", children: items.map((item, idx) => {
+                    const base = 'flex w-full items-center rounded-md px-3 py-2 text-left text-sm transition-colors';
+                    const cls = item.type === 'danger'
+                        ? `${base} text-red-600 hover:bg-red-50`
+                        : `${base} text-slate-700 hover:bg-slate-50`;
+                    return (_jsx("button", { type: "button", role: "menuitem", className: cls, ref: (el) => {
+                            itemRefs.current[idx] = el;
+                        }, onClick: async () => {
+                            setIsOpen(false);
+                            await item.onClick();
+                        }, children: item.label }, item.label));
+                }) }))] }));
+}

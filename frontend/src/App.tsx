@@ -13,6 +13,7 @@ import VerifyPage from './pages/auth/VerifyPage';
 import ForgotPasswordPage from './pages/auth/ForgotPasswordPage';
 import ResetPasswordPage from './pages/auth/ResetPasswordPage';
 import OAuthCallbackPage from './pages/auth/OAuthCallbackPage';
+import ProfilePage from './pages/ProfilePage';
 
 // Admin Pages (Stubs for now)
 const AdminUsersPage = () => <div className="p-8">Admin Users</div>;
@@ -49,6 +50,7 @@ export function App() {
             {/* Protected App Routes */}
             <Route element={<ProtectedRoute />}>
               <Route path="/" element={<Dashboard />} />
+              <Route path="/profile" element={<ProfilePage />} />
             </Route>
 
             {/* Admin Routes */}

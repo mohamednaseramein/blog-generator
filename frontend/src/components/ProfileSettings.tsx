@@ -10,7 +10,7 @@ type View = 'list' | 'create' | { editing: AuthorProfile };
 interface Props {
   activeProfileId: string | null;
   onActiveProfileChange: (id: string) => void;
-  onBack: () => void;
+  onBack?: () => void;
 }
 
 export function ProfileSettings({ activeProfileId, onActiveProfileChange, onBack }: Props) {
@@ -125,9 +125,11 @@ export function ProfileSettings({ activeProfileId, onActiveProfileChange, onBack
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <button onClick={onBack} className="text-sm text-slate-500 hover:text-slate-700">
-            ← Back
-          </button>
+          {onBack && (
+            <button onClick={onBack} className="text-sm text-slate-500 hover:text-slate-700">
+              ← Back
+            </button>
+          )}
           <h2 className="text-lg font-semibold text-slate-800">Author Profiles</h2>
         </div>
         <Button size="sm" onClick={() => setView('create')}>

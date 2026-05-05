@@ -17,23 +17,21 @@ export default function LoginPage() {
     setLoading(true);
 
     try {
-      const { data, error } = await supabase.auth.signInWithPassword({
+      const { error } = await supabase.auth.signInWithPassword({
         email,
         password,
       });
 
       if (error) {
-        const msg = (error as AuthError)?.message?.toLowerCase?.() || '';
-        if (msg.includes('email not confirmed') || msg.includes('not confirmed') || msg.includes('not verified')) {
+        const authErr = error as AuthError & { code?: string };
+        const code = authErr.code || '';
+        const msg = authErr.message?.toLowerCase?.() || '';
+        if (code === 'email_not_confirmed' || msg.includes('email not confirmed') || msg.includes('not confirmed')) {
           setError('Email not verified. Please verify your email and try again.');
         } else {
           setError('Invalid email or password');
         }
       } else {
-        if (data?.user && !data.user.email_confirmed_at) {
-          setError('Email not verified. Please verify your email and try again.');
-          return;
-        }
         navigate('/');
       }
     } catch (err) {

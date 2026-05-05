@@ -20,6 +20,9 @@ jobs:
         env:
           GITHUB_REPO: ${{ github.repository }}
           GIT_CLONE_TOKEN: ${{ secrets.GIT_CLONE_TOKEN }}
+          # Keep deploys resilient on small disks by pruning old Docker cache/images
+          # before building. Set DEPLOY_PRUNE_BEFORE_BUILD=0 to disable.
+          DEPLOY_PRUNE_BEFORE_BUILD: "1"
           SUPABASE_URL: ${{ vars.SUPABASE_URL }}
           SUPABASE_ANON_KEY: ${{ vars.SUPABASE_ANON_KEY }}
           VITE_SUPABASE_URL: ${{ vars.VITE_SUPABASE_URL }}
@@ -35,7 +38,7 @@ jobs:
           username: ${{ secrets.SSH_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           command_timeout: 45m
-          envs: GITHUB_REPO,GIT_CLONE_TOKEN,SUPABASE_URL,SUPABASE_ANON_KEY,VITE_SUPABASE_URL,VITE_SUPABASE_ANON_KEY,SUPABASE_DB_URL,VITE_BASE_URL,ANTHROPIC_MODEL,SUPABASE_SERVICE_ROLE_KEY,ANTHROPIC_API_KEY,JWT_SECRET
+          envs: GITHUB_REPO,GIT_CLONE_TOKEN,DEPLOY_PRUNE_BEFORE_BUILD,SUPABASE_URL,SUPABASE_ANON_KEY,VITE_SUPABASE_URL,VITE_SUPABASE_ANON_KEY,SUPABASE_DB_URL,VITE_BASE_URL,ANTHROPIC_MODEL,SUPABASE_SERVICE_ROLE_KEY,ANTHROPIC_API_KEY,JWT_SECRET
           script: |
             set -euo pipefail
             DEPLOY_PATH="${{ secrets.DEPLOY_PATH }}"

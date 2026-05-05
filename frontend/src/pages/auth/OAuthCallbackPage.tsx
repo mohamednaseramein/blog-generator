@@ -2,15 +2,22 @@ import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { supabase } from '../../lib/supabase';
 
-const debugAuth =
-  (import.meta as unknown as { env?: Record<string, unknown> }).env?.VITE_DEBUG_AUTH === 'true' ||
-  (import.meta as unknown as { env?: Record<string, unknown> }).env?.DEV === true;
-
-function authLog(message: string, meta?: Record<string, unknown>) {
-  if (!debugAuth) return;
+function authLog(level: 'info' | 'warn' | 'error', message: string, meta?: Record<string, unknown>) {
+  // Always-on logging for the OAuth callback flow (helps debug prod-only issues).
   // Keep logs copy/paste friendly and avoid leaking tokens.
-  if (meta) console.debug(`[auth-callback] ${message}`, meta);
-  else console.debug(`[auth-callback] ${message}`);
+  const prefix = `[auth-callback] ${message}`;
+  if (level === 'error') {
+    if (meta) console.error(prefix, meta);
+    else console.error(prefix);
+    return;
+  }
+  if (level === 'warn') {
+    if (meta) console.warn(prefix, meta);
+    else console.warn(prefix);
+    return;
+  }
+  if (meta) console.info(prefix, meta);
+  else console.info(prefix);
 }
 
 function redactedUrlForLogs(url: URL) {
@@ -40,7 +47,7 @@ export default function OAuthCallbackPage() {
     const errorDescription = url.searchParams.get('error_description');
     const errorCode = url.searchParams.get('error_code');
 
-    authLog('mounted', {
+    authLog('info', 'mounted', {
       origin: window.location.origin,
       href: redactedUrlForLogs(url),
       hasCode: Boolean(code),
@@ -59,11 +66,11 @@ export default function OAuthCallbackPage() {
     // If the callback is implicit (`#access_token=`), we must NOT clear until after getSession().
     if (code || errorParam) {
       clearCallbackUrl();
-      authLog('sanitized URL early (code/error present)');
+      authLog('info', 'sanitized URL early (code/error present)');
     }
 
     const timer = setTimeout(() => {
-      authLog('timeout waiting for session');
+      authLog('warn', 'timeout waiting for session');
       finish('error');
       clearCallbackUrl();
     }, 30000);
@@ -76,42 +83,49 @@ export default function OAuthCallbackPage() {
           setErrorMessage(parts.join(': ').slice(0, 180));
         }
         finish('error');
-        authLog('provider returned error', { error: errorParam, errorCode, errorDescription: errorDescription ? '<redacted>' : undefined });
+        authLog('warn', 'provider returned error', {
+          error: errorParam,
+          errorCode,
+          errorDescription: errorDescription ? '<redacted>' : undefined,
+        });
         return;
       }
 
       if (code) {
-        authLog('exchanging PKCE code for session');
+        authLog('info', 'exchanging PKCE code for session');
         const { data, error } = await supabase.auth.exchangeCodeForSession(code);
         if (error) {
-          authLog('exchangeCodeForSession failed', { message: error.message, name: (error as unknown as { name?: string }).name });
+          authLog('warn', 'exchangeCodeForSession failed', {
+            message: error.message,
+            name: (error as unknown as { name?: string }).name,
+          });
           setErrorMessage(error.message || 'Google sign-in failed. Please try again.');
           finish('error');
           return;
         }
         if (data.session) {
-          authLog('exchangeCodeForSession success', { userId: data.session.user.id });
+          authLog('info', 'exchangeCodeForSession success', { userId: data.session.user.id });
           finish('success');
           return;
         }
       }
 
       // Fallback: if a session already exists (hash-token flows), treat as success.
-      authLog('checking getSession fallback');
+      authLog('info', 'checking getSession fallback');
       const { data } = await supabase.auth.getSession();
       if (data.session) {
-        authLog('getSession found session', { userId: data.session.user.id });
+        authLog('info', 'getSession found session', { userId: data.session.user.id });
         finish('success');
         return;
       }
 
       // No session created; now it's safe to clear the URL.
       clearCallbackUrl();
-      authLog('no session found after callback');
+      authLog('warn', 'no session found after callback');
     };
 
     void init().catch((err: unknown) => {
-      authLog('init threw', {
+      authLog('error', 'init threw', {
         message: (err as { message?: string } | null)?.message,
         name: (err as { name?: string } | null)?.name,
       });
@@ -121,12 +135,12 @@ export default function OAuthCallbackPage() {
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       if (event === 'SIGNED_IN' && session) {
-        authLog('onAuthStateChange SIGNED_IN', { userId: session.user.id });
+        authLog('info', 'onAuthStateChange SIGNED_IN', { userId: session.user.id });
         finish('success');
       }
       if (event === 'SIGNED_OUT') {
         // If the callback returns but we never get a session, treat as error after timeout.
-        authLog('onAuthStateChange SIGNED_OUT during callback');
+        authLog('warn', 'onAuthStateChange SIGNED_OUT during callback');
         setStatus('verifying');
       }
     });

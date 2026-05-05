@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { BlogBriefForm } from '../components/BlogBriefForm.js';
 import { AlignmentSummary } from '../components/AlignmentSummary.js';
 import { OutlineStep } from '../components/OutlineStep.js';
@@ -13,6 +13,7 @@ import { ProfileSettings } from '../components/ProfileSettings.js';
 import { ViewPromptPanel } from '../components/ViewPromptPanel.js';
 import { Button } from '../components/ui/button.js';
 import { Toast } from '../components/ui/toast.js';
+import { UserSettingsMenu } from '../components/UserSettingsMenu';
 import { createBlog } from '../api/blog-api.js';
 import { listProfiles } from '../api/profile-api.js';
 import { useAuth } from '../context/AuthContext';
@@ -47,13 +48,21 @@ function setActiveProfile(id: string, setter: (id: string) => void) {
 }
 
 export default function Dashboard() {
-  const { logout, role } = useAuth();
+  const { role } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
   const [state, setState] = useState<AppState>({ step: 'idle' });
   const [error, setError] = useState<string | null>(null);
   const [activeProfileId, setActiveProfileId] = useState<string | null>(() => {
     return localStorage.getItem(ACTIVE_PROFILE_KEY);
   });
+
+  useEffect(() => {
+    if ((location.state as any)?.open === 'history') {
+      setState({ step: 'history' });
+      navigate(location.pathname, { replace: true, state: {} });
+    }
+  }, [location.pathname, location.state, navigate]);
 
   useEffect(() => {
     async function loadProfiles() {
@@ -114,19 +123,13 @@ export default function Dashboard() {
           <p className="mt-2 text-slate-500 text-sm">
             Create a fully-structured, SEO-ready blog post in minutes.
           </p>
-          <div className="mt-4 flex justify-center">
-             <button
-               onClick={async () => {
-                 await logout();
-                 navigate('/login', { replace: true });
-               }}
-               className="text-sm text-red-600 hover:underline"
-             >
-               Log out
-             </button>
-             {role === 'admin' && (
-               <a href="/admin/users" className="ml-4 text-sm text-indigo-600 hover:underline">Admin Dashboard</a>
-             )}
+          <div className="mt-4 flex justify-center gap-4">
+            <UserSettingsMenu />
+            {role === 'admin' && (
+              <a href="/admin/users" className="text-sm text-indigo-600 hover:underline">
+                Admin Dashboard
+              </a>
+            )}
           </div>
         </div>
 

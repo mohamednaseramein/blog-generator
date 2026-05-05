@@ -22,7 +22,7 @@ jobs:
           GIT_CLONE_TOKEN: ${{ secrets.GIT_CLONE_TOKEN }}
           SUPABASE_URL: ${{ vars.SUPABASE_URL }}
           SUPABASE_ANON_KEY: ${{ vars.SUPABASE_ANON_KEY }}
-          SUPABASE_DB_URL: ${{ vars.SUPABASE_DB_URL }}
+          SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
           VITE_BASE_URL: ${{ vars.VITE_BASE_URL }}
           ANTHROPIC_MODEL: ${{ vars.ANTHROPIC_MODEL }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
@@ -35,7 +35,7 @@ jobs:
           command_timeout: 45m
           envs: GITHUB_REPO,GIT_CLONE_TOKEN,SUPABASE_URL,SUPABASE_ANON_KEY,SUPABASE_DB_URL,VITE_BASE_URL,ANTHROPIC_MODEL,SUPABASE_SERVICE_ROLE_KEY,ANTHROPIC_API_KEY,JWT_SECRET
           script: |
-            set -e
+            set -euo pipefail
             DEPLOY_PATH="${{ secrets.DEPLOY_PATH }}"
             _home="${HOME:-}"
             if [ -z "${_home}" ] && command -v getent >/dev/null 2>&1; then
@@ -68,12 +68,15 @@ jobs:
               fi
             fi
             cd "${DEPLOY_PATH}"
+            _origin_clean="https://github.com/${GITHUB_REPO}.git"
+            _origin_auth="${_origin_clean}"
             if [ -n "${GIT_CLONE_TOKEN:-}" ]; then
-              git remote set-url origin "https://x-access-token:${GIT_CLONE_TOKEN}@github.com/${GITHUB_REPO}.git"
+              _origin_auth="https://x-access-token:${GIT_CLONE_TOKEN}@github.com/${GITHUB_REPO}.git"
             fi
             echo "[deploy] Syncing git to origin/main"
-            git fetch origin main
+            git -c remote.origin.url="${_origin_auth}" fetch origin main
             git checkout -B main origin/main
+            git remote set-url origin "${_origin_clean}" || true
             echo "[deploy] HEAD=$(git rev-parse --short HEAD) branch=$(git branch --show-current)"
             
             echo "[deploy] Writing backend/.env from GitHub Actions Environment (development)"

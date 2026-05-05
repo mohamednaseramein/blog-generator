@@ -22,6 +22,8 @@ jobs:
           GIT_CLONE_TOKEN: ${{ secrets.GIT_CLONE_TOKEN }}
           SUPABASE_URL: ${{ vars.SUPABASE_URL }}
           SUPABASE_ANON_KEY: ${{ vars.SUPABASE_ANON_KEY }}
+          VITE_SUPABASE_URL: ${{ vars.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
           SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
           VITE_BASE_URL: ${{ vars.VITE_BASE_URL }}
           ANTHROPIC_MODEL: ${{ vars.ANTHROPIC_MODEL }}
@@ -33,7 +35,7 @@ jobs:
           username: ${{ secrets.SSH_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           command_timeout: 45m
-          envs: GITHUB_REPO,GIT_CLONE_TOKEN,SUPABASE_URL,SUPABASE_ANON_KEY,SUPABASE_DB_URL,VITE_BASE_URL,ANTHROPIC_MODEL,SUPABASE_SERVICE_ROLE_KEY,ANTHROPIC_API_KEY,JWT_SECRET
+          envs: GITHUB_REPO,GIT_CLONE_TOKEN,SUPABASE_URL,SUPABASE_ANON_KEY,VITE_SUPABASE_URL,VITE_SUPABASE_ANON_KEY,SUPABASE_DB_URL,VITE_BASE_URL,ANTHROPIC_MODEL,SUPABASE_SERVICE_ROLE_KEY,ANTHROPIC_API_KEY,JWT_SECRET
           script: |
             set -euo pipefail
             DEPLOY_PATH="${{ secrets.DEPLOY_PATH }}"
@@ -122,9 +124,11 @@ jobs:
             _frontend_url="${VITE_BASE_URL:-}"
             _tmp_env="$(mktemp)"
             {
-              printf 'SUPABASE_URL=%s\n' "${SUPABASE_URL:-}"
+              # Prefer dedicated VITE_* pipeline vars for the frontend build, but keep
+              # SUPABASE_* for backward compatibility and server-side usage.
+              printf 'SUPABASE_URL=%s\n' "${VITE_SUPABASE_URL:-${SUPABASE_URL:-}}"
               printf 'SUPABASE_SERVICE_ROLE_KEY=%s\n' "${SUPABASE_SERVICE_ROLE_KEY:-}"
-              printf 'SUPABASE_ANON_KEY=%s\n' "${SUPABASE_ANON_KEY:-}"
+              printf 'SUPABASE_ANON_KEY=%s\n' "${VITE_SUPABASE_ANON_KEY:-${SUPABASE_ANON_KEY:-}}"
               printf 'SUPABASE_DB_URL=%s\n' "${SUPABASE_DB_URL:-}"
               printf '\n'
               printf 'PORT=3000\n'

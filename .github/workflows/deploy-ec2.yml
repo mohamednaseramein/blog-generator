@@ -81,8 +81,46 @@ jobs:
             
             echo "[deploy] Writing backend/.env from GitHub Actions Environment (development)"
             umask 077
-            mkdir -p backend
+            if [ -L backend ]; then
+              echo "[deploy] ERROR: backend/ is a symlink; refusing to write backend/.env" >&2
+              ls -ld backend || true
+              exit 1
+            fi
+            mkdir -p backend 2>/dev/null || true
+            if [ ! -d backend ]; then
+              echo "[deploy] ERROR: backend/ is not a directory; cannot write backend/.env" >&2
+              ls -ld backend || true
+              exit 1
+            fi
+
+            _env_target="backend/.env"
+            if [ -L "${_env_target}" ]; then
+              echo "[deploy] ERROR: backend/.env is a symlink; refusing to overwrite" >&2
+              ls -ld "${_env_target}" || true
+              exit 1
+            fi
+
+            # Ensure the deploy user can write the target path (no recursive chmod/chown).
+            if [ ! -w backend ] || { [ -e "${_env_target}" ] && [ ! -w "${_env_target}" ]; }; then
+              echo "[deploy] WARN: backend/ or backend/.env not writable; attempting sudo -n fix"
+              if command -v sudo >/dev/null 2>&1; then
+                sudo -n mkdir -p backend
+                sudo -n chown "$(id -u)":"$(id -g)" backend || true
+                sudo -n chmod u+rwx backend || true
+                if [ -e "${_env_target}" ]; then
+                  sudo -n chown "$(id -u)":"$(id -g)" "${_env_target}" || true
+                  sudo -n chmod 600 "${_env_target}" || true
+                fi
+              fi
+            fi
+
+            if [ ! -w backend ]; then
+              echo "[deploy] ERROR: backend/ is not writable; cannot create backend/.env" >&2
+              ls -ld backend || true
+              exit 1
+            fi
             _frontend_url="${VITE_BASE_URL:-}"
+            _tmp_env="$(mktemp)"
             {
               printf 'SUPABASE_URL=%s\n' "${SUPABASE_URL:-}"
               printf 'SUPABASE_SERVICE_ROLE_KEY=%s\n' "${SUPABASE_SERVICE_ROLE_KEY:-}"
@@ -99,8 +137,16 @@ jobs:
               printf 'JWT_SECRET=%s\n' "${JWT_SECRET:-}"
               printf '\n'
               printf 'VITE_BASE_URL=%s\n' "${VITE_BASE_URL:-}"
-            } > backend/.env
-            chmod 600 backend/.env || true
+            } > "${_tmp_env}"
+            chmod 600 "${_tmp_env}" || true
+
+            if [ -e "${_env_target}" ] && [ ! -w "${_env_target}" ]; then
+              echo "[deploy] ERROR: backend/.env exists but is not writable; cannot replace" >&2
+              ls -l "${_env_target}" || true
+              exit 1
+            fi
+            mv -f "${_tmp_env}" "${_env_target}"
+            chmod 600 "${_env_target}" || true
 
             if [ -x scripts/deploy-ec2.sh ]; then
               echo "[deploy] Starting deployment script..."

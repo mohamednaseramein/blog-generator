@@ -16,11 +16,39 @@ export default function OAuthCallbackPage() {
 
     const timer = setTimeout(() => finish('error'), 12000);
 
-    // Force token parsing from the URL (hash/query) and then rely on auth events.
-    void supabase.auth.getSession().then(({ data, error }) => {
-      if (error) return;
+    const url = new URL(window.location.href);
+    const code = url.searchParams.get('code');
+    const errorParam = url.searchParams.get('error');
+
+    // Clear sensitive/verbose callback params as early as possible.
+    // This keeps the code out of copy/paste, screenshots, and referrers.
+    window.history.replaceState({}, document.title, '/auth/callback');
+
+    // Supabase OAuth commonly returns an auth code (PKCE) that must be exchanged for a session.
+    const init = async () => {
+      if (errorParam) {
+        finish('error');
+        return;
+      }
+
+      if (code) {
+        const { data, error } = await supabase.auth.exchangeCodeForSession(code);
+        if (error) {
+          finish('error');
+          return;
+        }
+        if (data.session) {
+          finish('success');
+          return;
+        }
+      }
+
+      // Fallback: if a session already exists (hash-token flows), treat as success.
+      const { data } = await supabase.auth.getSession();
       if (data.session) finish('success');
-    });
+    };
+
+    void init().catch(() => finish('error'));
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       if (event === 'SIGNED_IN' && session) {

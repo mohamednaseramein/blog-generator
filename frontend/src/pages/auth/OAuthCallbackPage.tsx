@@ -1,0 +1,100 @@
+import { useEffect, useState } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
+import { supabase } from '../../lib/supabase';
+
+export default function OAuthCallbackPage() {
+  const [status, setStatus] = useState<'verifying' | 'success' | 'error'>('verifying');
+  const [errorMessage, setErrorMessage] = useState<string>('Google sign-in failed or expired.');
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    let done = false;
+    const finish = (next: 'success' | 'error') => {
+      if (done) return;
+      done = true;
+      setStatus(next);
+    };
+
+    const timer = setTimeout(() => finish('error'), 12000);
+
+    const url = new URL(window.location.href);
+    const code = url.searchParams.get('code');
+    const errorParam = url.searchParams.get('error');
+    const errorDescription = url.searchParams.get('error_description');
+    const errorCode = url.searchParams.get('error_code');
+
+    // Clear sensitive/verbose callback params as early as possible.
+    // This keeps the code out of copy/paste, screenshots, and referrers.
+    window.history.replaceState({}, document.title, '/auth/callback');
+
+    // Supabase OAuth commonly returns an auth code (PKCE) that must be exchanged for a session.
+    const init = async () => {
+      if (errorParam) {
+        const parts = [errorCode, errorDescription].filter(Boolean) as string[];
+        if (parts.length) {
+          setErrorMessage(parts.join(': ').slice(0, 180));
+        }
+        finish('error');
+        return;
+      }
+
+      if (code) {
+        const { data, error } = await supabase.auth.exchangeCodeForSession(code);
+        if (error) {
+          setErrorMessage(error.message || 'Google sign-in failed. Please try again.');
+          finish('error');
+          return;
+        }
+        if (data.session) {
+          finish('success');
+          return;
+        }
+      }
+
+      // Fallback: if a session already exists (hash-token flows), treat as success.
+      const { data } = await supabase.auth.getSession();
+      if (data.session) finish('success');
+    };
+
+    void init().catch(() => finish('error'));
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === 'SIGNED_IN' && session) {
+        finish('success');
+      }
+      if (event === 'SIGNED_OUT') {
+        // If the callback returns but we never get a session, treat as error after timeout.
+        setStatus('verifying');
+      }
+    });
+
+    return () => {
+      clearTimeout(timer);
+      subscription.unsubscribe();
+    };
+  }, []);
+
+  useEffect(() => {
+    if (status !== 'success') return;
+    const t = setTimeout(() => navigate('/', { replace: true }), 800);
+    return () => clearTimeout(t);
+  }, [navigate, status]);
+
+  return (
+    <div className="flex min-h-screen flex-col items-center justify-center bg-slate-50 py-12 sm:px-6 lg:px-8">
+      <div className="sm:mx-auto sm:w-full sm:max-w-md bg-white px-4 py-8 shadow sm:rounded-lg sm:px-10 border border-slate-200 text-center">
+        {status === 'verifying' && <p>Finishing sign-in…</p>}
+        {status === 'success' && <p className="text-green-600">Signed in! Redirecting…</p>}
+        {status === 'error' && (
+          <div className="space-y-3">
+            <p className="text-red-600">{errorMessage}</p>
+            <Link className="underline text-indigo-600 hover:text-indigo-500" to="/login">
+              Back to login
+            </Link>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+

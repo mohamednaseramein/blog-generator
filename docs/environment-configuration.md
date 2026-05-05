@@ -8,7 +8,10 @@ Use **one `.env` file in `backend/`**:
 
 `workspace/blog-generator/backend/.env` — co-located with the backend code that consumes it.
 
-That file is **gitignored**. Copy from `backend/.env.example` and fill in real values.
+That file is **gitignored**.
+
+- **Local development**: copy from `backend/.env.example` and fill in real values.
+- **CI deploy to EC2**: the deploy workflow writes `backend/.env` on the server from the GitHub Actions **Environment** (`development`) using `vars.*` + `secrets.*` (no copying committed `.env` files).
 
 ## Variable categories
 
@@ -51,7 +54,7 @@ For **CI deploy** to EC2, [`scripts/verify-deploy-env.sh`](../scripts/verify-dep
 
 ## Related documents
 
-- [deployment.md](./deployment.md) — production host: ensure `backend/.env` exists on EC2 before CI deploy runs Compose.
+- [deployment.md](./deployment.md) — EC2 deploy workflow and required GitHub Environment values.
 - [AgDR-0017 — Move .env to backend/](./agdr/AgDR-0017-backend-env-colocation.md)
 - [AgDR-0010 — Single root `.env` (superseded)](./agdr/AgDR-0010-single-root-env-configuration.md)
 - [AgDR-0004 — Docker containerisation](./agdr/AgDR-0004-docker-containerisation.md)

@@ -177,12 +177,6 @@ export default function Dashboard() {
                   My blogs
                 </Button>
               </div>
-              <button
-                onClick={() => setState({ step: 'profile-settings' })}
-                className="text-xs text-slate-400 hover:text-slate-600 underline"
-              >
-                Manage author profiles
-              </button>
             </div>
           )}
 

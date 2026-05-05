@@ -36,21 +36,21 @@ if [[ "${DOWN_BEFORE_DEPLOY:-}" == "1" || "${DOWN_BEFORE_DEPLOY:-}" == "true" ]]
 fi
 
 if [[ "${DEPLOY_BUILD_NO_CACHE:-1}" == "1" || "${DEPLOY_BUILD_NO_CACHE:-1}" == "true" ]]; then
-  echo "[deploy] docker compose build --no-cache"
-  dc --env-file backend/.env build --no-cache
+  echo "[deploy] docker compose build --no-cache --pull"
+  dc --env-file backend/.env build --no-cache --pull
 else
-  echo "[deploy] docker compose build (using cache; DEPLOY_BUILD_NO_CACHE=0)"
-  dc --env-file backend/.env build
+  echo "[deploy] docker compose build --pull (using cache; DEPLOY_BUILD_NO_CACHE=0)"
+  dc --env-file backend/.env build --pull
 fi
 
 # Prefer health-aware up when available (Compose 2.29+)
 if dc --env-file backend/.env up -d --help 2>&1 | grep -qE '[[:space:]]--wait[[:space:]]'; then
-  echo "[deploy] docker compose up -d --wait"
-  dc --env-file backend/.env up -d --wait
+  echo "[deploy] docker compose up -d --wait --force-recreate --remove-orphans"
+  dc --env-file backend/.env up -d --wait --force-recreate --remove-orphans
 else
   echo "[deploy] NOTE: this Compose has no 'up -d --wait' - consider upgrading to Docker Compose 2.29+"
-  echo "[deploy] docker compose up -d"
-  dc --env-file backend/.env up -d
+  echo "[deploy] docker compose up -d --force-recreate --remove-orphans"
+  dc --env-file backend/.env up -d --force-recreate --remove-orphans
 fi
 
 echo "[deploy] docker compose ps"

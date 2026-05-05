@@ -13,10 +13,14 @@ if (!url || !key) {
 
 const supabase = createClient(url, key, { auth: { persistSession: false } });
 
-const FIRST_ADMIN_EMAIL = process.env.FIRST_ADMIN_EMAIL || 'mnaser.tech@gmail.com';
+const FIRST_ADMIN_EMAIL = process.env.FIRST_ADMIN_EMAIL;
 const DUMMY_USER_ID = '00000000-0000-0000-0000-000000000001';
 
 async function seed() {
+  if (!FIRST_ADMIN_EMAIL) {
+    console.error('❌  FIRST_ADMIN_EMAIL must be set in the environment (do not hardcode real emails).');
+    process.exit(1);
+  }
   console.log(`🌱 Seeding first admin: ${FIRST_ADMIN_EMAIL}`);
 
   // 1. Check if user exists

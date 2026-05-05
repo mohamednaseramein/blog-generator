@@ -29,6 +29,45 @@ dc() {
   fi
 }
 
+docker_df() {
+  if command -v docker >/dev/null 2>&1; then
+    docker system df || true
+  fi
+}
+
+docker_prune_safe() {
+  # Deploys can fail with ENOSPC during image builds if old images/build cache accumulate.
+  # We intentionally do NOT prune volumes here to avoid deleting persistent data.
+  if ! command -v docker >/dev/null 2>&1; then
+    return 0
+  fi
+
+  echo "[deploy] Disk usage before prune (docker system df)"
+  docker_df
+
+  # Builder cache is the most common culprit during repeated builds.
+  echo "[deploy] Pruning builder cache (docker builder prune -af)"
+  docker builder prune -af || true
+
+  echo "[deploy] Pruning unused images (docker image prune -af)"
+  docker image prune -af || true
+
+  echo "[deploy] Pruning stopped containers (docker container prune -f)"
+  docker container prune -f || true
+
+  echo "[deploy] Disk usage after prune (docker system df)"
+  docker_df
+}
+
+# Default to pruning to keep deploys resilient on small disks.
+if [[ "${DEPLOY_PRUNE_BEFORE_BUILD:-1}" == "1" || "${DEPLOY_PRUNE_BEFORE_BUILD:-1}" == "true" ]]; then
+  docker_prune_safe
+else
+  echo "[deploy] Skipping prune (DEPLOY_PRUNE_BEFORE_BUILD=0)"
+  echo "[deploy] Current docker disk usage (docker system df)"
+  docker_df
+fi
+
 # shellcheck disable=SC2070
 if [[ "${DOWN_BEFORE_DEPLOY:-}" == "1" || "${DOWN_BEFORE_DEPLOY:-}" == "true" ]]; then
   echo "[deploy] DOWN_BEFORE_DEPLOY: docker compose down (full stack stop)"

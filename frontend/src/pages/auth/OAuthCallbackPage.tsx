@@ -23,9 +23,11 @@ export default function OAuthCallbackPage() {
     const errorDescription = url.searchParams.get('error_description');
     const errorCode = url.searchParams.get('error_code');
 
-    // Clear sensitive/verbose callback params as early as possible.
-    // This keeps the code out of copy/paste, screenshots, and referrers.
-    window.history.replaceState({}, document.title, '/auth/callback');
+    const clearCallbackUrl = () => {
+      // Clear sensitive/verbose callback params once Supabase has had a chance
+      // to read them (PKCE query `code` or implicit hash tokens).
+      window.history.replaceState({}, document.title, '/auth/callback');
+    };
 
     // Supabase OAuth commonly returns an auth code (PKCE) that must be exchanged for a session.
     const init = async () => {
@@ -35,6 +37,7 @@ export default function OAuthCallbackPage() {
           setErrorMessage(parts.join(': ').slice(0, 180));
         }
         finish('error');
+        clearCallbackUrl();
         return;
       }
 
@@ -43,17 +46,26 @@ export default function OAuthCallbackPage() {
         if (error) {
           setErrorMessage(error.message || 'Google sign-in failed. Please try again.');
           finish('error');
+          clearCallbackUrl();
           return;
         }
         if (data.session) {
           finish('success');
+          clearCallbackUrl();
           return;
         }
       }
 
       // Fallback: if a session already exists (hash-token flows), treat as success.
       const { data } = await supabase.auth.getSession();
-      if (data.session) finish('success');
+      if (data.session) {
+        finish('success');
+        clearCallbackUrl();
+        return;
+      }
+
+      // No session created; now it's safe to clear the URL.
+      clearCallbackUrl();
     };
 
     void init().catch(() => finish('error'));

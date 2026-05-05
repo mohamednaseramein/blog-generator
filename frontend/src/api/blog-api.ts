@@ -1,3 +1,5 @@
+import { authedFetch } from '../lib/authed-fetch.js';
+
 const BASE = '/api/blogs';
 
 export interface SubmitBriefPayload {
@@ -38,7 +40,7 @@ export async function getBrief(blogId: string): Promise<BlogBriefResponse> {
 }
 
 async function request<T>(url: string, options?: RequestInit): Promise<T> {
-  const res = await fetch(url, {
+  const res = await authedFetch(url, {
     headers: { 'Content-Type': 'application/json' },
     ...options,
   });
@@ -174,7 +176,7 @@ export async function getOutline(
   outlineConfirmed: boolean;
   outlineIterations: number;
 } | null> {
-  const res = await fetch(`${BASE}/${blogId}/outline`, {
+  const res = await authedFetch(`${BASE}/${blogId}/outline`, {
     headers: { 'Content-Type': 'application/json' },
   });
   if (res.status === 404) return null;

@@ -28,7 +28,12 @@ const SAMPLE_PROFILE = {
 };
 
 function makeReq(body: unknown = {}, params: Record<string, string> = {}): Request {
-  return { body, params } as unknown as Request;
+  return {
+    body,
+    params,
+    // Handlers call getUserId(), which assumes requireAuth already ran.
+    userId: '00000000-0000-0000-0000-000000000001',
+  } as unknown as Request;
 }
 
 function makeRes(): { res: Response; json: ReturnType<typeof vi.fn>; status: ReturnType<typeof vi.fn> } {

@@ -3,6 +3,7 @@ import express from 'express';
 import cors from 'cors';
 import blogRoutes from './routes/blog-routes.js';
 import profileRoutes from './routes/profile-routes.js';
+import { adminRoutes } from './routes/admin-routes.js';
 import { errorHandler } from './middleware/error-handler.js';
 import { getAppVersion, getGitSha } from './version.js';
 import { validateAndLogRuntimeEnv } from './config/env.js';
@@ -22,6 +23,7 @@ app.get('/version', (_req, res) =>
 );
 app.use('/api/blogs', blogRoutes);
 app.use('/api/profiles', profileRoutes);
+app.use('/api/admin', adminRoutes);
 
 app.use(errorHandler);
 

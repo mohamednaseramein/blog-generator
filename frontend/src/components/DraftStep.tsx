@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
+import { AuthenticityPanel } from './AuthenticityPanel.js';
 import { getDraft, generateDraft, confirmDraft } from '../api/blog-api.js';
 import { Button } from './ui/button.js';
 import { Textarea } from './ui/textarea.js';
@@ -21,6 +22,7 @@ export function DraftStep({ blogId, onBack, onConfirmed }: Props) {
   const [iterations, setIterations] = useState(0);
   const [fromSavedRun, setFromSavedRun] = useState(false);
   const bootstrapped = useRef(false);
+  const draftPreviewRef = useRef<HTMLPreElement>(null);
 
   async function generate(feedbackText?: string) {
     setError(null);
@@ -119,10 +121,20 @@ export function DraftStep({ blogId, onBack, onConfirmed }: Props) {
             <p className="text-xs text-slate-400">Iteration {iterations}</p>
           )}
           <div className="max-h-[min(60vh,28rem)] overflow-y-auto rounded-xl border border-slate-200 bg-slate-50 px-4 py-3">
-            <pre className="whitespace-pre-wrap break-words font-sans text-sm text-slate-800">
+            <pre
+              ref={draftPreviewRef}
+              className="whitespace-pre-wrap break-words font-sans text-sm text-slate-800"
+            >
               {markdown}
             </pre>
           </div>
+          <AuthenticityPanel
+            blogId={blogId}
+            markdownForPreview={markdown}
+            disabled={!markdown.trim()}
+            disabledTooltip="Generate a draft first"
+            previewRef={draftPreviewRef}
+          />
         </div>
       )}
 

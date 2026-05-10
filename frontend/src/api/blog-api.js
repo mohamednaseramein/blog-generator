@@ -119,6 +119,25 @@ export async function recordExportEvent(blogId, section) {
         // fire-and-forget — never surface to the user
     }
 }
+export async function runAiCheck(blogId) {
+    return request(`${BASE}/${blogId}/ai-check`, {
+        method: 'POST',
+        body: JSON.stringify({}),
+    });
+}
+/** Fire-and-forget analytics hooks for the AI authenticity panel */
+export async function recordBlogAnalyticsEvent(blogId, payload) {
+    try {
+        await authedFetch(`${BASE}/${blogId}/events`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload),
+        });
+    }
+    catch {
+        /* ignore */
+    }
+}
 export async function addReference(blogId, url) {
     return request(`${BASE}/${blogId}/references`, {
         method: 'POST',

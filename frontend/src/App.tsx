@@ -14,6 +14,7 @@ import ForgotPasswordPage from './pages/auth/ForgotPasswordPage';
 import ResetPasswordPage from './pages/auth/ResetPasswordPage';
 import OAuthCallbackPage from './pages/auth/OAuthCallbackPage';
 import ProfilePage from './pages/ProfilePage';
+import AiDetectorRulesPage from './pages/AiDetectorRulesPage';
 
 // Admin Pages (Stubs for now)
 const AdminUsersPage = () => <div className="p-8">Admin Users</div>;
@@ -46,6 +47,9 @@ export function App() {
             <Route path="/forgot-password" element={<ForgotPasswordPage />} />
             <Route path="/reset-password" element={<ResetPasswordPage />} />
             <Route path="/auth/callback" element={<OAuthCallbackPage />} />
+
+            {/* Public help — educational rubric (indexed like other SPA routes) */}
+            <Route path="/help/ai-detector-rules" element={<AiDetectorRulesPage />} />
 
             {/* Protected App Routes */}
             <Route element={<ProtectedRoute />}>

@@ -85,9 +85,11 @@ export async function insertBlogAiCheck(row: InsertBlogAiCheckInput): Promise<bo
 
 export function blogAiCheckRowToApiResponse(row: BlogAiCheckRow, cached: boolean): AiCheckApiResponse {
   const p = row.result;
+  const mode = row.mode as AiDetectorMode;
+  const noLlmCall = mode === 'language_unsupported' || row.llm_provider === 'none';
   return {
     rubric_version: row.rubric_version,
-    mode: row.mode as AiDetectorMode,
+    mode,
     cached,
     scored_at: row.created_at,
     ai_likelihood_percent: row.ai_likelihood_percent,
@@ -99,7 +101,7 @@ export function blogAiCheckRowToApiResponse(row: BlogAiCheckRow, cached: boolean
     excluded_segments: p.excluded_segments,
     creator_tips: p.creator_tips,
     truncation_note: p.truncation_note ?? null,
-    llm: { provider: row.llm_provider, model: row.llm_model },
-    tokens: { input: row.tokens_input, output: row.tokens_output },
+    llm: noLlmCall ? null : { provider: row.llm_provider, model: row.llm_model },
+    tokens: noLlmCall ? null : { input: row.tokens_input, output: row.tokens_output },
   };
 }

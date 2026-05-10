@@ -1,0 +1,151 @@
+version: 1.0.0
+last_updated: 2026-05-07
+language: en
+initial_score: 50
+mode_thresholds:
+  pure_human: { max: 24 }
+  human_polish: { min: 25, max: 49 }
+  ai_assisted: { min: 50, max: 79 }
+  pure_ai: { min: 80 }
+
+short_post_words: 300
+long_post_words: 5000
+
+excluded_segments:
+  - type: code
+    description: Fenced or inline code — implementation detail, not author voice
+  - type: log
+    description: Log or stack-trace style blocks
+  - type: blockquote
+    description: Attributed or quoted third-party text
+  - type: url
+    description: Raw URL tokens; link text is still scored
+
+rules:
+  ai_like:
+    - id: ai-repetitive-phrasing
+      name: Repetitive phrasing / same sentence shapes
+      weight_min: 8
+      weight_max: 15
+      definition: Multiple paragraphs reuse the same opener, transition, or syntactic pattern.
+      ai_example: "As noted earlier, planning is essential. Similarly, execution matters. As noted earlier, review is key."
+      human_example: "Planning matters. Execution matters more — and most teams forget the third step: actually shipping."
+      fix_tip: Vary sentence openers; cut transitional crutches.
+
+    - id: ai-mechanical-transitions
+      name: Mechanical transitions
+      weight_min: 4
+      weight_max: 9
+      definition: 'Phrases like Firstly / Secondly / Lastly or In conclusion used as filler rather than real structure.'
+      ai_example: "Firstly, plan. Secondly, execute. Lastly, review."
+      human_example: "Plan first. Then ship something rough. Review only after it is live."
+      fix_tip: Remove numbered connectors; let one idea lead to the next in plain language.
+
+    - id: ai-generic-openers
+      name: Generic blog openers
+      weight_min: 5
+      weight_max: 10
+      definition: Vague context-setting that could apply to any post in the category.
+      ai_example: "In today’s fast-paced world, content is more important than ever."
+      human_example: "We deleted half our blog posts last quarter — traffic went up."
+      fix_tip: Open with a specific image, number, or moment; delete throat-clearing.
+
+    - id: ai-hedging-language
+      name: Hedging / laundry-list qualifiers
+      weight_min: 4
+      weight_max: 8
+      definition: 'Strings of mitigations (may, might, arguably) that blur any claim.'
+      ai_example: "It might arguably be suggested that performance could potentially improve."
+      human_example: "This cut p95 latency by 38% on our worst tenant."
+      fix_tip: Make one falsifiable claim per paragraph.
+
+    - id: ai-list-heavy-structure
+      name: Outline pasted as prose
+      weight_min: 6
+      weight_max: 12
+      definition: Dense bullets where each item has the same grammatical shape — reads like a slide deck.
+      ai_example: "- Benefit one…\n- Benefit two…\n- Benefit three…"
+      human_example: "Two wins mattered — fewer timeouts, and support stopped paging us nightly."
+      fix_tip: Keep bullets sparse; turn the strongest items into narrative paragraphs.
+
+    - id: ai-perfect-symmetry
+      name: Suspiciously uniform paragraphs
+      weight_min: 5
+      weight_max: 10
+      definition: Paragraphs are similar length with parallel closing rhythms — typical of templated generation.
+      ai_example: Three paragraphs each ending with "…which drives better outcomes."
+      human_example: Mixed lengths; one paragraph is a single blunt sentence.
+      fix_tip: Break rhythm on purpose — short punchy line after a dense paragraph.
+
+    - id: ai-template-phrases
+      name: Stock AI template phrases
+      weight_min: 5
+      weight_max: 10
+      definition: Phrases like "delve into", "landscape", "robust", "leverage", "unlock value" without specifics.
+      ai_example: "Let’s delve into the robust landscape of modern tooling."
+      human_example: "We replaced Cron with a tiny worker — here is what broke first."
+      fix_tip: Swap abstract nouns for verbs you actually performed.
+
+    - id: ai-abstraction-no-examples
+      name: Abstraction without anchoring examples
+      weight_min: 7
+      weight_max: 14
+      definition: Claims stay at principle level — no numbers, tools, dates, or places readers can picture.
+      ai_example: "Teams should align stakeholders across the initiative lifecycle."
+      human_example: "We rolled Postgres 15 on a Tuesday; rollback script lived in /ops/rollback.sh."
+      fix_tip: Add one concrete anchor — version, metric, filename, or date.
+
+  human_like:
+    - id: human-personal-stakes
+      name: First-person experience with stakes
+      weight_min: -20
+      weight_max: -10
+      definition: First-person story attached to a consequence — failure, trade-off, or uncomfortable choice.
+      ai_example: "Teams should consider trade-offs before deploying."
+      human_example: "We deployed on a Friday and our pager went off at 2 a.m. Never again."
+      fix_tip: Keep the honest anecdote — specificity lowers AI-likeness scores.
+
+    - id: human-specific-detail
+      name: Specific proper nouns and numbers
+      weight_min: -15
+      weight_max: -8
+      definition: Named tools, versions, metrics, customers redacted but concrete ("tenant #412"), etc.
+      ai_example: "Monitoring helps catch issues faster."
+      human_example: "Datadog fired before users noticed — p95 dropped from 4.2s to 890ms."
+      fix_tip: Swap vague benefits for one measurable delta.
+
+    - id: human-opinion-voice
+      name: Opinionated voice / mild bias
+      weight_min: -12
+      weight_max: -6
+      definition: Takes a side; uses judgment words a neutral encyclopedia would avoid.
+      ai_example: "Both approaches have merits."
+      human_example: "I would ship the boring queue before the clever cache — every time."
+      fix_tip: State what you would do, not what "one might consider".
+
+    - id: human-conversational-asides
+      name: Conversational asides
+      weight_min: -10
+      weight_max: -5
+      definition: Parenthetical humor, self-interruption, informal punctuation — marks human drafting rhythm.
+      ai_example: "Organizations must prioritize reliability."
+      human_example: "Reliability first — yes, even before the roadmap theme (sorry, PMs)."
+      fix_tip: One aside per section is enough; keep it tight.
+
+    - id: human-imperfect-rhythm
+      name: Imperfect rhythm / fragment sentences
+      weight_min: -10
+      weight_max: -5
+      definition: Deliberate fragments, em-dash thought breaks, uneven sentence length — unlike polished templates.
+      ai_example: "It is important to note that implementation requires careful planning."
+      human_example: "Careful planning — honestly? — matters less than starting messy."
+      fix_tip: Allow one fragment or short sentence for emphasis.
+
+    - id: human-domain-jargon-used-well
+      name: Domain jargon used precisely
+      weight_min: -12
+      weight_max: -6
+      definition: Terms of art appear in context that proves the author works in the domain — not buzzword salad.
+      ai_example: "Leverage synergies across the ecosystem."
+      human_example: "We pinned libc at 2.35 — glibc DNS bug bit us last summer."
+      fix_tip: Define jargon by example, not by synonym chaining.

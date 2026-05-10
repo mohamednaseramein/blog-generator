@@ -26,6 +26,17 @@ export async function handleRecordEvent(
       console.log(`[events] blogId=${blogId} type=exported section=${section}`);
     }
 
+    if (
+      type === 'ai_check_run' ||
+      type === 'ai_check_cache_hit' ||
+      type === 'ai_check_rule_expanded'
+    ) {
+      const ruleId = body['ruleId'];
+      console.log(
+        `[events] blogId=${blogId} type=${String(type)} ruleId=${typeof ruleId === 'string' ? ruleId : ''}`,
+      );
+    }
+
     res.status(204).end();
   } catch (err) {
     next(err);

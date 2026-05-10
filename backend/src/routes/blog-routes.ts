@@ -30,6 +30,7 @@ import {
 } from '../handlers/blog-references-handler.js';
 import { handleRecordEvent } from '../handlers/blog-events-handler.js';
 import { handleGetPrompt } from '../handlers/blog-prompts-handler.js';
+import { handleRunAiCheck } from '../handlers/blog-ai-check-handler.js';
 
 const router = Router();
 
@@ -59,5 +60,8 @@ router.delete('/:id/references/:refId', requireAuth, handleDeleteReference);
 
 // Prompt debugging / inspection
 router.get('/:id/prompts/:step', requireAuth, handleGetPrompt);
+
+// AI content style check (heuristic, cache-backed)
+router.post('/:id/ai-check', requireAuth, handleRunAiCheck);
 
 export default router;

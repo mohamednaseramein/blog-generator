@@ -130,7 +130,7 @@ export default function ProfilePage() {
             <h1 className="text-2xl font-bold tracking-tight text-slate-900">My profile</h1>
             <p className="mt-1 text-sm text-slate-500">Manage your account and your custom profiles.</p>
           </div>
-          <button onClick={() => navigate('/')} className="text-sm text-slate-600 hover:underline">
+          <button onClick={() => navigate('/dashboard')} className="text-sm text-slate-600 hover:underline">
             ← Back
           </button>
         </div>

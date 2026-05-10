@@ -20,7 +20,7 @@ export const AdminRoute = () => {
         return _jsx(Navigate, { to: "/login", replace: true });
     }
     if (role !== 'admin') {
-        return _jsx(Navigate, { to: "/", replace: true });
+        return _jsx(Navigate, { to: "/dashboard", replace: true });
     }
     return _jsx(Outlet, {});
 };

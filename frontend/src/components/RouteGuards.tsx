@@ -28,7 +28,7 @@ export const AdminRoute: React.FC = () => {
   }
 
   if (role !== 'admin') {
-    return <Navigate to="/" replace />;
+    return <Navigate to="/dashboard" replace />;
   }
 
   return <Outlet />;

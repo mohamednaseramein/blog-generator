@@ -1,7 +1,7 @@
 import { jsx as _jsx, jsxs as _jsxs } from "react/jsx-runtime";
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { supabase } from '../../lib/supabase';
+import { supabase, isSupabaseConfigured } from '../../lib/supabase';
 import { Button } from '../../components/ui/button';
 export default function RegisterPage() {
     const [email, setEmail] = useState('');
@@ -18,11 +18,28 @@ export default function RegisterPage() {
             setLoading(false);
             return;
         }
+        if (!isSupabaseConfigured) {
+            setError('Supabase is not configured (missing VITE_SUPABASE_URL / VITE_SUPABASE_ANON_KEY at build time). Rebuild the frontend with real env vars — no verification email can be sent until then.');
+            setLoading(false);
+            return;
+        }
         try {
-            const { error } = await supabase.auth.signUp({
+            const { data, error } = await supabase.auth.signUp({
                 email,
                 password,
+                options: {
+                    emailRedirectTo: `${window.location.origin}/verify`,
+                },
             });
+            if (import.meta.env.DEV) {
+                // Email is sent by Supabase servers — it will not appear in the browser Network tab.
+                // session != null usually means "confirm email" is disabled in the Supabase project.
+                console.debug('[auth] signUp', {
+                    error: error?.message ?? null,
+                    hasSession: Boolean(data.session),
+                    userId: data.user?.id ?? null,
+                });
+            }
             if (error) {
                 if (error.message.toLowerCase().includes('already registered')) {
                     setError('An account with this email already exists. Try logging in or resetting your password.');

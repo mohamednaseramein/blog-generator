@@ -51,7 +51,7 @@ export default function LoginPage() {
           setError('Invalid email or password');
         }
       } else {
-        navigate('/');
+        navigate('/dashboard');
       }
     } catch (err) {
       setError('An unexpected error occurred');

@@ -29,5 +29,5 @@ export function Pricing() {
                                             current_section_id: 'pricing',
                                         });
                                     }, children: tier.cta.label })] }, tier.id));
-                    }) }), _jsx("p", { id: "pricing-disclaimer", className: "mx-auto mt-10 max-w-3xl text-center text-sm text-slate-500", children: pricing.disclaimer })] }) }));
+                    }) }), _jsx("p", { className: "mx-auto mt-10 max-w-3xl text-center text-sm text-slate-500", children: pricing.disclaimer })] }) }));
 }

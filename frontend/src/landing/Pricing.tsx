@@ -84,7 +84,7 @@ export function Pricing() {
           })}
         </div>
 
-        <p id="pricing-disclaimer" className="mx-auto mt-10 max-w-3xl text-center text-sm text-slate-500">
+        <p className="mx-auto mt-10 max-w-3xl text-center text-sm text-slate-500">
           {pricing.disclaimer}
         </p>
       </div>

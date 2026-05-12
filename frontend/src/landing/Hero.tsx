@@ -59,7 +59,7 @@ export function Hero() {
             role="img"
             aria-label={hero.illustrationAlt}
           >
-            <div className="flex h-full flex-col p-6 sm:p-8">
+            <div className="flex h-full flex-col p-6 sm:p-8" aria-hidden="true">
               <div className="flex items-center gap-2 text-xs font-medium uppercase tracking-wide text-slate-500">
                 <span className="h-2 w-2 rounded-full bg-emerald-500" aria-hidden />
                 Authenticity

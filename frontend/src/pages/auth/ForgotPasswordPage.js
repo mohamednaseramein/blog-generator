@@ -1,7 +1,7 @@
 import { jsx as _jsx, jsxs as _jsxs } from "react/jsx-runtime";
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { supabase } from '../../lib/supabase';
+import { supabase, isSupabaseConfigured } from '../../lib/supabase';
 import { Button } from '../../components/ui/button';
 export default function ForgotPasswordPage() {
     const [email, setEmail] = useState('');
@@ -11,10 +11,18 @@ export default function ForgotPasswordPage() {
         e.preventDefault();
         setStatus('loading');
         setErrorMsg('');
+        if (!isSupabaseConfigured) {
+            setErrorMsg('Supabase is not configured at build time. Rebuild with VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY.');
+            setStatus('error');
+            return;
+        }
         try {
             const { error } = await supabase.auth.resetPasswordForEmail(email, {
                 redirectTo: `${window.location.origin}/reset-password`,
             });
+            if (import.meta.env.DEV) {
+                console.debug('[auth] resetPasswordForEmail', { error: error?.message ?? null });
+            }
             if (error) {
                 throw error;
             }

@@ -153,7 +153,7 @@ export default function OAuthCallbackPage() {
 
   useEffect(() => {
     if (status !== 'success') return;
-    const t = setTimeout(() => navigate('/', { replace: true }), 800);
+    const t = setTimeout(() => navigate('/dashboard', { replace: true }), 800);
     return () => clearTimeout(t);
   }, [navigate, status]);
 

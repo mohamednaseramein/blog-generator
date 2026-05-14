@@ -6,6 +6,7 @@ import { isSupabaseConfigured } from './lib/supabase';
 
 // Pages
 import Dashboard from './pages/Dashboard';
+import LandingPage from './landing/LandingPage';
 import LoginPage from './pages/auth/LoginPage';
 import RegisterPage from './pages/auth/RegisterPage';
 import CheckEmailPage from './pages/auth/CheckEmailPage';
@@ -39,6 +40,9 @@ export function App() {
             </div>
           )}
           <Routes>
+            {/* Public landing — marketing surface */}
+            <Route path="/" element={<LandingPage />} />
+
             {/* Public Auth Routes */}
             <Route path="/login" element={<LoginPage />} />
             <Route path="/register" element={<RegisterPage />} />
@@ -53,7 +57,7 @@ export function App() {
 
             {/* Protected App Routes */}
             <Route element={<ProtectedRoute />}>
-              <Route path="/" element={<Dashboard />} />
+              <Route path="/dashboard" element={<Dashboard />} />
               <Route path="/profile" element={<ProfilePage />} />
             </Route>
 

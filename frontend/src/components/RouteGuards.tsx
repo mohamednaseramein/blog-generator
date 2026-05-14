@@ -1,6 +1,7 @@
 import React from 'react';
 import { Navigate, Outlet } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { NoIndex } from './NoIndex';
 
 export const ProtectedRoute: React.FC = () => {
   const { user, loading } = useAuth();
@@ -13,7 +14,12 @@ export const ProtectedRoute: React.FC = () => {
     return <Navigate to="/login" replace />;
   }
 
-  return <Outlet />;
+  return (
+    <>
+      <NoIndex />
+      <Outlet />
+    </>
+  );
 };
 
 export const AdminRoute: React.FC = () => {
@@ -31,5 +37,10 @@ export const AdminRoute: React.FC = () => {
     return <Navigate to="/dashboard" replace />;
   }
 
-  return <Outlet />;
+  return (
+    <>
+      <NoIndex />
+      <Outlet />
+    </>
+  );
 };

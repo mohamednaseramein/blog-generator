@@ -1,4 +1,6 @@
+import { Helmet } from 'react-helmet-async';
 import { Link } from 'react-router-dom';
+import { getPublicUrl } from '../landing/seo';
 import rubricDoc from '../lib/ai-detector-rubric.generated.json';
 
 interface RuleRow {
@@ -26,8 +28,18 @@ interface RubricJson {
 const doc = rubricDoc as RubricJson;
 
 export default function AiDetectorRulesPage() {
+  const canonicalUrl = `${getPublicUrl()}/help/ai-detector-rules`;
+
   return (
     <div className="min-h-screen bg-slate-50">
+      <Helmet>
+        <title>AI detector rubric — how the authenticity check scores writing</title>
+        <meta
+          name="description"
+          content="Every signal the in-product AI authenticity check uses — weighted indicators, AI-vs-human examples, and fix tips. The same rubric the live scorer reads."
+        />
+        <link rel="canonical" href={canonicalUrl} />
+      </Helmet>
       <div className="mx-auto max-w-3xl px-4 py-12 sm:px-6">
         <p className="mb-6">
           <Link to="/" className="text-sm font-medium text-indigo-600 hover:underline">

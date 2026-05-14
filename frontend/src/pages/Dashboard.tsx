@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
-import { useLocation, useNavigate } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { BookOpen, PenLine, Settings, UserCircle, Users } from 'lucide-react';
 import { BlogBriefForm } from '../components/BlogBriefForm.js';
 import { AlignmentSummary } from '../components/AlignmentSummary.js';
 import { OutlineStep } from '../components/OutlineStep.js';
@@ -45,6 +46,17 @@ const ACTIVE_PROFILE_KEY = 'blog-generator:active-profile-id';
 function setActiveProfile(id: string, setter: (id: string) => void) {
   setter(id);
   localStorage.setItem(ACTIVE_PROFILE_KEY, id);
+}
+
+function dashboardNavClass(active: boolean) {
+  return [
+    'flex w-full shrink-0 items-center gap-2 rounded-lg px-3 py-2 text-left text-sm font-medium transition-colors',
+    active ? 'bg-indigo-100 text-indigo-900' : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900',
+  ].join(' ');
+}
+
+function isWizardStep(step: AppState['step']): boolean {
+  return step === 'brief' || step === 'alignment' || step === 'outline' || step === 'draft' || step === 'publish';
 }
 
 export default function Dashboard() {
@@ -110,24 +122,79 @@ export default function Dashboard() {
     : state.step === 'publish' ? 5
     : 1;
 
+  function confirmLeaveWizard(): boolean {
+    if (!isWizardStep(state.step)) return true;
+    return window.confirm('Leave the wizard? You can resume this post from My blogs.');
+  }
+
+  function goWriteHome() {
+    setError(null);
+    if (state.step === 'profile-wizard') return;
+    if (!confirmLeaveWizard()) return;
+    setState({ step: 'idle' });
+  }
+
+  function goMyBlogs() {
+    if (!confirmLeaveWizard()) return;
+    setState({ step: 'history' });
+  }
+
+  function goAuthorProfiles() {
+    if (!confirmLeaveWizard()) return;
+    setState({ step: 'profile-settings' });
+  }
+
+  const writeNavActive =
+    state.step !== 'history' &&
+    state.step !== 'profile-settings' &&
+    state.step !== 'profile-wizard';
+  const historyNavActive = state.step === 'history';
+  const profilesNavActive = state.step === 'profile-settings';
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-indigo-50">
       <AppHeader />
-      <div className="mx-auto max-w-2xl px-4 py-10 sm:px-6 lg:px-8">
+      <div className="mx-auto flex max-w-6xl flex-col gap-6 px-4 py-8 sm:px-6 lg:flex-row lg:items-start lg:gap-8 lg:px-8 lg:py-10">
+        <aside
+          className="shrink-0 border-b border-slate-200 bg-white/70 pb-4 backdrop-blur-sm lg:w-52 lg:border-b-0 lg:border-r lg:border-slate-200 lg:bg-transparent lg:pb-0 lg:pr-2"
+          aria-label="Dashboard navigation"
+        >
+          <p className="mb-2 hidden text-xs font-semibold uppercase tracking-wide text-slate-400 lg:block">
+            Workspace
+          </p>
+          <nav className="flex flex-row gap-1 overflow-x-auto lg:flex-col lg:gap-0.5">
+            <button type="button" className={dashboardNavClass(writeNavActive)} onClick={goWriteHome}>
+              <PenLine className="h-4 w-4 shrink-0 opacity-80" aria-hidden />
+              Write
+            </button>
+            <button type="button" className={dashboardNavClass(historyNavActive)} onClick={goMyBlogs}>
+              <BookOpen className="h-4 w-4 shrink-0 opacity-80" aria-hidden />
+              My blogs
+            </button>
+            <button type="button" className={dashboardNavClass(profilesNavActive)} onClick={goAuthorProfiles}>
+              <Users className="h-4 w-4 shrink-0 opacity-80" aria-hidden />
+              Author profiles
+            </button>
+            <Link to="/profile" className={`${dashboardNavClass(false)} no-underline`}>
+              <UserCircle className="h-4 w-4 shrink-0 opacity-80" aria-hidden />
+              Account
+            </Link>
+            {role === 'admin' && (
+              <Link to="/admin" className={`${dashboardNavClass(false)} no-underline`}>
+                <Settings className="h-4 w-4 shrink-0 opacity-80" aria-hidden />
+                Admin
+              </Link>
+            )}
+          </nav>
+        </aside>
 
+        <div className="min-w-0 flex-1 lg:max-w-2xl">
         {/* Intro */}
         <div className="mb-10 text-center">
           <h1 className="text-3xl font-bold tracking-tight text-slate-900">AI Blog Generator</h1>
           <p className="mt-2 text-sm text-slate-500">
             Create a fully-structured, SEO-ready blog post in minutes.
           </p>
-          {role === 'admin' && (
-            <div className="mt-3">
-              <a href="/admin" className="text-sm text-indigo-600 hover:underline">
-                Admin dashboard
-              </a>
-            </div>
-          )}
         </div>
 
         {/* Wizard progress */}
@@ -285,6 +352,7 @@ export default function Dashboard() {
             <span className="ml-1 text-slate-300">v{import.meta.env.VITE_APP_VERSION}</span>
           )}
         </p>
+        </div>
       </div>
     </div>
   );

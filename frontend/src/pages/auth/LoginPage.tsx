@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { supabase } from '../../lib/supabase';
 import { Button } from '../../components/ui/button';
+import type { AuthError } from '@supabase/supabase-js';
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
@@ -9,6 +10,25 @@ export default function LoginPage() {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
+
+  const handleGoogleLogin = async () => {
+    setError(null);
+    setLoading(true);
+    try {
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          redirectTo: `${window.location.origin}/auth/callback`,
+        },
+      });
+      if (error) setError(error.message);
+      // On success, user is redirected away to Google. No further action here.
+    } catch {
+      setError('An unexpected error occurred');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -22,9 +42,16 @@ export default function LoginPage() {
       });
 
       if (error) {
-        setError('Invalid email or password');
+        const authErr = error as AuthError & { code?: string };
+        const code = authErr.code || '';
+        const msg = authErr.message?.toLowerCase?.() || '';
+        if (code === 'email_not_confirmed' || msg.includes('email not confirmed') || msg.includes('not confirmed')) {
+          setError('Email not verified. Please verify your email and try again.');
+        } else {
+          setError('Invalid email or password');
+        }
       } else {
-        navigate('/');
+        navigate('/dashboard');
       }
     } catch (err) {
       setError('An unexpected error occurred');
@@ -101,10 +128,16 @@ export default function LoginPage() {
               </div>
             </div>
 
-            <div className="mt-6 text-center text-sm">
+            <div className="mt-6 space-y-3">
+              <Button type="button" className="w-full" variant="ghost" disabled={loading} onClick={() => void handleGoogleLogin()}>
+                Continue with Google
+              </Button>
+
+              <div className="text-center text-sm">
               <Link to="/register" className="font-medium text-indigo-600 hover:text-indigo-500">
                 Create a new account
               </Link>
+              </div>
             </div>
           </div>
         </div>

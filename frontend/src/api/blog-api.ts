@@ -1,3 +1,5 @@
+import { authedFetch } from '../lib/authed-fetch.js';
+
 const BASE = '/api/blogs';
 
 export interface SubmitBriefPayload {
@@ -38,7 +40,7 @@ export async function getBrief(blogId: string): Promise<BlogBriefResponse> {
 }
 
 async function request<T>(url: string, options?: RequestInit): Promise<T> {
-  const res = await fetch(url, {
+  const res = await authedFetch(url, {
     headers: { 'Content-Type': 'application/json' },
     ...options,
   });
@@ -174,7 +176,7 @@ export async function getOutline(
   outlineConfirmed: boolean;
   outlineIterations: number;
 } | null> {
-  const res = await fetch(`${BASE}/${blogId}/outline`, {
+  const res = await authedFetch(`${BASE}/${blogId}/outline`, {
     headers: { 'Content-Type': 'application/json' },
   });
   if (res.status === 404) return null;
@@ -242,6 +244,7 @@ export async function getDraft(blogId: string): Promise<{
 export type ExportSection =
   | 'all'
   | 'all_html'
+  | 'all_text'
   | 'title'
   | 'seo_title'
   | 'seo_snippet'
@@ -261,6 +264,85 @@ export async function recordExportEvent(
     });
   } catch {
     // fire-and-forget — never surface to the user
+  }
+}
+
+export type AiDetectorMode =
+  | 'pure_ai'
+  | 'ai_assisted'
+  | 'human_polish'
+  | 'pure_human'
+  | 'language_unsupported';
+
+export interface AiCheckSignal {
+  signal: string;
+  weight: number;
+  evidence_snippets: string[];
+}
+
+export interface AiCheckRuleBreakdownItem {
+  rule_id: string;
+  direction: 'ai_like' | 'human_like';
+  points_applied: number;
+  evidence_snippet: string;
+  section: string;
+  field: 'body' | 'seo_title' | 'meta_description';
+  suggested_fix: string;
+}
+
+export interface AiCheckSectionScore {
+  section: string;
+  ai_likelihood_percent: number;
+  notes?: string;
+}
+
+export interface AiCheckExcludedSegment {
+  type: string;
+  count: number;
+  example_snippet: string;
+}
+
+export interface AiCheckResponse {
+  rubric_version: string;
+  mode: AiDetectorMode;
+  cached: boolean;
+  scored_at: string;
+  ai_likelihood_percent: number | null;
+  human_likelihood_percent: number | null;
+  uncertainty_percent: number | null;
+  top_signals: {
+    ai_like: AiCheckSignal[];
+    human_like: AiCheckSignal[];
+  };
+  rule_breakdown: AiCheckRuleBreakdownItem[];
+  section_scores: AiCheckSectionScore[];
+  excluded_segments: AiCheckExcludedSegment[];
+  creator_tips: string[];
+  truncation_note?: string | null;
+  llm: { provider: string; model: string } | null;
+  tokens: { input: number; output: number } | null;
+}
+
+export async function runAiCheck(blogId: string): Promise<AiCheckResponse> {
+  return request<AiCheckResponse>(`${BASE}/${blogId}/ai-check`, {
+    method: 'POST',
+    body: JSON.stringify({}),
+  });
+}
+
+/** Fire-and-forget analytics hooks for the AI authenticity panel */
+export async function recordBlogAnalyticsEvent(
+  blogId: string,
+  payload: { type: string; ruleId?: string },
+): Promise<void> {
+  try {
+    await authedFetch(`${BASE}/${blogId}/events`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+  } catch {
+    /* ignore */
   }
 }
 

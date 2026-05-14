@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { BlogBriefForm } from '../components/BlogBriefForm.js';
 import { AlignmentSummary } from '../components/AlignmentSummary.js';
 import { OutlineStep } from '../components/OutlineStep.js';
@@ -12,6 +13,7 @@ import { ProfileSettings } from '../components/ProfileSettings.js';
 import { ViewPromptPanel } from '../components/ViewPromptPanel.js';
 import { Button } from '../components/ui/button.js';
 import { Toast } from '../components/ui/toast.js';
+import { AppHeader } from '../components/AppHeader';
 import { createBlog } from '../api/blog-api.js';
 import { listProfiles } from '../api/profile-api.js';
 import { useAuth } from '../context/AuthContext';
@@ -46,12 +48,21 @@ function setActiveProfile(id: string, setter: (id: string) => void) {
 }
 
 export default function Dashboard() {
-  const { logout, role } = useAuth();
+  const { role } = useAuth();
+  const navigate = useNavigate();
+  const location = useLocation();
   const [state, setState] = useState<AppState>({ step: 'idle' });
   const [error, setError] = useState<string | null>(null);
   const [activeProfileId, setActiveProfileId] = useState<string | null>(() => {
     return localStorage.getItem(ACTIVE_PROFILE_KEY);
   });
+
+  useEffect(() => {
+    if ((location.state as any)?.open === 'history') {
+      setState({ step: 'history' });
+      navigate(location.pathname, { replace: true, state: {} });
+    }
+  }, [location.pathname, location.state, navigate]);
 
   useEffect(() => {
     async function loadProfiles() {
@@ -101,23 +112,22 @@ export default function Dashboard() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-indigo-50">
+      <AppHeader />
       <div className="mx-auto max-w-2xl px-4 py-10 sm:px-6 lg:px-8">
 
-        {/* Header */}
+        {/* Intro */}
         <div className="mb-10 text-center">
-          <div className="mb-3 inline-flex h-12 w-12 items-center justify-center rounded-2xl bg-indigo-600 text-white text-xl shadow-lg">
-            ✦
-          </div>
           <h1 className="text-3xl font-bold tracking-tight text-slate-900">AI Blog Generator</h1>
-          <p className="mt-2 text-slate-500 text-sm">
+          <p className="mt-2 text-sm text-slate-500">
             Create a fully-structured, SEO-ready blog post in minutes.
           </p>
-          <div className="mt-4 flex justify-center">
-             <button onClick={logout} className="text-sm text-red-600 hover:underline">Log out</button>
-             {role === 'admin' && (
-               <a href="/admin/users" className="ml-4 text-sm text-indigo-600 hover:underline">Admin Dashboard</a>
-             )}
-          </div>
+          {role === 'admin' && (
+            <div className="mt-3">
+              <a href="/admin" className="text-sm text-indigo-600 hover:underline">
+                Admin dashboard
+              </a>
+            </div>
+          )}
         </div>
 
         {/* Wizard progress */}
@@ -164,12 +174,6 @@ export default function Dashboard() {
                   My blogs
                 </Button>
               </div>
-              <button
-                onClick={() => setState({ step: 'profile-settings' })}
-                className="text-xs text-slate-400 hover:text-slate-600 underline"
-              >
-                Manage author profiles
-              </button>
             </div>
           )}
 

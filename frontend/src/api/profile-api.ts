@@ -1,3 +1,5 @@
+import { authedFetch } from '../lib/authed-fetch.js';
+
 const BASE = '/api/profiles';
 
 export type BlogIntent = 'thought_leadership' | 'seo' | 'product_announcement' | 'newsletter' | 'deep_dive';
@@ -30,7 +32,7 @@ export interface CloneProfilePayload {
 }
 
 async function request<T>(url: string, options?: RequestInit): Promise<T> {
-  const res = await fetch(url, {
+  const res = await authedFetch(url, {
     headers: { 'Content-Type': 'application/json' },
     ...options,
   });

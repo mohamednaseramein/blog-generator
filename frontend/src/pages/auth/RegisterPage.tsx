@@ -10,6 +10,30 @@ export default function RegisterPage() {
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
+  const handleGoogleSignUp = async () => {
+    setError(null);
+    if (!isSupabaseConfigured) {
+      setError(
+        'Supabase is not configured (missing VITE_SUPABASE_URL / VITE_SUPABASE_ANON_KEY at build time). Rebuild the frontend with real env vars — Google sign-up cannot start until then.'
+      );
+      return;
+    }
+    setLoading(true);
+    try {
+      const { error: oauthError } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          redirectTo: `${window.location.origin}/auth/callback`,
+        },
+      });
+      if (oauthError) setError(oauthError.message);
+    } catch {
+      setError('An unexpected error occurred');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
@@ -113,6 +137,29 @@ export default function RegisterPage() {
               </Button>
             </div>
           </form>
+
+          <div className="mt-6">
+            <div className="relative">
+              <div className="absolute inset-0 flex items-center">
+                <div className="w-full border-t border-slate-300" />
+              </div>
+              <div className="relative flex justify-center text-sm">
+                <span className="bg-white px-2 text-slate-500">Or continue with</span>
+              </div>
+            </div>
+
+            <div className="mt-6">
+              <Button
+                type="button"
+                className="w-full"
+                variant="ghost"
+                disabled={loading}
+                onClick={() => void handleGoogleSignUp()}
+              >
+                Sign up with Google
+              </Button>
+            </div>
+          </div>
 
           <div className="mt-6 text-center text-sm">
             <span className="text-slate-500">Already have an account? </span>

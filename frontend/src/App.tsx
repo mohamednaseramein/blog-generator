@@ -2,21 +2,22 @@ import { Fragment } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
 import { ProtectedRoute, AdminRoute } from './components/RouteGuards';
+import { NoIndexRoute } from './components/NoIndex';
 import { isSupabaseConfigured } from './lib/supabase';
 
 // Pages
 import Dashboard from './pages/Dashboard';
+import LandingPage from './landing/LandingPage';
 import LoginPage from './pages/auth/LoginPage';
 import RegisterPage from './pages/auth/RegisterPage';
 import CheckEmailPage from './pages/auth/CheckEmailPage';
 import VerifyPage from './pages/auth/VerifyPage';
 import ForgotPasswordPage from './pages/auth/ForgotPasswordPage';
 import ResetPasswordPage from './pages/auth/ResetPasswordPage';
-
-// Admin Pages (Stubs for now)
-const AdminUsersPage = () => <div className="p-8">Admin Users</div>;
-const AdminBlogsPage = () => <div className="p-8">Admin Blogs</div>;
-const AdminProfilesPage = () => <div className="p-8">Admin Profiles</div>;
+import OAuthCallbackPage from './pages/auth/OAuthCallbackPage';
+import ProfilePage from './pages/ProfilePage';
+import AiDetectorRulesPage from './pages/AiDetectorRulesPage';
+import AdminDashboardPage from './pages/AdminDashboardPage';
 
 export function App() {
   return (
@@ -36,24 +37,35 @@ export function App() {
             </div>
           )}
           <Routes>
-            {/* Public Auth Routes */}
-            <Route path="/login" element={<LoginPage />} />
-            <Route path="/register" element={<RegisterPage />} />
-            <Route path="/check-email" element={<CheckEmailPage />} />
-            <Route path="/verify" element={<VerifyPage />} />
-            <Route path="/forgot-password" element={<ForgotPasswordPage />} />
-            <Route path="/reset-password" element={<ResetPasswordPage />} />
+            {/* Public landing — marketing surface */}
+            <Route path="/" element={<LandingPage />} />
+
+            {/* Public Auth Routes — functional but not search-indexed */}
+            <Route element={<NoIndexRoute />}>
+              <Route path="/login" element={<LoginPage />} />
+              <Route path="/register" element={<RegisterPage />} />
+              <Route path="/check-email" element={<CheckEmailPage />} />
+              <Route path="/verify" element={<VerifyPage />} />
+              <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+              <Route path="/reset-password" element={<ResetPasswordPage />} />
+              <Route path="/auth/callback" element={<OAuthCallbackPage />} />
+            </Route>
+
+            {/* Public help — educational rubric (indexed like other SPA routes) */}
+            <Route path="/help/ai-detector-rules" element={<AiDetectorRulesPage />} />
 
             {/* Protected App Routes */}
             <Route element={<ProtectedRoute />}>
-              <Route path="/" element={<Dashboard />} />
+              <Route path="/dashboard" element={<Dashboard />} />
+              <Route path="/profile" element={<ProfilePage />} />
             </Route>
 
-            {/* Admin Routes */}
+            {/* Admin — users, blogs, roles (service role on server) */}
             <Route element={<AdminRoute />}>
-              <Route path="/admin/users" element={<AdminUsersPage />} />
-              <Route path="/admin/blogs" element={<AdminBlogsPage />} />
-              <Route path="/admin/profiles" element={<AdminProfilesPage />} />
+              <Route path="/admin" element={<AdminDashboardPage />} />
+              <Route path="/admin/users" element={<Navigate to="/admin" replace />} />
+              <Route path="/admin/blogs" element={<Navigate to="/admin" replace />} />
+              <Route path="/admin/profiles" element={<Navigate to="/admin" replace />} />
             </Route>
 
             {/* Fallback */}

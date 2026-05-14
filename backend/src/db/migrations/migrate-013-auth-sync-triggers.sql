@@ -8,6 +8,9 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
+ALTER FUNCTION public.handle_new_user() SET search_path = public;
+REVOKE ALL ON FUNCTION public.handle_new_user() FROM PUBLIC;
+
 DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
 
 CREATE TRIGGER on_auth_user_created
@@ -25,6 +28,9 @@ BEGIN
   RETURN new;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
+
+ALTER FUNCTION public.handle_auth_user_update() SET search_path = public;
+REVOKE ALL ON FUNCTION public.handle_auth_user_update() FROM PUBLIC;
 
 DROP TRIGGER IF EXISTS on_auth_user_updated ON auth.users;
 

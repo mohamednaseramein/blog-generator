@@ -13,10 +13,14 @@ if (!url || !key) {
 
 const supabase = createClient(url, key, { auth: { persistSession: false } });
 
-const FIRST_ADMIN_EMAIL = process.env.FIRST_ADMIN_EMAIL || 'mnaser.tech@gmail.com';
+const FIRST_ADMIN_EMAIL = process.env.FIRST_ADMIN_EMAIL;
 const DUMMY_USER_ID = '00000000-0000-0000-0000-000000000001';
 
 async function seed() {
+  if (!FIRST_ADMIN_EMAIL) {
+    console.error('❌  FIRST_ADMIN_EMAIL must be set in the environment (do not hardcode real emails).');
+    process.exit(1);
+  }
   console.log(`🌱 Seeding first admin: ${FIRST_ADMIN_EMAIL}`);
 
   // 1. Check if user exists
@@ -29,14 +33,18 @@ async function seed() {
   let adminUser = usersData.users.find(u => u.email === FIRST_ADMIN_EMAIL);
 
   if (!adminUser) {
+    const initialPassword = process.env.FIRST_ADMIN_PASSWORD;
+    if (!initialPassword) {
+      console.error(
+        '❌  FIRST_ADMIN_PASSWORD must be set in the environment to create the first admin (never commit passwords).'
+      );
+      process.exit(1);
+    }
     console.log('👤 Creating auth user via Admin API...');
-    // Create the user
-    // Note: They will need to reset password or we can generate one. 
-    // Usually admin uses a strong password or resets it via email.
     const { data: createdData, error: createError } = await supabase.auth.admin.createUser({
       email: FIRST_ADMIN_EMAIL,
       email_confirm: true,
-      password: 'TemporaryPassword123!', // Admin can reset this later or login with it once
+      password: initialPassword,
     });
 
     if (createError || !createdData.user) {

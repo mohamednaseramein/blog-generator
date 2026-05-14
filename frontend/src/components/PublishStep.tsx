@@ -1,9 +1,15 @@
-import { useState, useEffect, useCallback, useMemo, type ReactNode } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef, type ReactNode } from 'react';
+import { AuthenticityPanel } from './AuthenticityPanel.js';
 import { Check, Copy, XCircle } from 'lucide-react';
 import { clsx } from 'clsx';
 import { getDraft, getBrief, recordExportEvent, completeBlog } from '../api/blog-api.js';
 import type { ExportSection } from '../api/blog-api.js';
-import { buildFullDocumentHtml, buildSeoMetaSnippet, markdownToSafeHtml } from '../lib/publishContent.js';
+import {
+  buildFullDocumentHtml,
+  buildSeoMetaSnippet,
+  markdownToPlainText,
+  markdownToSafeHtml,
+} from '../lib/publishContent.js';
 import { Button } from './ui/button.js';
 import { Toast } from './ui/toast.js';
 
@@ -154,6 +160,7 @@ export function PublishStep({ blogId, onBack, onFinish }: Props) {
   const [fieldsOpen, setFieldsOpen] = useState(false);
   const [seoOpen, setSeoOpen] = useState(false);
   const [viewMode, setViewMode] = useState<ViewMode>('preview');
+  const previewScrollRef = useRef<HTMLElement | null>(null);
 
   const { status: copyStatus, copy } = useCopyFeedback();
 
@@ -200,6 +207,16 @@ export function PublishStep({ blogId, onBack, onFinish }: Props) {
     return lines.join('\n');
   }
 
+  function buildFullBlockText() {
+    const lines: string[] = [];
+    if (title) lines.push(title);
+    if (suggestedSlug) lines.push(`Slug: ${suggestedSlug}`);
+    if (metaDescription) lines.push(`Meta: ${metaDescription}`);
+    if (lines.length) lines.push('');
+    if (markdown) lines.push(markdownToPlainText(markdown));
+    return lines.join('\n').trim();
+  }
+
   function buildFullBlockHtml() {
     return buildFullDocumentHtml({
       title,
@@ -236,6 +253,12 @@ export function PublishStep({ blogId, onBack, onFinish }: Props) {
 
       {markdown && !loading && (
         <div className="flex min-h-0 w-full flex-col gap-6">
+          <AuthenticityPanel
+            blogId={blogId}
+            markdownForPreview={markdown}
+            previewRef={previewScrollRef}
+          />
+
           {/* Post preview first; Export follows below (single column on all breakpoints) */}
           <div className="min-w-0 flex w-full flex-col gap-3">
             <div className="flex flex-wrap items-center justify-between gap-2">
@@ -271,7 +294,12 @@ export function PublishStep({ blogId, onBack, onFinish }: Props) {
             </div>
 
             {viewMode === 'preview' && (
-              <div className={htmlPreviewProse}>
+              <div
+                ref={(el) => {
+                  previewScrollRef.current = el;
+                }}
+                className={htmlPreviewProse}
+              >
                 {title ? (
                   <h1 className="text-2xl font-bold text-slate-900 mb-2">{title}</h1>
                 ) : null}
@@ -290,7 +318,12 @@ export function PublishStep({ blogId, onBack, onFinish }: Props) {
             )}
 
             {viewMode === 'markdown' && (
-              <pre className="max-h-[min(65vh,32rem)] min-h-0 overflow-y-auto whitespace-pre-wrap break-words rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 font-sans text-sm text-slate-800 sm:max-h-[min(70vh,36rem)]">
+              <pre
+                ref={(el) => {
+                  previewScrollRef.current = el;
+                }}
+                className="max-h-[min(65vh,32rem)] min-h-0 overflow-y-auto whitespace-pre-wrap break-words rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 font-sans text-sm text-slate-800 sm:max-h-[min(70vh,36rem)]"
+              >
                 {buildFullBlockMarkdown()}
               </pre>
             )}
@@ -321,6 +354,12 @@ export function PublishStep({ blogId, onBack, onFinish }: Props) {
                     statusKey="all_html"
                     copyStatus={copyStatus}
                     onCopy={() => void copy('all_html', buildFullBlockHtml(), blogId, 'all_html')}
+                  />
+                  <CopyButton
+                    label="Copy all (Text)"
+                    statusKey="all_text"
+                    copyStatus={copyStatus}
+                    onCopy={() => void copy('all_text', buildFullBlockText(), blogId, 'all_text')}
                   />
                 </div>
               </div>

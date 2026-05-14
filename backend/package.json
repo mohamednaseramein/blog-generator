@@ -5,13 +5,14 @@
   "type": "module",
   "scripts": {
     "dev": "tsx watch src/index.ts",
-    "build": "tsc",
+    "build": "tsc && cp src/lib/ai-detector-rubric.yaml dist/lib/",
     "start": "node dist/index.js",
     "test": "vitest run",
     "test:watch": "vitest",
     "typecheck": "tsc --noEmit",
     "db:migrate": "tsx src/db/migrate.ts",
-    "db:setup": "tsx src/db/setup.ts"
+    "db:setup": "tsx src/db/setup.ts",
+    "build:rubric": "node scripts/build-rubric-json.mjs"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.90.0",
@@ -22,7 +23,8 @@
     "dotenv": "^16.4.5",
     "express": "^4.21.1",
     "pg": "^8.13.1",
-    "uuid": "^10.0.0"
+    "uuid": "^10.0.0",
+    "yaml": "^2.6.1"
   },
   "devDependencies": {
     "@types/cors": "^2.8.17",

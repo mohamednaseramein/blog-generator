@@ -26,8 +26,11 @@ services:
       dockerfile: frontend/Dockerfile
       args:
         VITE_API_URL: /api
-        VITE_SUPABASE_URL: ${SUPABASE_URL}
-        VITE_SUPABASE_ANON_KEY: ${SUPABASE_ANON_KEY}
+        VITE_BASE_URL: ${VITE_BASE_URL:-}
+        # Vite public env vars must be present at *build* time.
+        # These are written into backend/.env by the deploy workflow.
+        VITE_SUPABASE_URL: ${VITE_SUPABASE_URL}
+        VITE_SUPABASE_ANON_KEY: ${VITE_SUPABASE_ANON_KEY}
         APP_VERSION: ${APP_VERSION:-0.1.0}
         GIT_SHA: ${GIT_SHA:-}
     ports:

@@ -19,6 +19,60 @@ export function markdownToSafeHtml(markdown: string): string {
   return DOMPurify.sanitize(String(raw), { USE_PROFILES: { html: true } });
 }
 
+const PLAIN_TEXT_BLOCK_TAGS = new Set([
+  'P', 'H1', 'H2', 'H3', 'H4', 'H5', 'H6', 'BLOCKQUOTE', 'UL', 'OL', 'DIV', 'TABLE', 'TR',
+]);
+
+/** Recursively flatten a DOM node to text, separating block elements with blank lines. */
+function flattenToText(node: Node): string {
+  let out = '';
+  node.childNodes.forEach((child) => {
+    if (child.nodeType === Node.TEXT_NODE) {
+      out += (child.textContent ?? '').replace(/\s+/g, ' ');
+      return;
+    }
+    if (child.nodeType !== Node.ELEMENT_NODE) return;
+    const el = child as Element;
+    switch (el.tagName) {
+      case 'BR':
+        out += '\n';
+        break;
+      case 'HR':
+        out += '\n\n---\n\n';
+        break;
+      case 'PRE':
+        // Code blocks keep their own whitespace — don't collapse it.
+        out += `\n\n${(el.textContent ?? '').replace(/\s+$/, '')}\n\n`;
+        break;
+      case 'LI':
+        out += `\n- ${flattenToText(el).trim()}`;
+        break;
+      default:
+        if (PLAIN_TEXT_BLOCK_TAGS.has(el.tagName)) {
+          out += `\n\n${flattenToText(el).trim()}\n\n`;
+        } else {
+          out += flattenToText(el);
+        }
+    }
+  });
+  return out;
+}
+
+/**
+ * Turn markdown into readable plain text — markdown/HTML syntax removed,
+ * block structure preserved as blank lines. Backs the "Copy all (Text)"
+ * export. Browser-only (`DOMParser`), matching this module's existing
+ * marked / DOMPurify browser assumption.
+ */
+export function markdownToPlainText(markdown: string): string {
+  const html = markdownToSafeHtml(markdown);
+  const doc = new DOMParser().parseFromString(html, 'text/html');
+  return flattenToText(doc.body)
+    .replace(/[ \t]+\n/g, '\n')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim();
+}
+
 const DEFAULT_BASE_URL = 'https://blog-generator.mnaser.me';
 
 export interface FullDocumentHtmlOptions {

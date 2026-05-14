@@ -5,27 +5,42 @@ on:
     branches: [main]
 
 concurrency:
-  group: deploy-ec2-production
+  group: deploy-ec2-development
   cancel-in-progress: false
 
 jobs:
   deploy:
     name: SSH deploy
     runs-on: ubuntu-latest
+    environment:
+      name: development
     steps:
       - name: Deploy over SSH
         uses: appleboy/ssh-action@v1.2.3
         env:
           GITHUB_REPO: ${{ github.repository }}
           GIT_CLONE_TOKEN: ${{ secrets.GIT_CLONE_TOKEN }}
+          # Keep deploys resilient on small disks by pruning old Docker cache/images
+          # before building. Set DEPLOY_PRUNE_BEFORE_BUILD=0 to disable.
+          DEPLOY_PRUNE_BEFORE_BUILD: "1"
+          SUPABASE_URL: ${{ vars.SUPABASE_URL }}
+          SUPABASE_ANON_KEY: ${{ vars.SUPABASE_ANON_KEY }}
+          VITE_SUPABASE_URL: ${{ vars.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
+          SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+          VITE_BASE_URL: ${{ vars.VITE_BASE_URL }}
+          ANTHROPIC_MODEL: ${{ vars.ANTHROPIC_MODEL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          JWT_SECRET: ${{ secrets.JWT_SECRET }}
         with:
           host: ${{ secrets.SSH_HOST }}
           username: ${{ secrets.SSH_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           command_timeout: 45m
-          envs: GITHUB_REPO,GIT_CLONE_TOKEN
+          envs: GITHUB_REPO,GIT_CLONE_TOKEN,DEPLOY_PRUNE_BEFORE_BUILD,SUPABASE_URL,SUPABASE_ANON_KEY,VITE_SUPABASE_URL,VITE_SUPABASE_ANON_KEY,SUPABASE_DB_URL,VITE_BASE_URL,ANTHROPIC_MODEL,SUPABASE_SERVICE_ROLE_KEY,ANTHROPIC_API_KEY,JWT_SECRET
           script: |
-            set -e
+            set -euo pipefail
             DEPLOY_PATH="${{ secrets.DEPLOY_PATH }}"
             _home="${HOME:-}"
             if [ -z "${_home}" ] && command -v getent >/dev/null 2>&1; then
@@ -58,14 +73,95 @@ jobs:
               fi
             fi
             cd "${DEPLOY_PATH}"
+            _origin_clean="https://github.com/${GITHUB_REPO}.git"
+            _origin_auth="${_origin_clean}"
             if [ -n "${GIT_CLONE_TOKEN:-}" ]; then
-              git remote set-url origin "https://x-access-token:${GIT_CLONE_TOKEN}@github.com/${GITHUB_REPO}.git"
+              _origin_auth="https://x-access-token:${GIT_CLONE_TOKEN}@github.com/${GITHUB_REPO}.git"
             fi
             echo "[deploy] Syncing git to origin/main"
-            git fetch origin main
+            git -c remote.origin.url="${_origin_auth}" fetch origin main
             git checkout -B main origin/main
+            git remote set-url origin "${_origin_clean}" || true
             echo "[deploy] HEAD=$(git rev-parse --short HEAD) branch=$(git branch --show-current)"
             
+            echo "[deploy] Writing backend/.env from GitHub Actions Environment (development)"
+            umask 077
+            if [ -L backend ]; then
+              echo "[deploy] ERROR: backend/ is a symlink; refusing to write backend/.env" >&2
+              ls -ld backend || true
+              exit 1
+            fi
+            mkdir -p backend 2>/dev/null || true
+            if [ ! -d backend ]; then
+              echo "[deploy] ERROR: backend/ is not a directory; cannot write backend/.env" >&2
+              ls -ld backend || true
+              exit 1
+            fi
+
+            _env_target="backend/.env"
+            if [ -L "${_env_target}" ]; then
+              echo "[deploy] ERROR: backend/.env is a symlink; refusing to overwrite" >&2
+              ls -ld "${_env_target}" || true
+              exit 1
+            fi
+
+            # Ensure the deploy user can write the target path (no recursive chmod/chown).
+            if [ ! -w backend ] || { [ -e "${_env_target}" ] && [ ! -w "${_env_target}" ]; }; then
+              echo "[deploy] WARN: backend/ or backend/.env not writable; attempting sudo -n fix"
+              if command -v sudo >/dev/null 2>&1; then
+                sudo -n mkdir -p backend
+                sudo -n chown "$(id -u)":"$(id -g)" backend || true
+                sudo -n chmod u+rwx backend || true
+                if [ -e "${_env_target}" ]; then
+                  sudo -n chown "$(id -u)":"$(id -g)" "${_env_target}" || true
+                  sudo -n chmod 600 "${_env_target}" || true
+                fi
+              fi
+            fi
+
+            if [ ! -w backend ]; then
+              echo "[deploy] ERROR: backend/ is not writable; cannot create backend/.env" >&2
+              ls -ld backend || true
+              exit 1
+            fi
+            _frontend_url="${VITE_BASE_URL:-}"
+            _tmp_env="$(mktemp)"
+            {
+              # Prefer dedicated VITE_* pipeline vars for the frontend build, but keep
+              # SUPABASE_* for backward compatibility and server-side usage.
+              _sb_url="${VITE_SUPABASE_URL:-${SUPABASE_URL:-}}"
+              _sb_anon="${VITE_SUPABASE_ANON_KEY:-${SUPABASE_ANON_KEY:-}}"
+
+              printf 'SUPABASE_URL=%s\n' "${_sb_url}"
+              printf 'SUPABASE_SERVICE_ROLE_KEY=%s\n' "${SUPABASE_SERVICE_ROLE_KEY:-}"
+              printf 'SUPABASE_ANON_KEY=%s\n' "${_sb_anon}"
+              printf 'SUPABASE_DB_URL=%s\n' "${SUPABASE_DB_URL:-}"
+              printf '\n'
+              printf 'PORT=3000\n'
+              printf 'NODE_ENV=production\n'
+              printf 'FRONTEND_URL=%s\n' "${_frontend_url:-}"
+              printf '\n'
+              printf 'ANTHROPIC_API_KEY=%s\n' "${ANTHROPIC_API_KEY:-}"
+              printf 'ANTHROPIC_MODEL=%s\n' "${ANTHROPIC_MODEL:-}"
+              printf '\n'
+              printf 'JWT_SECRET=%s\n' "${JWT_SECRET:-}"
+              printf '\n'
+              printf 'VITE_BASE_URL=%s\n' "${VITE_BASE_URL:-}"
+
+              # Frontend build args (Dockerfile ARG/ENV). These are public vars in the bundle.
+              printf 'VITE_SUPABASE_URL=%s\n' "${_sb_url}"
+              printf 'VITE_SUPABASE_ANON_KEY=%s\n' "${_sb_anon}"
+            } > "${_tmp_env}"
+            chmod 600 "${_tmp_env}" || true
+
+            if [ -e "${_env_target}" ] && [ ! -w "${_env_target}" ]; then
+              echo "[deploy] ERROR: backend/.env exists but is not writable; cannot replace" >&2
+              ls -l "${_env_target}" || true
+              exit 1
+            fi
+            mv -f "${_tmp_env}" "${_env_target}"
+            chmod 600 "${_env_target}" || true
+
             if [ -x scripts/deploy-ec2.sh ]; then
               echo "[deploy] Starting deployment script..."
               scripts/deploy-ec2.sh .

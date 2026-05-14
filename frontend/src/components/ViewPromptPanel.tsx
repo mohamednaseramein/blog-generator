@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { authedFetch } from '../lib/authed-fetch.js';
 
 interface PromptData {
   step: string;
@@ -12,10 +13,27 @@ interface Props {
   step: 'alignment' | 'outline' | 'draft';
 }
 
-async function fetchPrompt(blogId: string, step: string): Promise<PromptData | null> {
-  const res = await fetch(`/api/blogs/${blogId}/prompts/${step}`);
-  if (!res.ok) return null;
-  return (await res.json()) as PromptData;
+async function fetchPrompt(blogId: string, step: string): Promise<PromptData> {
+  const res = await authedFetch(`/api/blogs/${blogId}/prompts/${step}`);
+  if (res.ok) {
+    return (await res.json()) as PromptData;
+  }
+  if (res.status === 401 || res.status === 403) {
+    throw new Error(
+      'Could not load prompt (not signed in or session expired). Refresh the page and try again.'
+    );
+  }
+  if (res.status === 404) {
+    let detail = 'No prompt recorded for this step yet.';
+    try {
+      const body = (await res.json()) as { error?: { message?: string } };
+      if (body.error?.message) detail = body.error.message;
+    } catch {
+      /* ignore malformed error body */
+    }
+    throw new Error(detail);
+  }
+  throw new Error('Failed to load prompt.');
 }
 
 export function ViewPromptPanel({ blogId, step }: Props) {
@@ -25,15 +43,20 @@ export function ViewPromptPanel({ blogId, step }: Props) {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    setPrompt(null);
+    setError(null);
+  }, [blogId, step]);
+
+  useEffect(() => {
     if (!isOpen || prompt) return;
     setLoading(true);
     setError(null);
     void fetchPrompt(blogId, step)
-      .then((data) => {
-        setPrompt(data);
-        if (!data) setError('No prompt recorded for this step yet.');
+      .then((data) => setPrompt(data))
+      .catch((e: unknown) => {
+        setPrompt(null);
+        setError(e instanceof Error ? e.message : 'Failed to load prompt.');
       })
-      .catch(() => setError('Failed to load prompt.'))
       .finally(() => setLoading(false));
   }, [isOpen, blogId, step, prompt]);
 

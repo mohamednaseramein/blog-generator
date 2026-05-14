@@ -129,7 +129,7 @@ export default function LoginPage() {
             </div>
 
             <div className="mt-6 space-y-3">
-              <Button type="button" className="w-full" variant="ghost" disabled={loading} onClick={() => void handleGoogleLogin()}>
+              <Button type="button" className="w-full" variant="google" disabled={loading} onClick={() => void handleGoogleLogin()}>
                 Continue with Google
               </Button>
 

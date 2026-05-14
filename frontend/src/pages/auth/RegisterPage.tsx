@@ -152,7 +152,7 @@ export default function RegisterPage() {
               <Button
                 type="button"
                 className="w-full"
-                variant="ghost"
+                variant="google"
                 disabled={loading}
                 onClick={() => void handleGoogleSignUp()}
               >

@@ -41,6 +41,51 @@ function parseLimitInput(raw: string): number | null {
   return n;
 }
 
+/** `null` = unlimited. Higher rank means a more permissive cap for comparison. */
+function limitRank(value: number | null): number {
+  return value === null ? Number.POSITIVE_INFINITY : value;
+}
+
+function isStrictlyLowerLimit(prev: number | null, next: number | null): boolean {
+  return limitRank(next) < limitRank(prev);
+}
+
+function tryParseLimitInput(raw: string): number | null | undefined {
+  const t = raw.trim();
+  if (t === '') return null;
+  const n = Number.parseInt(t, 10);
+  if (!Number.isFinite(n) || n < 0) return undefined;
+  return n;
+}
+
+function parseSortOrderStr(raw: string): number | undefined {
+  const t = raw.trim();
+  if (t === '') return undefined;
+  const n = Number.parseInt(t, 10);
+  if (!Number.isFinite(n) || n < 0 || n > 32767) {
+    throw new Error('Display order must be a whole number from 0 to 32767');
+  }
+  return n;
+}
+
+function loweredLimitLabels(plan: AdminPlanRow, fields: { blog: string; ai: string; profiles: string; refs: string }): string[] {
+  if (plan.activeSubscriberCount <= 0) return [];
+  const nextBlog = tryParseLimitInput(fields.blog);
+  const nextAi = tryParseLimitInput(fields.ai);
+  const nextProfiles = tryParseLimitInput(fields.profiles);
+  const nextRefs = tryParseLimitInput(fields.refs);
+  const out: string[] = [];
+  if (nextBlog !== undefined && isStrictlyLowerLimit(plan.limits.blogQuota, nextBlog)) out.push('blogs per month');
+  if (nextAi !== undefined && isStrictlyLowerLimit(plan.limits.aiCheckQuota, nextAi)) out.push('AI checks per month');
+  if (nextProfiles !== undefined && isStrictlyLowerLimit(plan.limits.authorProfileLimit, nextProfiles)) {
+    out.push('author profiles');
+  }
+  if (nextRefs !== undefined && isStrictlyLowerLimit(plan.limits.referenceExtractionQuota, nextRefs)) {
+    out.push('reference extractions per month');
+  }
+  return out;
+}
+
 type ModalState = null | { mode: 'create' } | { mode: 'edit'; plan: AdminPlanRow };
 
 export default function AdminPlansPage() {
@@ -60,6 +105,7 @@ export default function AdminPlansPage() {
   const [authorProfileLimit, setAuthorProfileLimit] = useState('');
   const [referenceQuota, setReferenceQuota] = useState('');
   const [isPublic, setIsPublic] = useState(false);
+  const [sortOrderStr, setSortOrderStr] = useState('');
   const [formError, setFormError] = useState<string | null>(null);
 
   const load = useCallback(async () => {
@@ -91,6 +137,7 @@ export default function AdminPlansPage() {
     setAuthorProfileLimit('');
     setReferenceQuota('');
     setIsPublic(false);
+    setSortOrderStr('');
     setModal({ mode: 'create' });
   }
 
@@ -106,11 +153,13 @@ export default function AdminPlansPage() {
     setAuthorProfileLimit(plan.limits.authorProfileLimit === null ? '' : String(plan.limits.authorProfileLimit));
     setReferenceQuota(plan.limits.referenceExtractionQuota === null ? '' : String(plan.limits.referenceExtractionQuota));
     setIsPublic(plan.isPublic);
+    setSortOrderStr(String(plan.sortOrder));
     setModal({ mode: 'edit', plan });
   }
 
   function buildPayload(): AdminPlanCreatePayload {
     const priceCents = dollarsToCents(priceDollars);
+    const sortOrder = parseSortOrderStr(sortOrderStr);
     return {
       name: name.trim(),
       description,
@@ -122,6 +171,7 @@ export default function AdminPlansPage() {
       authorProfileLimit: parseLimitInput(authorProfileLimit),
       referenceExtractionQuota: parseLimitInput(referenceQuota),
       isPublic,
+      ...(sortOrder !== undefined ? { sortOrder } : {}),
     };
   }
 
@@ -130,13 +180,27 @@ export default function AdminPlansPage() {
     setFormError(null);
     try {
       const payload = buildPayload();
+      if (modal.mode === 'edit') {
+        const lowered = loweredLimitLabels(modal.plan, {
+          blog: blogQuota,
+          ai: aiCheckQuota,
+          profiles: authorProfileLimit,
+          refs: referenceQuota,
+        });
+        if (lowered.length > 0) {
+          const ok = window.confirm(
+            `You are lowering: ${lowered.join(', ')}. Subscribers on this plan keep grandfathered limits until the next billing period; higher limits still apply immediately. Continue?`,
+          );
+          if (!ok) return;
+        }
+      }
       if (modal?.mode === 'create') {
         const { plan } = await createAdminPlan(payload);
         setPlans((prev) => [...prev, plan].sort((a, b) => a.sortOrder - b.sortOrder));
       } else if (modal?.mode === 'edit') {
         const patch: AdminPlanPatchPayload = { ...payload };
         delete (patch as { slug?: string }).slug;
-        if (slug.trim() && slug.trim() !== modal.plan.slug) {
+        if (slug.trim() && slug.trim().toLowerCase() !== modal.plan.slug) {
           (patch as AdminPlanPatchPayload).slug = slug.trim().toLowerCase();
         }
         const { plan } = await patchAdminPlan(modal.plan.id, patch);
@@ -180,12 +244,23 @@ export default function AdminPlansPage() {
           isDefault: p.id === updated.id,
         })),
       );
+      void load();
     } catch (e) {
       setError((e as Error).message);
     } finally {
       setBusyId(null);
     }
   }
+
+  const loweredSubscriberLabels =
+    modal?.mode === 'edit'
+      ? loweredLimitLabels(modal.plan, {
+          blog: blogQuota,
+          ai: aiCheckQuota,
+          profiles: authorProfileLimit,
+          refs: referenceQuota,
+        })
+      : [];
 
   return (
     <div>
@@ -320,6 +395,14 @@ export default function AdminPlansPage() {
                 <Toast variant="error">{formError}</Toast>
               </div>
             )}
+            {loweredSubscriberLabels.length > 0 && (
+              <div className="mt-3">
+                <Toast variant="info">
+                  You are lowering: {loweredSubscriberLabels.join(', ')}. Current subscribers keep grandfathered limits
+                  until the next billing period; higher limits still apply immediately.
+                </Toast>
+              </div>
+            )}
             <div className="mt-4 space-y-4">
               <Field label="Name">
                 <Input value={name} onChange={(e) => setName(e.target.value)} autoComplete="off" />
@@ -341,8 +424,28 @@ export default function AdminPlansPage() {
                 </Field>
               </div>
               <Field label="Slug (optional — auto from name if empty on create)">
-                <Input value={slug} onChange={(e) => setSlug(e.target.value)} className="font-mono text-sm" />
+                <Input
+                  value={slug}
+                  onChange={(e) => setSlug(e.target.value)}
+                  className="font-mono text-sm"
+                  readOnly={modal.mode === 'edit' && modal.plan.activeSubscriberCount > 0}
+                  aria-readonly={modal.mode === 'edit' && modal.plan.activeSubscriberCount > 0 ? true : undefined}
+                />
               </Field>
+              {modal.mode === 'edit' && modal.plan.activeSubscriberCount > 0 && (
+                <p className="text-xs text-slate-600">Slug cannot change while this plan has active subscribers.</p>
+              )}
+              <Field label="Display order">
+                <Input
+                  value={sortOrderStr}
+                  onChange={(e) => setSortOrderStr(e.target.value)}
+                  inputMode="numeric"
+                  placeholder={modal.mode === 'create' ? 'Auto when blank' : undefined}
+                />
+              </Field>
+              <p className="text-xs text-slate-500">
+                Lower numbers sort first (0–32767). Leave blank on create to append after existing plans.
+              </p>
               <p className="text-xs text-slate-500">Leave limits blank for unlimited. Whole numbers only.</p>
               <div className="grid gap-4 sm:grid-cols-2">
                 <Field label="Blogs / month">

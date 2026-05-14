@@ -17,7 +17,10 @@ import ResetPasswordPage from './pages/auth/ResetPasswordPage';
 import OAuthCallbackPage from './pages/auth/OAuthCallbackPage';
 import ProfilePage from './pages/ProfilePage';
 import AiDetectorRulesPage from './pages/AiDetectorRulesPage';
-import AdminDashboardPage from './pages/AdminDashboardPage';
+import AdminLayout from './pages/admin/AdminLayout';
+import AdminOverviewPage from './pages/admin/AdminOverviewPage';
+import AdminUsersPage from './pages/admin/AdminUsersPage';
+import AdminBlogsPage from './pages/admin/AdminBlogsPage';
 
 export function App() {
   return (
@@ -62,10 +65,12 @@ export function App() {
 
             {/* Admin — users, blogs, roles (service role on server) */}
             <Route element={<AdminRoute />}>
-              <Route path="/admin" element={<AdminDashboardPage />} />
-              <Route path="/admin/users" element={<Navigate to="/admin" replace />} />
-              <Route path="/admin/blogs" element={<Navigate to="/admin" replace />} />
-              <Route path="/admin/profiles" element={<Navigate to="/admin" replace />} />
+              <Route path="/admin" element={<AdminLayout />}>
+                <Route index element={<AdminOverviewPage />} />
+                <Route path="users" element={<AdminUsersPage />} />
+                <Route path="blogs" element={<AdminBlogsPage />} />
+              </Route>
+              <Route path="/admin/profiles" element={<Navigate to="/admin/users" replace />} />
             </Route>
 
             {/* Fallback */}

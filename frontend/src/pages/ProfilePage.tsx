@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Navigate, useNavigate } from 'react-router-dom';
+import { Navigate } from 'react-router-dom';
 import { z } from 'zod';
 import { useAuth } from '../context/AuthContext';
 import { supabase } from '../lib/supabase';
@@ -7,18 +7,18 @@ import { Field } from '../components/ui/field';
 import { Input } from '../components/ui/input';
 import { Button } from '../components/ui/button';
 import { Toast } from '../components/ui/toast';
-import { ProfileSettings } from '../components/ProfileSettings';
+import { WorkspaceLayout } from '../components/WorkspaceLayout';
+import { WorkspaceSidebar } from '../components/WorkspaceSidebar';
 
 const emailSchema = z.string().email('Enter a valid email');
 const passwordSchema = z.string().min(8, 'Password must be at least 8 characters');
 const nameSchema = z.string().min(1, 'Name is required').max(120, 'At most 120 characters');
 
 export default function ProfilePage() {
-  const { user } = useAuth();
-  const navigate = useNavigate();
+  const { user, role } = useAuth();
 
   const initialName = useMemo(() => {
-    const n = (user?.user_metadata as any)?.full_name;
+    const n = (user?.user_metadata as { full_name?: unknown } | undefined)?.full_name;
     return typeof n === 'string' ? n : '';
   }, [user?.user_metadata]);
 
@@ -27,9 +27,6 @@ export default function ProfilePage() {
   const [newPassword, setNewPassword] = useState('');
   const nameTouched = useRef(false);
   const emailTouched = useRef(false);
-  const [activeProfileId, setActiveProfileId] = useState<string | null>(() => {
-    return localStorage.getItem('blog-generator:active-profile-id');
-  });
 
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -39,7 +36,7 @@ export default function ProfilePage() {
     if (!user) return;
 
     if (!nameTouched.current) {
-      const n = (user.user_metadata as any)?.full_name;
+      const n = (user.user_metadata as { full_name?: unknown } | undefined)?.full_name;
       setName(typeof n === 'string' ? n : '');
     }
     if (!emailTouched.current) {
@@ -123,105 +120,94 @@ export default function ProfilePage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-indigo-50">
-      <div className="mx-auto max-w-2xl px-4 py-10 sm:px-6 lg:px-8">
-        <div className="mb-8 flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-bold tracking-tight text-slate-900">My profile</h1>
-            <p className="mt-1 text-sm text-slate-500">Manage your account and your custom profiles.</p>
-          </div>
-          <button onClick={() => navigate('/dashboard')} className="text-sm text-slate-600 hover:underline">
-            ← Back
-          </button>
-        </div>
+    <WorkspaceLayout
+      sidebar={
+        <WorkspaceSidebar mode="router" active="account" showAdmin={role === 'admin'} />
+      }
+    >
+      <div className="mb-10 text-center">
+        <h1 className="text-3xl font-bold tracking-tight text-slate-900">AI Blog Generator</h1>
+        <p className="mt-2 text-sm text-slate-500">
+          Create a fully-structured, SEO-ready blog post in minutes.
+        </p>
+      </div>
 
+      <div className="space-y-5 rounded-2xl bg-white p-6 shadow-sm ring-1 ring-slate-200 sm:p-8">
         {error && <Toast variant="error">{error}</Toast>}
         {success && <Toast variant="success">{success}</Toast>}
 
-        <div className="space-y-6">
-          <div className="rounded-2xl bg-white p-6 shadow-sm ring-1 ring-slate-200">
-            <h2 className="text-lg font-semibold text-slate-900">Account settings</h2>
-            <p className="mt-1 text-sm text-slate-500">Update your name, email, or password.</p>
+        <div>
+          <h2 className="text-lg font-semibold text-slate-900">Account</h2>
+          <p className="mt-1 text-sm text-slate-500">Update your name, email, or password.</p>
+        </div>
 
-            <div className="mt-5 grid gap-4">
-              <Field label="Name">
-                <Input
-                  value={name}
-                  onChange={(e) => {
-                    nameTouched.current = true;
-                    setName(e.target.value);
-                  }}
-                  placeholder="Your name"
-                />
-              </Field>
-              <Button onClick={() => void handleUpdateName()} disabled={isSaving} size="sm" className="w-fit">
-                Save name
-              </Button>
+        <div className="grid gap-4">
+          <Field label="Name">
+            <Input
+              value={name}
+              onChange={(e) => {
+                nameTouched.current = true;
+                setName(e.target.value);
+              }}
+              placeholder="Your name"
+            />
+          </Field>
+          <Button onClick={() => void handleUpdateName()} disabled={isSaving} size="sm" className="w-fit">
+            Save name
+          </Button>
 
-              <div className="h-px bg-slate-200" />
+          <div className="h-px bg-slate-200" />
 
-              <Field label="Email">
-                <Input
-                  value={email}
-                  onChange={(e) => {
-                    emailTouched.current = true;
-                    setEmail(e.target.value);
-                  }}
-                  placeholder="you@example.com"
-                />
-              </Field>
-              <Button onClick={() => void handleUpdateEmail()} disabled={isSaving} size="sm" className="w-fit">
-                Change email
-              </Button>
-              <div className="text-xs text-slate-500 space-y-1">
-                <div>
-                  <span className="font-medium text-slate-600">Current email:</span> {user.email}
-                </div>
-                {(user as any).new_email && (
-                  <div>
-                    <span className="font-medium text-slate-600">Pending new email:</span> {(user as any).new_email}
-                  </div>
-                )}
-                <div>
-                  Email changes require verification. The new email won’t be confirmed until you verify it.
-                </div>
+          <Field label="Email">
+            <Input
+              value={email}
+              onChange={(e) => {
+                emailTouched.current = true;
+                setEmail(e.target.value);
+              }}
+              placeholder="you@example.com"
+            />
+          </Field>
+          <Button onClick={() => void handleUpdateEmail()} disabled={isSaving} size="sm" className="w-fit">
+            Change email
+          </Button>
+          <div className="text-xs text-slate-500 space-y-1">
+            <div>
+              <span className="font-medium text-slate-600">Current email:</span> {user.email}
+            </div>
+            {(user as { new_email?: string }).new_email && (
+              <div>
+                <span className="font-medium text-slate-600">Pending new email:</span>{' '}
+                {(user as { new_email?: string }).new_email}
               </div>
-
-              <div className="h-px bg-slate-200" />
-
-              <Field label="New password">
-                <Input
-                  value={newPassword}
-                  onChange={(e) => setNewPassword(e.target.value)}
-                  placeholder="At least 8 characters"
-                  type="password"
-                />
-              </Field>
-              <Button onClick={() => void handleUpdatePassword()} disabled={isSaving} size="sm" className="w-fit">
-                Change password
-              </Button>
+            )}
+            <div>
+              Email changes require verification. The new email won’t be confirmed until you verify it.
             </div>
           </div>
 
-          <div className="rounded-2xl bg-white p-6 shadow-sm ring-1 ring-slate-200">
-            <h2 className="text-lg font-semibold text-slate-900">Custom profiles</h2>
-            <p className="mt-1 text-sm text-slate-500">
-              These profiles control the voice, audience, and style used when generating blogs.
-            </p>
+          <div className="h-px bg-slate-200" />
 
-            <div className="mt-5">
-              <ProfileSettings
-                activeProfileId={activeProfileId}
-                onActiveProfileChange={(id) => {
-                  setActiveProfileId(id);
-                  localStorage.setItem('blog-generator:active-profile-id', id);
-                }}
-              />
-            </div>
-          </div>
+          <Field label="New password">
+            <Input
+              value={newPassword}
+              onChange={(e) => setNewPassword(e.target.value)}
+              placeholder="At least 8 characters"
+              type="password"
+            />
+          </Field>
+          <Button onClick={() => void handleUpdatePassword()} disabled={isSaving} size="sm" className="w-fit">
+            Change password
+          </Button>
         </div>
       </div>
-    </div>
+
+      <p className="mt-6 text-center text-xs text-slate-400">
+        Powered by Claude AI · Naser Company
+        {import.meta.env.VITE_APP_VERSION && (
+          <span className="ml-1 text-slate-300">v{import.meta.env.VITE_APP_VERSION}</span>
+        )}
+      </p>
+    </WorkspaceLayout>
   );
 }
-

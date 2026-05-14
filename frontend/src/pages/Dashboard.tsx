@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { BookOpen, PenLine, Settings, UserCircle, Users } from 'lucide-react';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { BlogBriefForm } from '../components/BlogBriefForm.js';
 import { AlignmentSummary } from '../components/AlignmentSummary.js';
 import { OutlineStep } from '../components/OutlineStep.js';
@@ -14,7 +13,8 @@ import { ProfileSettings } from '../components/ProfileSettings.js';
 import { ViewPromptPanel } from '../components/ViewPromptPanel.js';
 import { Button } from '../components/ui/button.js';
 import { Toast } from '../components/ui/toast.js';
-import { AppHeader } from '../components/AppHeader';
+import { WorkspaceLayout } from '../components/WorkspaceLayout';
+import { WorkspaceSidebar } from '../components/WorkspaceSidebar';
 import { createBlog } from '../api/blog-api.js';
 import { listProfiles } from '../api/profile-api.js';
 import { useAuth } from '../context/AuthContext';
@@ -48,13 +48,6 @@ function setActiveProfile(id: string, setter: (id: string) => void) {
   localStorage.setItem(ACTIVE_PROFILE_KEY, id);
 }
 
-function dashboardNavClass(active: boolean) {
-  return [
-    'flex w-full shrink-0 items-center gap-2 rounded-lg px-3 py-2 text-left text-sm font-medium transition-colors',
-    active ? 'bg-indigo-100 text-indigo-900' : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900',
-  ].join(' ');
-}
-
 function isWizardStep(step: AppState['step']): boolean {
   return step === 'brief' || step === 'alignment' || step === 'outline' || step === 'draft' || step === 'publish';
 }
@@ -70,8 +63,14 @@ export default function Dashboard() {
   });
 
   useEffect(() => {
-    if ((location.state as any)?.open === 'history') {
+    const open = (location.state as { open?: string } | null)?.open;
+    if (open === 'history') {
       setState({ step: 'history' });
+      navigate(location.pathname, { replace: true, state: {} });
+      return;
+    }
+    if (open === 'profiles') {
+      setState({ step: 'profile-settings' });
       navigate(location.pathname, { replace: true, state: {} });
     }
   }, [location.pathname, location.state, navigate]);
@@ -144,51 +143,25 @@ export default function Dashboard() {
     setState({ step: 'profile-settings' });
   }
 
-  const writeNavActive =
-    state.step !== 'history' &&
-    state.step !== 'profile-settings' &&
-    state.step !== 'profile-wizard';
-  const historyNavActive = state.step === 'history';
-  const profilesNavActive = state.step === 'profile-settings';
+  const sidebarActive = (() => {
+    if (state.step === 'profile-settings') return 'author-profiles' as const;
+    if (state.step === 'history') return 'my-blogs' as const;
+    return 'write' as const;
+  })();
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-indigo-50">
-      <AppHeader />
-      <div className="mx-auto flex max-w-6xl flex-col gap-6 px-4 py-8 sm:px-6 lg:flex-row lg:items-start lg:gap-8 lg:px-8 lg:py-10">
-        <aside
-          className="shrink-0 border-b border-slate-200 bg-white/70 pb-4 backdrop-blur-sm lg:w-52 lg:border-b-0 lg:border-r lg:border-slate-200 lg:bg-transparent lg:pb-0 lg:pr-2"
-          aria-label="Dashboard navigation"
-        >
-          <p className="mb-2 hidden text-xs font-semibold uppercase tracking-wide text-slate-400 lg:block">
-            Workspace
-          </p>
-          <nav className="flex flex-row gap-1 overflow-x-auto lg:flex-col lg:gap-0.5">
-            <button type="button" className={dashboardNavClass(writeNavActive)} onClick={goWriteHome}>
-              <PenLine className="h-4 w-4 shrink-0 opacity-80" aria-hidden />
-              Write
-            </button>
-            <button type="button" className={dashboardNavClass(historyNavActive)} onClick={goMyBlogs}>
-              <BookOpen className="h-4 w-4 shrink-0 opacity-80" aria-hidden />
-              My blogs
-            </button>
-            <button type="button" className={dashboardNavClass(profilesNavActive)} onClick={goAuthorProfiles}>
-              <Users className="h-4 w-4 shrink-0 opacity-80" aria-hidden />
-              Author profiles
-            </button>
-            <Link to="/profile" className={`${dashboardNavClass(false)} no-underline`}>
-              <UserCircle className="h-4 w-4 shrink-0 opacity-80" aria-hidden />
-              Account
-            </Link>
-            {role === 'admin' && (
-              <Link to="/admin" className={`${dashboardNavClass(false)} no-underline`}>
-                <Settings className="h-4 w-4 shrink-0 opacity-80" aria-hidden />
-                Admin
-              </Link>
-            )}
-          </nav>
-        </aside>
-
-        <div className="min-w-0 flex-1 lg:max-w-2xl">
+    <WorkspaceLayout
+      sidebar={
+        <WorkspaceSidebar
+          mode="dashboard"
+          active={sidebarActive}
+          showAdmin={role === 'admin'}
+          onWrite={goWriteHome}
+          onMyBlogs={goMyBlogs}
+          onAuthorProfiles={goAuthorProfiles}
+        />
+      }
+    >
         {/* Intro */}
         <div className="mb-10 text-center">
           <h1 className="text-3xl font-bold tracking-tight text-slate-900">AI Blog Generator</h1>
@@ -352,8 +325,6 @@ export default function Dashboard() {
             <span className="ml-1 text-slate-300">v{import.meta.env.VITE_APP_VERSION}</span>
           )}
         </p>
-        </div>
-      </div>
-    </div>
+    </WorkspaceLayout>
   );
 }

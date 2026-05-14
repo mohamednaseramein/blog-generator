@@ -1,6 +1,7 @@
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useAdminDashboard } from './admin-context';
 import { AdminUserPanel } from '../../components/AdminUserPanel';
+import { AdminUserActions } from '../../components/AdminUserActions';
 import { Button } from '../../components/ui/button';
 
 function fmtDate(iso: string | null | undefined): string {
@@ -59,6 +60,7 @@ export default function AdminUsersPage() {
                   <th className="px-3 py-2">Blogs</th>
                   <th className="px-3 py-2">Created</th>
                   <th className="px-3 py-2">Last sign-in</th>
+                  <th className="px-3 py-2">View</th>
                   <th className="px-3 py-2">Actions</th>
                 </tr>
               </thead>
@@ -66,7 +68,6 @@ export default function AdminUsersPage() {
                 {users.map((u) => {
                   const isDeactivated = Boolean(u.deactivated_at);
                   const blogCount = blogCounts.get(u.id) ?? 0;
-                  const busy = busyUserId === u.id;
                   const label = u.email ?? u.id;
                   return (
                     <tr key={u.id} className="hover:bg-slate-50/80">
@@ -93,119 +94,25 @@ export default function AdminUsersPage() {
                       <td className="px-3 py-3 text-slate-600">{fmtDate(u.created_at)}</td>
                       <td className="px-3 py-3 text-slate-600">{fmtDate(u.last_sign_in_at)}</td>
                       <td className="px-3 py-3">
-                        <div className="flex max-w-md flex-wrap gap-1">
-                          {u.role !== 'admin' && (
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              disabled={busy}
-                              className="text-indigo-700"
-                              type="button"
-                              onClick={() =>
-                                void confirmAndRun(
-                                  u.id,
-                                  `Grant admin access to ${label}?`,
-                                  'User promoted to admin.',
-                                  `/users/${u.id}/promote`,
-                                )
-                              }
-                            >
-                              Make admin
-                            </Button>
-                          )}
-                          {u.role === 'admin' && u.id !== me && (
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              disabled={busy}
-                              className="text-slate-700"
-                              type="button"
-                              onClick={() =>
-                                void confirmAndRun(
-                                  u.id,
-                                  `Remove admin role from ${label}?`,
-                                  'Admin role removed.',
-                                  `/users/${u.id}/demote`,
-                                )
-                              }
-                            >
-                              Remove admin
-                            </Button>
-                          )}
-                          {!isDeactivated && (
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              disabled={busy}
-                              className="text-amber-900"
-                              type="button"
-                              onClick={() =>
-                                void confirmAndRun(
-                                  u.id,
-                                  `Deactivate ${label}? They will not be able to sign in until reactivated.`,
-                                  'Account deactivated.',
-                                  `/users/${u.id}/deactivate`,
-                                )
-                              }
-                            >
-                              Deactivate
-                            </Button>
-                          )}
-                          {isDeactivated && (
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              disabled={busy}
-                              className="text-emerald-800"
-                              type="button"
-                              onClick={() => void runAction(u.id, 'Account reactivated.', `/users/${u.id}/reactivate`)}
-                            >
-                              Reactivate
-                            </Button>
-                          )}
-                          {u.email ? (
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              disabled={busy}
-                              type="button"
-                              onClick={() =>
-                                void confirmAndRun(
-                                  u.id,
-                                  `Send password reset email to ${u.email}?`,
-                                  'Password reset email sent.',
-                                  `/users/${u.id}/force-reset`,
-                                )
-                              }
-                            >
-                              Reset password email
-                            </Button>
-                          ) : null}
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            type="button"
-                            className="text-indigo-600"
-                            onClick={() => {
-                              setUserFilter(u.id);
-                              navigate('/admin/blogs');
-                            }}
-                          >
-                            Filter blogs
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            type="button"
-                            className="font-medium text-indigo-800"
-                            onClick={() => {
-                              setManagedUser(u.id, label);
-                              setUserFilter(u.id);
-                            }}
-                          >
-                            Usage & profiles
-                          </Button>
-                        </div>
+                        <Link
+                          to={`/admin/users/${u.id}`}
+                          className="text-sm font-medium text-indigo-600 hover:text-indigo-500"
+                        >
+                          Details
+                        </Link>
+                      </td>
+                      <td className="px-3 py-3">
+                        <AdminUserActions
+                          u={u}
+                          me={me}
+                          busyUserId={busyUserId}
+                          confirmAndRun={confirmAndRun}
+                          runAction={runAction}
+                          navigate={navigate}
+                          setUserFilter={setUserFilter}
+                          setManagedUser={setManagedUser}
+                          mode="overlay"
+                        />
                       </td>
                     </tr>
                   );

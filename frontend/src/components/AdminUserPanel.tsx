@@ -24,6 +24,8 @@ interface Props {
   userLabel: string;
   onClose: () => void;
   onSaved?: () => void;
+  /** Anchor for in-page navigation (e.g. admin user detail). */
+  sectionId?: string;
 }
 
 function profileToForm(p: AuthorProfile) {
@@ -37,7 +39,7 @@ function profileToForm(p: AuthorProfile) {
   };
 }
 
-export function AdminUserPanel({ userId, userLabel, onClose, onSaved }: Props) {
+export function AdminUserPanel({ userId, userLabel, onClose, onSaved, sectionId = 'admin-user-profiles' }: Props) {
   const [usage, setUsage] = useState<AdminUserUsage | null>(null);
   const [profiles, setProfiles] = useState<AuthorProfile[]>([]);
   const [detailLoading, setDetailLoading] = useState(true);
@@ -111,7 +113,8 @@ export function AdminUserPanel({ userId, userLabel, onClose, onSaved }: Props) {
 
   return (
     <section
-      className="mb-10 rounded-xl border border-indigo-200 bg-indigo-50/40 p-4 shadow-sm sm:p-6"
+      id={sectionId}
+      className="mb-10 scroll-mt-24 rounded-xl border border-indigo-200 bg-indigo-50/40 p-4 shadow-sm sm:p-6"
       aria-labelledby="admin-user-panel-title"
     >
       <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">

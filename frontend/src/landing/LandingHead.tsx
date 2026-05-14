@@ -4,10 +4,12 @@ import {
   LANDING_OG_IMAGE_HEIGHT,
   LANDING_OG_IMAGE_PATH,
   LANDING_OG_IMAGE_WIDTH,
+  LANDING_OG_LOCALE,
   LANDING_SEO_DESCRIPTION,
   LANDING_SEO_TITLE,
   getPublicUrl,
   landingJsonLd,
+  organizationJsonLd,
 } from './seo';
 
 /**
@@ -27,6 +29,7 @@ export function LandingHead() {
       <link rel="canonical" href={canonicalUrl} />
 
       <meta property="og:type" content="website" />
+      <meta property="og:locale" content={LANDING_OG_LOCALE} />
       <meta property="og:title" content={LANDING_SEO_TITLE} />
       <meta property="og:description" content={LANDING_SEO_DESCRIPTION} />
       <meta property="og:url" content={canonicalUrl} />
@@ -42,6 +45,7 @@ export function LandingHead() {
       <meta name="twitter:image:alt" content={LANDING_OG_IMAGE_ALT} />
 
       <script type="application/ld+json">{JSON.stringify(landingJsonLd())}</script>
+      <script type="application/ld+json">{JSON.stringify(organizationJsonLd())}</script>
     </Helmet>
   );
 }

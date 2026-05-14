@@ -22,6 +22,8 @@ export const LANDING_OG_IMAGE_HEIGHT = 630;
 export const LANDING_OG_IMAGE_ALT =
   'AI Blog Generator workspace with authenticity score and SEO panel';
 
+export const LANDING_OG_LOCALE = 'en_US';
+
 /**
  * Resolves the canonical public URL at runtime.
  * Build-time `VITE_PUBLIC_URL` wins (set in CI for prod / staging);
@@ -78,5 +80,23 @@ export function landingJsonLd(): Record<string, unknown> {
         availability: 'https://schema.org/PreOrder',
       },
     ],
+  };
+}
+
+/**
+ * JSON-LD `Organization` payload — publisher identity for the landing page.
+ * Rendered as a second `ld+json` block alongside `landingJsonLd()` so search
+ * engines can tie the `SoftwareApplication` to a named publisher.
+ */
+export function organizationJsonLd(): Record<string, unknown> {
+  const base = getPublicUrl();
+
+  return {
+    '@context': 'https://schema.org',
+    '@type': 'Organization',
+    name: 'AI Blog Generator',
+    url: base || '/',
+    logo: `${base}/icon-512.png`,
+    description: LANDING_SEO_DESCRIPTION,
   };
 }

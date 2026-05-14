@@ -2,6 +2,7 @@ import { Fragment } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
 import { ProtectedRoute, AdminRoute } from './components/RouteGuards';
+import { NoIndexRoute } from './components/NoIndex';
 import { isSupabaseConfigured } from './lib/supabase';
 
 // Pages
@@ -43,14 +44,16 @@ export function App() {
             {/* Public landing — marketing surface */}
             <Route path="/" element={<LandingPage />} />
 
-            {/* Public Auth Routes */}
-            <Route path="/login" element={<LoginPage />} />
-            <Route path="/register" element={<RegisterPage />} />
-            <Route path="/check-email" element={<CheckEmailPage />} />
-            <Route path="/verify" element={<VerifyPage />} />
-            <Route path="/forgot-password" element={<ForgotPasswordPage />} />
-            <Route path="/reset-password" element={<ResetPasswordPage />} />
-            <Route path="/auth/callback" element={<OAuthCallbackPage />} />
+            {/* Public Auth Routes — functional but not search-indexed */}
+            <Route element={<NoIndexRoute />}>
+              <Route path="/login" element={<LoginPage />} />
+              <Route path="/register" element={<RegisterPage />} />
+              <Route path="/check-email" element={<CheckEmailPage />} />
+              <Route path="/verify" element={<VerifyPage />} />
+              <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+              <Route path="/reset-password" element={<ResetPasswordPage />} />
+              <Route path="/auth/callback" element={<OAuthCallbackPage />} />
+            </Route>
 
             {/* Public help — educational rubric (indexed like other SPA routes) */}
             <Route path="/help/ai-detector-rules" element={<AiDetectorRulesPage />} />

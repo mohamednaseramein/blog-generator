@@ -34,7 +34,7 @@ export interface AdminDashboardContextValue {
   busyBlogId: string | null;
   runAction: (userId: string, successLabel: string, path: string) => Promise<void>;
   confirmAndRun: (userId: string, message: string, successLabel: string, path: string) => Promise<void>;
-  confirmDeleteBlog: (blogId: string, titleLabel: string) => Promise<void>;
+  confirmDeleteBlog: (blogId: string, titleLabel: string) => Promise<boolean>;
   managedUserId: string | null;
   managedUserLabel: string;
   setManagedUser: (id: string | null, label?: string) => void;
@@ -123,21 +123,23 @@ export function AdminDashboardProvider({ children }: { children: ReactNode }) {
   );
 
   const confirmDeleteBlog = useCallback(
-    async (blogId: string, titleLabel: string) => {
+    async (blogId: string, titleLabel: string): Promise<boolean> => {
       if (
         !window.confirm(
           `Permanently delete this blog and all related data (brief, outline, draft, references, AI checks)?\n\n${titleLabel}`,
         )
       ) {
-        return;
+        return false;
       }
       setBusyBlogId(blogId);
       try {
         await deleteAdminBlog(blogId);
         await load({ keepNotice: true });
         setNotice({ variant: 'success', text: 'Blog deleted.' });
+        return true;
       } catch (e) {
         setNotice({ variant: 'error', text: (e as Error).message });
+        return false;
       } finally {
         setBusyBlogId(null);
       }

@@ -64,13 +64,14 @@ export default function AdminBlogsPage() {
                   <th className="px-3 py-2">Status</th>
                   <th className="px-3 py-2">Step</th>
                   <th className="px-3 py-2">Updated</th>
+                  <th className="px-3 py-2">View</th>
                   <th className="px-3 py-2">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
                 {filteredBlogs.length === 0 ? (
                   <tr>
-                    <td colSpan={6} className="px-3 py-8 text-center text-slate-500">
+                    <td colSpan={7} className="px-3 py-8 text-center text-slate-500">
                       No blogs for this filter.
                     </td>
                   </tr>
@@ -89,6 +90,14 @@ export default function AdminBlogsPage() {
                         </td>
                         <td className="px-3 py-3 text-slate-600">{b.current_step}</td>
                         <td className="px-3 py-3 text-slate-600">{fmtDate(b.updated_at)}</td>
+                        <td className="px-3 py-3">
+                          <Link
+                            to={`/admin/blogs/${b.id}`}
+                            className="text-sm font-medium text-indigo-600 hover:text-indigo-500"
+                          >
+                            Details
+                          </Link>
+                        </td>
                         <td className="px-3 py-3">
                           <Button
                             variant="ghost"

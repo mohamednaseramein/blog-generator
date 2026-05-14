@@ -20,7 +20,9 @@ import AiDetectorRulesPage from './pages/AiDetectorRulesPage';
 import AdminLayout from './pages/admin/AdminLayout';
 import AdminOverviewPage from './pages/admin/AdminOverviewPage';
 import AdminUsersPage from './pages/admin/AdminUsersPage';
+import AdminUserDetailPage from './pages/admin/AdminUserDetailPage';
 import AdminBlogsPage from './pages/admin/AdminBlogsPage';
+import AdminBlogDetailPage from './pages/admin/AdminBlogDetailPage';
 
 export function App() {
   return (
@@ -68,7 +70,9 @@ export function App() {
               <Route path="/admin" element={<AdminLayout />}>
                 <Route index element={<AdminOverviewPage />} />
                 <Route path="users" element={<AdminUsersPage />} />
+                <Route path="users/:userId" element={<AdminUserDetailPage />} />
                 <Route path="blogs" element={<AdminBlogsPage />} />
+                <Route path="blogs/:blogId" element={<AdminBlogDetailPage />} />
               </Route>
               <Route path="/admin/profiles" element={<Navigate to="/admin/users" replace />} />
             </Route>

@@ -14,7 +14,8 @@ INSERT INTO plans (slug, name, description, price_cents, currency,
                    is_public, is_default, sort_order) VALUES
   ('free', 'Free', 'Get started at no cost.',           0,    'USD', 3,    5,    1,    10,   true, true,  1),
   ('pro',  'Pro',  'For regular content creators.',     1900, 'USD', 50,   200,  10,   300,  true, false, 2),
-  ('team', 'Team', 'For teams shipping at volume.',     9900, 'USD', NULL, NULL, 50,   NULL, true, false, 3);
+  ('team', 'Team', 'For teams shipping at volume.',     9900, 'USD', NULL, NULL, 50,   NULL, true, false, 3)
+ON CONFLICT (slug) DO NOTHING;  -- idempotent: re-runnable after a partial-failure retry
 
 -- Backfill: every existing user gets an active Free subscription.
 -- Idempotent — skips users who already have an active subscription.

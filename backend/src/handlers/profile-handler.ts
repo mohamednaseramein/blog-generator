@@ -28,6 +28,90 @@ const FIELD_LIMITS = {
   voiceNote: { min: 0, max: 500 },
 };
 
+export type ProfilePartialUpdate = {
+  name?: string;
+  authorRole?: string;
+  audiencePersona?: string;
+  intent?: string;
+  toneOfVoice?: string;
+  voiceNote?: string;
+};
+
+/** Shared validation for PUT /api/profiles/:id and admin profile updates. */
+export function parseProfileUpdateBody(
+  body: unknown,
+): { ok: true; updates: ProfilePartialUpdate } | { ok: false; errors: string[] } {
+  if (typeof body !== 'object' || body === null) {
+    return { ok: false, errors: ['Body must be an object'] };
+  }
+
+  const b = body as Record<string, unknown>;
+  const errors: string[] = [];
+
+  if ('name' in b) {
+    if (typeof b.name !== 'string' || b.name.length < FIELD_LIMITS.name.min || b.name.length > FIELD_LIMITS.name.max) {
+      errors.push(`name must be a string between ${FIELD_LIMITS.name.min} and ${FIELD_LIMITS.name.max} chars`);
+    }
+  }
+
+  if ('authorRole' in b) {
+    if (
+      typeof b.authorRole !== 'string' ||
+      b.authorRole.length < 1 ||
+      b.authorRole.length > FIELD_LIMITS.authorRole.max
+    ) {
+      errors.push(`authorRole must be a string between 1 and ${FIELD_LIMITS.authorRole.max} chars`);
+    }
+  }
+
+  if ('audiencePersona' in b) {
+    if (
+      typeof b.audiencePersona !== 'string' ||
+      b.audiencePersona.length < 1 ||
+      b.audiencePersona.length > FIELD_LIMITS.audiencePersona.max
+    ) {
+      errors.push(`audiencePersona must be a string between 1 and ${FIELD_LIMITS.audiencePersona.max} chars`);
+    }
+  }
+
+  if ('toneOfVoice' in b) {
+    if (
+      typeof b.toneOfVoice !== 'string' ||
+      b.toneOfVoice.length < 1 ||
+      b.toneOfVoice.length > FIELD_LIMITS.toneOfVoice.max
+    ) {
+      errors.push(`toneOfVoice must be a string between 1 and ${FIELD_LIMITS.toneOfVoice.max} chars`);
+    }
+  }
+
+  if ('intent' in b) {
+    if (typeof b.intent !== 'string' || !VALID_INTENTS.has(b.intent as BlogIntent)) {
+      errors.push(`intent must be one of: ${Array.from(VALID_INTENTS).join(', ')}`);
+    }
+  }
+
+  if ('voiceNote' in b) {
+    if (typeof b.voiceNote !== 'string' || b.voiceNote.length > FIELD_LIMITS.voiceNote.max) {
+      errors.push(`voiceNote must be a string up to ${FIELD_LIMITS.voiceNote.max} chars`);
+    }
+  }
+
+  if (errors.length > 0) {
+    return { ok: false, errors };
+  }
+
+  const updates: ProfilePartialUpdate = {
+    ...(b.name !== undefined && { name: b.name as string }),
+    ...(b.authorRole !== undefined && { authorRole: b.authorRole as string }),
+    ...(b.audiencePersona !== undefined && { audiencePersona: b.audiencePersona as string }),
+    ...(b.intent !== undefined && { intent: b.intent as string }),
+    ...(b.toneOfVoice !== undefined && { toneOfVoice: b.toneOfVoice as string }),
+    ...(b.voiceNote !== undefined && { voiceNote: b.voiceNote as string }),
+  };
+
+  return { ok: true, updates };
+}
+
 function validateCreateProfileInput(body: unknown): string[] {
   if (typeof body !== 'object' || body === null) {
     return ['Body must be an object'];
@@ -173,61 +257,12 @@ export async function handleUpdateProfile(
   try {
     const userId = getUserId(req);
     const id = req.params['id'] as string;
-    const body = req.body as Record<string, unknown>;
-
-    // Validate fields that are present
-    const errors: string[] = [];
-
-    if ('name' in body) {
-      if (typeof body.name !== 'string' || body.name.length < FIELD_LIMITS.name.min || body.name.length > FIELD_LIMITS.name.max) {
-        errors.push(`name must be a string between ${FIELD_LIMITS.name.min} and ${FIELD_LIMITS.name.max} chars`);
-      }
+    const parsed = parseProfileUpdateBody(req.body);
+    if (!parsed.ok) {
+      throw new AppError(400, 'VALIDATION_ERROR', parsed.errors.join('; '));
     }
 
-    if ('authorRole' in body) {
-      if (typeof body.authorRole !== 'string' || body.authorRole.length < 1 || body.authorRole.length > FIELD_LIMITS.authorRole.max) {
-        errors.push(`authorRole must be a string between 1 and ${FIELD_LIMITS.authorRole.max} chars`);
-      }
-    }
-
-    if ('audiencePersona' in body) {
-      if (typeof body.audiencePersona !== 'string' || body.audiencePersona.length < 1 || body.audiencePersona.length > FIELD_LIMITS.audiencePersona.max) {
-        errors.push(`audiencePersona must be a string between 1 and ${FIELD_LIMITS.audiencePersona.max} chars`);
-      }
-    }
-
-    if ('toneOfVoice' in body) {
-      if (typeof body.toneOfVoice !== 'string' || body.toneOfVoice.length < 1 || body.toneOfVoice.length > FIELD_LIMITS.toneOfVoice.max) {
-        errors.push(`toneOfVoice must be a string between 1 and ${FIELD_LIMITS.toneOfVoice.max} chars`);
-      }
-    }
-
-    if ('intent' in body) {
-      if (typeof body.intent !== 'string' || !VALID_INTENTS.has(body.intent as BlogIntent)) {
-        errors.push(`intent must be one of: ${Array.from(VALID_INTENTS).join(', ')}`);
-      }
-    }
-
-    if ('voiceNote' in body) {
-      if (typeof body.voiceNote !== 'string' || body.voiceNote.length > FIELD_LIMITS.voiceNote.max) {
-        errors.push(`voiceNote must be a string up to ${FIELD_LIMITS.voiceNote.max} chars`);
-      }
-    }
-
-    if (errors.length > 0) {
-      throw new AppError(400, 'VALIDATION_ERROR', errors.join('; '));
-    }
-
-    const updates = {
-      ...(body.name !== undefined && { name: body.name as string }),
-      ...(body.authorRole !== undefined && { authorRole: body.authorRole as string }),
-      ...(body.audiencePersona !== undefined && { audiencePersona: body.audiencePersona as string }),
-      ...(body.intent !== undefined && { intent: body.intent as string }),
-      ...(body.toneOfVoice !== undefined && { toneOfVoice: body.toneOfVoice as string }),
-      ...(body.voiceNote !== undefined && { voiceNote: body.voiceNote as string }),
-    };
-
-    const profile = await updateProfile(userId, id, updates);
+    const profile = await updateProfile(userId, id, parsed.updates);
     res.json({ profile });
   } catch (err) {
     next(err);

@@ -18,7 +18,7 @@ interface Props {
 }
 
 export function UserSettingsMenu({ authState: authStateProp }: Props = {}) {
-  const { user, logout } = useAuth();
+  const { user, role, logout } = useAuth();
   const navigate = useNavigate();
   const [isOpen, setIsOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -62,6 +62,9 @@ export function UserSettingsMenu({ authState: authStateProp }: Props = {}) {
     authState === 'logged_in'
       ? [
           { type: 'link', label: 'Dashboard', onClick: () => navigate('/dashboard') },
+          ...(role === 'admin'
+            ? [{ type: 'link' as const, label: 'Admin', onClick: () => navigate('/admin') }]
+            : []),
           { type: 'link', label: 'My profile', onClick: () => navigate('/profile') },
           {
             type: 'danger',

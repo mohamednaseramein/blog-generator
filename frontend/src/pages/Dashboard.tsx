@@ -123,8 +123,8 @@ export default function Dashboard() {
           </p>
           {role === 'admin' && (
             <div className="mt-3">
-              <a href="/admin/users" className="text-sm text-indigo-600 hover:underline">
-                Admin Dashboard
+              <a href="/admin" className="text-sm text-indigo-600 hover:underline">
+                Admin dashboard
               </a>
             </div>
           )}

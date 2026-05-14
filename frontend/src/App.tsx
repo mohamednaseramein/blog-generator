@@ -23,6 +23,7 @@ import AdminUsersPage from './pages/admin/AdminUsersPage';
 import AdminUserDetailPage from './pages/admin/AdminUserDetailPage';
 import AdminBlogsPage from './pages/admin/AdminBlogsPage';
 import AdminBlogDetailPage from './pages/admin/AdminBlogDetailPage';
+import AdminPlansPage from './pages/admin/AdminPlansPage';
 
 export function App() {
   return (
@@ -73,6 +74,7 @@ export function App() {
                 <Route path="users/:userId" element={<AdminUserDetailPage />} />
                 <Route path="blogs" element={<AdminBlogsPage />} />
                 <Route path="blogs/:blogId" element={<AdminBlogDetailPage />} />
+                <Route path="plans" element={<AdminPlansPage />} />
               </Route>
               <Route path="/admin/profiles" element={<Navigate to="/admin/users" replace />} />
             </Route>

@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { requireAuth, requireAdmin } from '../middleware/auth.js';
 import * as adminHandler from '../handlers/admin-handler.js';
+import * as planAdminHandler from '../handlers/plan-admin-handler.js';
 
 const router = Router();
 
@@ -20,5 +21,11 @@ router.post('/users/:id/force-reset', adminHandler.forceResetUser);
 router.get('/blogs', adminHandler.listAllBlogs);
 router.delete('/blogs/:id', adminHandler.deleteAnyBlog);
 router.get('/blogs/:id', adminHandler.getAnyBlog);
+
+router.get('/plans', planAdminHandler.listAdminPlans);
+router.post('/plans', planAdminHandler.createAdminPlan);
+router.patch('/plans/:id', planAdminHandler.patchAdminPlan);
+router.post('/plans/:id/archive', planAdminHandler.archiveAdminPlan);
+router.post('/plans/:id/set-default', planAdminHandler.setDefaultAdminPlan);
 
 export const adminRoutes = router;

@@ -39,6 +39,14 @@ export default function AdminOverviewPage() {
             <p className="mt-1 text-sm text-slate-600">All drafts and published posts</p>
           </Link>
           <Link
+            to="/admin/plans"
+            className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm transition-shadow hover:shadow-md"
+          >
+            <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Plans</p>
+            <p className="mt-2 text-lg font-semibold text-slate-900">Subscription tiers</p>
+            <p className="mt-1 text-sm text-slate-600">Prices, limits, public & default flags</p>
+          </Link>
+          <Link
             to="/help/ai-detector-rules"
             className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm transition-shadow hover:shadow-md sm:col-span-2 lg:col-span-1"
           >

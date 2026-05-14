@@ -123,3 +123,75 @@ export async function countActiveSubscribersForPlan(planId: string): Promise<num
   if (error) throw new Error(error.message);
   return count ?? 0;
 }
+
+export interface InsertPlanRow {
+  slug: string;
+  name: string;
+  description: string;
+  price_cents: number;
+  currency: string;
+  blog_quota: number | null;
+  ai_check_quota: number | null;
+  author_profile_limit: number | null;
+  reference_extraction_quota: number | null;
+  is_public: boolean;
+  is_default: boolean;
+  sort_order: number;
+}
+
+export async function insertPlan(row: InsertPlanRow): Promise<Plan> {
+  const now = new Date().toISOString();
+  const { data, error } = await getSupabase()
+    .from('plans')
+    .insert({
+      ...row,
+      billing_period: 'monthly',
+      created_at: now,
+      updated_at: now,
+    })
+    .select()
+    .single<PlanRow>();
+
+  if (error) throw new Error(error.message);
+  return planRowToModel(data);
+}
+
+export type PatchPlanRow = Partial<{
+  slug: string;
+  name: string;
+  description: string;
+  price_cents: number;
+  currency: string;
+  blog_quota: number | null;
+  ai_check_quota: number | null;
+  author_profile_limit: number | null;
+  reference_extraction_quota: number | null;
+  is_public: boolean;
+  sort_order: number;
+  archived_at: string | null;
+  is_default: boolean;
+}>;
+
+export async function updatePlanById(id: string, patch: PatchPlanRow): Promise<Plan> {
+  const { data, error } = await getSupabase()
+    .from('plans')
+    .update({ ...patch, updated_at: new Date().toISOString() })
+    .eq('id', id)
+    .select()
+    .single<PlanRow>();
+
+  if (error) throw new Error(error.message);
+  return planRowToModel(data);
+}
+
+/** Clear default flag on every non-archived plan except `exceptId` (pass `null` to clear all). */
+export async function clearDefaultPlans(exceptId: string | null): Promise<void> {
+  const q = getSupabase().from('plans').update({ is_default: false, updated_at: new Date().toISOString() }).is('archived_at', null);
+  const { error } = exceptId ? await q.neq('id', exceptId) : await q;
+  if (error) throw new Error(error.message);
+}
+
+export async function setPlanDefault(planId: string): Promise<Plan> {
+  await clearDefaultPlans(planId);
+  return updatePlanById(planId, { is_default: true });
+}

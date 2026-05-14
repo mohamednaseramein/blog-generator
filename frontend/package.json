@@ -7,7 +7,8 @@
     "dev": "vite",
     "build": "tsc && vite build && node scripts/build-public-files.mjs",
     "preview": "vite preview",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "generate:icons": "node scripts/generate-icons.mjs"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.9.1",

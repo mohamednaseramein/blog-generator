@@ -40,6 +40,16 @@ describe('handleRecordEvent', () => {
     expect(next).not.toHaveBeenCalled();
   });
 
+  it('logs an exported event for the all_text section', async () => {
+    const logSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+    const { req, res, next } = makeReqRes('blog-1', { type: 'exported', section: 'all_text' });
+    await handleRecordEvent(req, res, next);
+
+    expect(logSpy).toHaveBeenCalledWith(expect.stringContaining('section=all_text'));
+    expect(next).not.toHaveBeenCalled();
+    logSpy.mockRestore();
+  });
+
   it('returns 204 for an unknown section (silently ignored)', async () => {
     const { req, res, end, next } = makeReqRes('blog-1', { type: 'exported', section: 'unknown' });
     await handleRecordEvent(req, res, next);

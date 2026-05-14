@@ -4,7 +4,12 @@ import { Check, Copy, XCircle } from 'lucide-react';
 import { clsx } from 'clsx';
 import { getDraft, getBrief, recordExportEvent, completeBlog } from '../api/blog-api.js';
 import type { ExportSection } from '../api/blog-api.js';
-import { buildFullDocumentHtml, buildSeoMetaSnippet, markdownToSafeHtml } from '../lib/publishContent.js';
+import {
+  buildFullDocumentHtml,
+  buildSeoMetaSnippet,
+  markdownToPlainText,
+  markdownToSafeHtml,
+} from '../lib/publishContent.js';
 import { Button } from './ui/button.js';
 import { Toast } from './ui/toast.js';
 
@@ -202,6 +207,16 @@ export function PublishStep({ blogId, onBack, onFinish }: Props) {
     return lines.join('\n');
   }
 
+  function buildFullBlockText() {
+    const lines: string[] = [];
+    if (title) lines.push(title);
+    if (suggestedSlug) lines.push(`Slug: ${suggestedSlug}`);
+    if (metaDescription) lines.push(`Meta: ${metaDescription}`);
+    if (lines.length) lines.push('');
+    if (markdown) lines.push(markdownToPlainText(markdown));
+    return lines.join('\n').trim();
+  }
+
   function buildFullBlockHtml() {
     return buildFullDocumentHtml({
       title,
@@ -339,6 +354,12 @@ export function PublishStep({ blogId, onBack, onFinish }: Props) {
                     statusKey="all_html"
                     copyStatus={copyStatus}
                     onCopy={() => void copy('all_html', buildFullBlockHtml(), blogId, 'all_html')}
+                  />
+                  <CopyButton
+                    label="Copy all (Text)"
+                    statusKey="all_text"
+                    copyStatus={copyStatus}
+                    onCopy={() => void copy('all_text', buildFullBlockText(), blogId, 'all_text')}
                   />
                 </div>
               </div>

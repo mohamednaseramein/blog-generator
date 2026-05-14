@@ -244,6 +244,7 @@ export async function getDraft(blogId: string): Promise<{
 export type ExportSection =
   | 'all'
   | 'all_html'
+  | 'all_text'
   | 'title'
   | 'seo_title'
   | 'seo_snippet'

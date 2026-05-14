@@ -34,6 +34,19 @@ function toModel(row: AuthorProfileRow): AuthorProfile {
   };
 }
 
+export async function getProfilesOwnedByUser(userId: string): Promise<AuthorProfile[]> {
+  const { data, error } = await getSupabase()
+    .from('author_profiles')
+    .select()
+    .eq('user_id', userId)
+    .eq('is_predefined', false)
+    .order('created_at', { ascending: true })
+    .returns<AuthorProfileRow[]>();
+
+  if (error) throw new Error(error.message);
+  return (data ?? []).map(toModel);
+}
+
 export async function getAllProfiles(userId: string): Promise<AuthorProfile[]> {
   const { data, error } = await getSupabase()
     .from('author_profiles')

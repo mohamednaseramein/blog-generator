@@ -1,0 +1,19 @@
+User-agent: *
+Allow: /$
+Allow: /help/ai-detector-rules
+
+Disallow: /dashboard
+Disallow: /draft
+Disallow: /publish
+Disallow: /profile
+Disallow: /register
+Disallow: /login
+Disallow: /verify
+Disallow: /check-email
+Disallow: /forgot-password
+Disallow: /reset-password
+Disallow: /auth/
+Disallow: /admin/
+Disallow: /api/
+
+Sitemap: {{PUBLIC_URL}}/sitemap.xml

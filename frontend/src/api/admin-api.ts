@@ -109,3 +109,81 @@ export async function deleteAdminBlog(blogId: string): Promise<{ success: boolea
   const res = await authedFetch(`${BASE}/blogs/${encodeURIComponent(blogId)}`, { method: 'DELETE' });
   return parseJson<{ success: boolean }>(res);
 }
+
+export interface AdminPlanLimits {
+  blogQuota: number | null;
+  aiCheckQuota: number | null;
+  authorProfileLimit: number | null;
+  referenceExtractionQuota: number | null;
+}
+
+export interface AdminPlanRow {
+  id: string;
+  slug: string;
+  name: string;
+  description: string;
+  priceCents: number;
+  currency: string;
+  billingPeriod: string;
+  limits: AdminPlanLimits;
+  isPublic: boolean;
+  isDefault: boolean;
+  archivedAt: string | null;
+  sortOrder: number;
+  createdAt: string;
+  updatedAt: string;
+  activeSubscriberCount: number;
+}
+
+export async function listAdminPlans(): Promise<{ plans: AdminPlanRow[] }> {
+  const res = await authedFetch(`${BASE}/plans`);
+  return parseJson<{ plans: AdminPlanRow[] }>(res);
+}
+
+export type AdminPlanCreatePayload = {
+  name: string;
+  description?: string;
+  priceCents: number;
+  currency?: string;
+  slug?: string;
+  blogQuota?: number | null;
+  aiCheckQuota?: number | null;
+  authorProfileLimit?: number | null;
+  referenceExtractionQuota?: number | null;
+  isPublic?: boolean;
+  sortOrder?: number;
+};
+
+export async function createAdminPlan(payload: AdminPlanCreatePayload): Promise<{ plan: AdminPlanRow }> {
+  const res = await authedFetch(`${BASE}/plans`, { method: 'POST', body: JSON.stringify(payload) });
+  return parseJson<{ plan: AdminPlanRow }>(res);
+}
+
+export type AdminPlanPatchPayload = Partial<AdminPlanCreatePayload>;
+
+export async function patchAdminPlan(
+  planId: string,
+  payload: AdminPlanPatchPayload,
+): Promise<{ plan: AdminPlanRow }> {
+  const res = await authedFetch(`${BASE}/plans/${encodeURIComponent(planId)}`, {
+    method: 'PATCH',
+    body: JSON.stringify(payload),
+  });
+  return parseJson<{ plan: AdminPlanRow }>(res);
+}
+
+export async function archiveAdminPlan(planId: string): Promise<{ plan: AdminPlanRow }> {
+  const res = await authedFetch(`${BASE}/plans/${encodeURIComponent(planId)}/archive`, {
+    method: 'POST',
+    body: '{}',
+  });
+  return parseJson<{ plan: AdminPlanRow }>(res);
+}
+
+export async function setDefaultAdminPlan(planId: string): Promise<{ plan: AdminPlanRow }> {
+  const res = await authedFetch(`${BASE}/plans/${encodeURIComponent(planId)}/set-default`, {
+    method: 'POST',
+    body: '{}',
+  });
+  return parseJson<{ plan: AdminPlanRow }>(res);
+}

@@ -1,4 +1,4 @@
-import { LayoutDashboard, Users, BookOpen } from 'lucide-react';
+import { LayoutDashboard, Users, BookOpen, Layers } from 'lucide-react';
 import { NavLink, Outlet } from 'react-router-dom';
 import { AppHeader } from '../../components/AppHeader';
 import { Button } from '../../components/ui/button';
@@ -40,6 +40,10 @@ function AdminLayoutInner() {
             <NavLink to="/admin/blogs" className={navLinkClass}>
               <BookOpen className={iconClass} aria-hidden />
               Blogs
+            </NavLink>
+            <NavLink to="/admin/plans" className={navLinkClass}>
+              <Layers className={iconClass} aria-hidden />
+              Plans
             </NavLink>
           </nav>
           <div className="mt-6 hidden border-t border-slate-100 pt-4 lg:block">

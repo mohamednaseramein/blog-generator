@@ -1,7 +1,5 @@
-import { Link, useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { useAdminDashboard } from './admin-context';
-import { AdminUserPanel } from '../../components/AdminUserPanel';
-import { AdminUserActions } from '../../components/AdminUserActions';
 import { Button } from '../../components/ui/button';
 
 function fmtDate(iso: string | null | undefined): string {
@@ -14,29 +12,14 @@ function fmtDate(iso: string | null | undefined): string {
 }
 
 export default function AdminUsersPage() {
-  const navigate = useNavigate();
-  const {
-    me,
-    users,
-    loading,
-    blogCounts,
-    busyUserId,
-    confirmAndRun,
-    runAction,
-    load,
-    setUserFilter,
-    setManagedUser,
-    setNotice,
-    managedUserId,
-    managedUserLabel,
-  } = useAdminDashboard();
+  const { users, loading, blogCounts, load } = useAdminDashboard();
 
   return (
     <div>
       <div className="mb-8">
         <h1 className="text-2xl font-bold tracking-tight text-slate-900">Users and roles</h1>
         <p className="mt-1 text-sm text-slate-600">
-          Promote or demote administrators, deactivate or reactivate sign-in, or send a password reset email.
+          View subscription plans per user. Open user details to promote or demote admins, deactivate accounts, or send a password reset.
         </p>
       </div>
 
@@ -51,27 +34,26 @@ export default function AdminUsersPage() {
           </div>
           <div className="overflow-x-auto">
             <table className="min-w-full divide-y divide-slate-200 text-left text-sm">
-              <caption className="sr-only">Registered users and administration actions</caption>
+              <caption className="sr-only">Registered users and subscription plans</caption>
               <thead className="bg-slate-50 text-xs font-semibold uppercase tracking-wide text-slate-600">
                 <tr>
                   <th className="px-3 py-2">Email</th>
                   <th className="px-3 py-2">Role</th>
                   <th className="px-3 py-2">Account</th>
+                  <th className="px-3 py-2">Plan</th>
                   <th className="px-3 py-2">Blogs</th>
                   <th className="px-3 py-2">Created</th>
                   <th className="px-3 py-2">Last sign-in</th>
                   <th className="px-3 py-2">View</th>
-                  <th className="px-3 py-2">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
                 {users.map((u) => {
                   const isDeactivated = Boolean(u.deactivated_at);
                   const blogCount = blogCounts.get(u.id) ?? 0;
-                  const label = u.email ?? u.id;
                   return (
                     <tr key={u.id} className="hover:bg-slate-50/80">
-                      <td className="whitespace-nowrap px-3 py-3 font-medium text-slate-900">{label}</td>
+                      <td className="whitespace-nowrap px-3 py-3 font-medium text-slate-900">{u.email ?? u.id}</td>
                       <td className="px-3 py-3">
                         <span
                           className={
@@ -90,6 +72,7 @@ export default function AdminUsersPage() {
                           <span className="text-emerald-800">Active</span>
                         )}
                       </td>
+                      <td className="px-3 py-3 text-slate-700">{u.plan_name ?? '—'}</td>
                       <td className="px-3 py-3 text-slate-600">{blogCount}</td>
                       <td className="px-3 py-3 text-slate-600">{fmtDate(u.created_at)}</td>
                       <td className="px-3 py-3 text-slate-600">{fmtDate(u.last_sign_in_at)}</td>
@@ -101,19 +84,6 @@ export default function AdminUsersPage() {
                           Details
                         </Link>
                       </td>
-                      <td className="px-3 py-3">
-                        <AdminUserActions
-                          u={u}
-                          me={me}
-                          busyUserId={busyUserId}
-                          confirmAndRun={confirmAndRun}
-                          runAction={runAction}
-                          navigate={navigate}
-                          setUserFilter={setUserFilter}
-                          setManagedUser={setManagedUser}
-                          mode="overlay"
-                        />
-                      </td>
                     </tr>
                   );
                 })}
@@ -121,18 +91,6 @@ export default function AdminUsersPage() {
             </table>
           </div>
         </section>
-      )}
-
-      {managedUserId && (
-        <AdminUserPanel
-          userId={managedUserId}
-          userLabel={managedUserLabel}
-          onClose={() => setManagedUser(null)}
-          onSaved={() => {
-            void load({ keepNotice: true });
-            setNotice({ variant: 'success', text: 'Profile saved. Lists refreshed.' });
-          }}
-        />
       )}
     </div>
   );

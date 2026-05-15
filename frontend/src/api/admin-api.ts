@@ -11,6 +11,8 @@ export interface AdminUserRow {
   deactivated_at: string | null;
   created_at: string | null;
   last_sign_in_at: string | null;
+  /** Display name of the user's active subscription plan, or null if none. */
+  plan_name: string | null;
 }
 
 export interface AdminBlogRow {

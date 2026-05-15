@@ -37,6 +37,30 @@ export async function listUsers(req: Request, res: Response) {
 
     const userMap = new Map((publicUsers as { id: string }[]).map((u) => [u.id, u]));
 
+    const { data: activeSubs, error: subsError } = await supabase
+      .from('subscriptions')
+      .select('user_id, plan_id')
+      .eq('status', 'active');
+    if (subsError) throw subsError;
+
+    const planIds = [...new Set((activeSubs ?? []).map((s) => (s as { plan_id: string }).plan_id))];
+    const planNameById = new Map<string, string>();
+    if (planIds.length > 0) {
+      const { data: planRows, error: plansError } = await supabase.from('plans').select('id, name').in('id', planIds);
+      if (plansError) throw plansError;
+      for (const row of planRows ?? []) {
+        const pr = row as { id: string; name: string };
+        planNameById.set(pr.id, pr.name);
+      }
+    }
+
+    const planNameByUserId = new Map<string, string>();
+    for (const row of activeSubs ?? []) {
+      const s = row as { user_id: string; plan_id: string };
+      const name = planNameById.get(s.plan_id);
+      if (name) planNameByUserId.set(s.user_id, name);
+    }
+
     const users = authUsers.map((u) => {
       const p = (userMap.get(u.id) ?? {}) as Record<string, unknown>;
       return {
@@ -47,6 +71,7 @@ export async function listUsers(req: Request, res: Response) {
         deactivated_at: (p['deactivated_at'] as string | null) ?? null,
         created_at: (p['created_at'] as string | null) ?? u.created_at,
         last_sign_in_at: u.last_sign_in_at ?? null,
+        plan_name: planNameByUserId.get(u.id) ?? null,
       };
     });
 

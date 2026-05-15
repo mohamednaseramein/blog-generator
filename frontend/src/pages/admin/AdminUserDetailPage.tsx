@@ -2,6 +2,7 @@ import { Link, Navigate, useNavigate, useParams } from 'react-router-dom';
 import { useAdminDashboard } from './admin-context';
 import { AdminUserPanel } from '../../components/AdminUserPanel';
 import { AdminUserActions } from '../../components/AdminUserActions';
+import { AdminUserSubscriptionPanel } from '../../components/AdminUserSubscriptionPanel';
 
 function fmtDate(iso: string | null | undefined): string {
   if (!iso) return '—';
@@ -124,6 +125,14 @@ export default function AdminUserDetailPage() {
             </div>
           ) : null}
         </dl>
+
+        <div className="mt-8 border-t border-slate-100 pt-6">
+          <AdminUserSubscriptionPanel
+            userId={u.id}
+            disabled={isDeactivated}
+            onUpdated={() => void load({ keepNotice: true })}
+          />
+        </div>
 
         <div className="mt-8 border-t border-slate-100 pt-6">
           <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-slate-600">Actions</h2>

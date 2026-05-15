@@ -60,6 +60,8 @@ export function Pricing() {
 
         {loading && plans.length === 0 ? (
           <p className="mt-14 text-center text-slate-500">Loading plans…</p>
+        ) : !loading && plans.length === 0 ? (
+          <p className="mt-14 text-center text-slate-500">Plans are not available right now. Please try again later.</p>
         ) : (
           <div className="mt-14 grid gap-8 lg:grid-cols-3">
             {plans.map((plan) => {

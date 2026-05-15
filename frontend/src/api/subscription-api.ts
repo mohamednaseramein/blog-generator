@@ -107,3 +107,22 @@ export async function changeMyPlan(planId: string): Promise<SubscriptionView> {
   });
   return parseJson<SubscriptionView>(res);
 }
+
+const ADMIN = '/api/admin';
+
+export async function getAdminUserSubscription(userId: string): Promise<SubscriptionView> {
+  const res = await authedFetch(`${ADMIN}/users/${encodeURIComponent(userId)}/subscription`);
+  return parseJson<SubscriptionView>(res);
+}
+
+export async function changeAdminUserSubscription(
+  userId: string,
+  planId: string,
+  override = false,
+): Promise<SubscriptionView> {
+  const res = await authedFetch(`${ADMIN}/users/${encodeURIComponent(userId)}/subscription`, {
+    method: 'PUT',
+    body: JSON.stringify({ planId, override }),
+  });
+  return parseJson<SubscriptionView>(res);
+}

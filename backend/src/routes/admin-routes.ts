@@ -2,6 +2,7 @@ import { Router } from 'express';
 import { requireAuth, requireAdmin } from '../middleware/auth.js';
 import * as adminHandler from '../handlers/admin-handler.js';
 import * as planAdminHandler from '../handlers/plan-admin-handler.js';
+import * as subscriptionHandler from '../handlers/subscription-handler.js';
 
 const router = Router();
 
@@ -10,6 +11,8 @@ router.use(requireAuth, requireAdmin);
 
 router.get('/users', adminHandler.listUsers);
 router.get('/users/:id/usage', adminHandler.getUserUsage);
+router.get('/users/:id/subscription', subscriptionHandler.getUserSubscription);
+router.put('/users/:id/subscription', subscriptionHandler.changeUserSubscription);
 router.get('/users/:id/profiles', adminHandler.listUserProfiles);
 router.put('/users/:userId/profiles/:profileId', adminHandler.adminUpdateUserProfile);
 router.post('/users/:id/deactivate', adminHandler.deactivateUser);

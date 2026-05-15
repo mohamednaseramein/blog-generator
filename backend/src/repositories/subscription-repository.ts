@@ -91,3 +91,25 @@ export async function rollSubscriptionPeriod(
   console.log(`[subscription-repository] rolled period for subscription id=${subscriptionId}`);
   return subscriptionRowToModel(data);
 }
+
+/** Self-serve or admin plan change — period window is not reset. */
+export async function updateSubscriptionPlan(
+  subscriptionId: string,
+  planId: string,
+  changedBy: string | null,
+): Promise<Subscription> {
+  const now = new Date().toISOString();
+  const { data, error } = await getSupabase()
+    .from('subscriptions')
+    .update({
+      plan_id: planId,
+      changed_by: changedBy,
+      updated_at: now,
+    })
+    .eq('id', subscriptionId)
+    .select()
+    .single<SubscriptionRow>();
+
+  if (error) throw new Error(error.message);
+  return subscriptionRowToModel(data);
+}

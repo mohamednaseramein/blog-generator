@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Navigate } from 'react-router-dom';
+import { Link, Navigate } from 'react-router-dom';
 import { z } from 'zod';
 import { useAuth } from '../context/AuthContext';
 import { supabase } from '../lib/supabase';
@@ -139,6 +139,12 @@ export default function ProfilePage() {
         <div>
           <h2 className="text-lg font-semibold text-slate-900">Account</h2>
           <p className="mt-1 text-sm text-slate-500">Update your name, email, or password.</p>
+          <p className="mt-2 text-sm">
+            <Link to="/plan" className="font-medium text-indigo-600 hover:text-indigo-500">
+              Plan &amp; usage
+            </Link>
+            {' — view your subscription tier and monthly limits.'}
+          </p>
         </div>
 
         <div className="grid gap-4">

@@ -4,6 +4,7 @@ import type { Plan } from '../../domain/subscription-types.js';
 import {
   createAdminPlan,
   archiveAdminPlan,
+  listAdminPlans,
   patchAdminPlan,
   setDefaultAdminPlan,
 } from '../plan-admin-handler.js';
@@ -52,7 +53,27 @@ describe('createAdminPlan', () => {
   it('rejects missing name', async () => {
     const { res } = makeRes();
     await createAdminPlan(makeReq({ priceCents: 0 }), res, next);
-    expect(next).toHaveBeenCalledWith(expect.objectContaining({ status: 400 }));
+    expect(next).toHaveBeenCalledWith(expect.objectContaining({ status: 400, code: 'VALIDATION' }));
+  });
+
+  it('rejects non-integer priceCents', async () => {
+    await createAdminPlan(makeReq({ name: 'Bad', priceCents: 9.99 }), makeRes().res, next);
+    expect(next).toHaveBeenCalledWith(expect.objectContaining({ status: 400, code: 'VALIDATION' }));
+  });
+
+  it('rejects negative priceCents', async () => {
+    await createAdminPlan(makeReq({ name: 'Bad', priceCents: -1 }), makeRes().res, next);
+    expect(next).toHaveBeenCalledWith(expect.objectContaining({ status: 400, code: 'VALIDATION' }));
+  });
+
+  it('rejects non-integer blogQuota', async () => {
+    await createAdminPlan(makeReq({ name: 'Bad', priceCents: 0, blogQuota: 1.5 }), makeRes().res, next);
+    expect(next).toHaveBeenCalledWith(expect.objectContaining({ status: 400, code: 'VALIDATION' }));
+  });
+
+  it('rejects negative blogQuota', async () => {
+    await createAdminPlan(makeReq({ name: 'Bad', priceCents: 0, blogQuota: -1 }), makeRes().res, next);
+    expect(next).toHaveBeenCalledWith(expect.objectContaining({ status: 400, code: 'VALIDATION' }));
   });
 
   it('creates a plan with 201', async () => {
@@ -123,7 +144,31 @@ describe('archiveAdminPlan', () => {
   });
 });
 
+describe('listAdminPlans', () => {
+  it('returns plans with subscriber counts', async () => {
+    vi.mocked(repo.listAllPlans).mockResolvedValue([BASE_PLAN]);
+    vi.mocked(repo.countActiveSubscribersForPlan).mockResolvedValue(4);
+
+    const { res, json } = makeRes();
+    await listAdminPlans(makeReq(), res, next);
+
+    expect(json).toHaveBeenCalledWith({
+      plans: [expect.objectContaining({ id: 'plan-1', activeSubscriberCount: 4 })],
+    });
+  });
+});
+
 describe('patchAdminPlan', () => {
+  it('rejects edits to an archived plan', async () => {
+    vi.mocked(repo.getPlanById).mockResolvedValue({
+      ...BASE_PLAN,
+      archivedAt: new Date('2026-05-14T12:00:00Z'),
+    });
+
+    await patchAdminPlan(makeReq({ name: 'Renamed' }, { id: 'plan-1' }), makeRes().res, next);
+    expect(next).toHaveBeenCalledWith(expect.objectContaining({ status: 400, code: 'ARCHIVED' }));
+  });
+
   it('blocks slug change when there are active subscribers', async () => {
     vi.mocked(repo.getPlanById).mockResolvedValue(BASE_PLAN);
     vi.mocked(repo.countActiveSubscribersForPlan).mockResolvedValue(1);
@@ -138,6 +183,16 @@ describe('patchAdminPlan', () => {
 });
 
 describe('setDefaultAdminPlan', () => {
+  it('refuses when plan is archived', async () => {
+    vi.mocked(repo.getPlanById).mockResolvedValue({
+      ...BASE_PLAN,
+      archivedAt: new Date('2026-05-14T12:00:00Z'),
+    });
+
+    await setDefaultAdminPlan(makeReq({}, { id: 'plan-1' }), makeRes().res, next);
+    expect(next).toHaveBeenCalledWith(expect.objectContaining({ status: 400, code: 'ARCHIVED' }));
+  });
+
   it('sets default and returns JSON', async () => {
     vi.mocked(repo.getPlanById).mockResolvedValue(BASE_PLAN);
     const updated = { ...BASE_PLAN, isDefault: true };

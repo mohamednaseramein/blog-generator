@@ -63,3 +63,27 @@ export interface Subscription {
   createdAt: Date;
   updatedAt: Date;
 }
+
+/** Per-metric usage vs limit for the active subscription period. */
+export interface UsageSnapshot {
+  metric: QuotaMetric;
+  used: number;
+  /** null = unlimited on the active plan. */
+  limit: number | null;
+  /** true when `limit` is set and `used >= limit`. */
+  exceeded: boolean;
+}
+
+export interface SubscriptionView {
+  subscription: Subscription;
+  plan: Plan;
+  usage: UsageSnapshot[];
+  /** When monthly metered counters reset (= currentPeriodEnd). */
+  periodResetsAt: Date;
+}
+
+export interface DowngradeConflict {
+  metric: QuotaMetric;
+  used: number;
+  limit: number;
+}

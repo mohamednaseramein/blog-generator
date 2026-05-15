@@ -1,7 +1,7 @@
 import { Link } from 'react-router-dom';
-import { BookOpen, PenLine, Settings, UserCircle, Users } from 'lucide-react';
+import { BookOpen, CreditCard, PenLine, Settings, UserCircle, Users } from 'lucide-react';
 
-export type WorkspaceNavKey = 'write' | 'my-blogs' | 'author-profiles' | 'account' | 'admin';
+export type WorkspaceNavKey = 'write' | 'my-blogs' | 'author-profiles' | 'account' | 'plan' | 'admin';
 
 export function workspaceNavClass(active: boolean) {
   return [
@@ -33,6 +33,7 @@ export function WorkspaceSidebar(props: WorkspaceSidebarProps) {
   const blogsActive = props.active === 'my-blogs';
   const profilesActive = props.active === 'author-profiles';
   const accountActive = props.active === 'account';
+  const planActive = props.active === 'plan';
   const adminActive = props.active === 'admin';
 
   return (
@@ -79,6 +80,10 @@ export function WorkspaceSidebar(props: WorkspaceSidebarProps) {
         <Link to="/profile" className={`${workspaceNavClass(accountActive)} no-underline`}>
           <UserCircle className="h-4 w-4 shrink-0 opacity-80" aria-hidden />
           Account
+        </Link>
+        <Link to="/plan" className={`${workspaceNavClass(planActive)} no-underline`}>
+          <CreditCard className="h-4 w-4 shrink-0 opacity-80" aria-hidden />
+          Plan &amp; usage
         </Link>
         {showAdmin && (
           <Link to="/admin" className={`${workspaceNavClass(adminActive)} no-underline`}>

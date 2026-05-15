@@ -24,6 +24,7 @@ import AdminUserDetailPage from './pages/admin/AdminUserDetailPage';
 import AdminBlogsPage from './pages/admin/AdminBlogsPage';
 import AdminBlogDetailPage from './pages/admin/AdminBlogDetailPage';
 import AdminPlansPage from './pages/admin/AdminPlansPage';
+import PlanUsagePage from './pages/PlanUsagePage';
 
 export function App() {
   return (
@@ -64,6 +65,7 @@ export function App() {
             <Route element={<ProtectedRoute />}>
               <Route path="/dashboard" element={<Dashboard />} />
               <Route path="/profile" element={<ProfilePage />} />
+              <Route path="/plan" element={<PlanUsagePage />} />
             </Route>
 
             {/* Admin — users, blogs, roles (service role on server) */}

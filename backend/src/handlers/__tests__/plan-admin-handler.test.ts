@@ -53,7 +53,12 @@ describe('createAdminPlan', () => {
   it('rejects missing name', async () => {
     const { res } = makeRes();
     await createAdminPlan(makeReq({ priceCents: 0 }), res, next);
-    expect(next).toHaveBeenCalledWith(expect.objectContaining({ status: 400 }));
+    expect(next).toHaveBeenCalledWith(expect.objectContaining({ status: 400, code: 'VALIDATION' }));
+  });
+
+  it('rejects non-integer priceCents', async () => {
+    await createAdminPlan(makeReq({ name: 'Bad', priceCents: 9.99 }), makeRes().res, next);
+    expect(next).toHaveBeenCalledWith(expect.objectContaining({ status: 400, code: 'VALIDATION' }));
   });
 
   it('rejects negative priceCents', async () => {

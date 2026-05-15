@@ -1,4 +1,5 @@
 import { authedFetch } from '../lib/authed-fetch.js';
+import { parseApiError, throwForApiResponse } from './api-errors.js';
 
 const BASE = '/api/profiles';
 
@@ -38,8 +39,7 @@ async function request<T>(url: string, options?: RequestInit): Promise<T> {
   });
   const body = (await res.json()) as unknown;
   if (!res.ok) {
-    const err = body as { error?: { message?: string } };
-    throw new Error(err.error?.message ?? 'Request failed');
+    throwForApiResponse(res.status, parseApiError(body, res.status));
   }
   return body as T;
 }

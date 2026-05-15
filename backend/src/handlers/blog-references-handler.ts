@@ -13,6 +13,7 @@ import { extractReferenceInBackground } from '../services/reference-extraction-r
 import { ReferenceUrl } from '../domain/value-objects.js';
 import { AppError } from '../middleware/error-handler.js';
 import { getUserId } from '../middleware/auth.js';
+import { assertWithinQuota } from '../services/quota-enforcement.js';
 
 const MAX_REFERENCES = 5;
 
@@ -60,6 +61,8 @@ export async function handleAddReference(
     if (count >= MAX_REFERENCES) {
       throw new AppError(400, 'VALIDATION_ERROR', `Maximum of ${MAX_REFERENCES} reference URLs allowed`);
     }
+
+    await assertWithinQuota(userId, 'reference_extractions');
 
     const reference = await insertReference(blogId, validUrl, count + 1);
     scrapeReferenceInBackground(reference.id, validUrl);

@@ -11,6 +11,7 @@ const {
   mockScrapeInBackground,
   mockExtractInBackground,
   mockGetUserId,
+  mockAssertWithinQuota,
 } = vi.hoisted(() => ({
   mockGetBlogByIdAndUser: vi.fn(),
   mockCountRefs: vi.fn(),
@@ -22,6 +23,7 @@ const {
   mockScrapeInBackground: vi.fn(),
   mockExtractInBackground: vi.fn(),
   mockGetUserId: vi.fn(() => 'user-1'),
+  mockAssertWithinQuota: vi.fn(),
 }));
 
 vi.mock('../../repositories/blog-repository.js', () => ({
@@ -49,6 +51,10 @@ vi.mock('../../services/reference-extraction-runner.js', () => ({
 
 vi.mock('../../middleware/auth.js', () => ({
   getUserId: mockGetUserId,
+}));
+
+vi.mock('../../services/quota-enforcement.js', () => ({
+  assertWithinQuota: mockAssertWithinQuota,
 }));
 
 import {
@@ -87,6 +93,7 @@ function makeReqRes(blogId: string, body: Record<string, unknown> = {}, params: 
 beforeEach(() => {
   vi.clearAllMocks();
   mockGetUserId.mockReturnValue('user-1');
+  mockAssertWithinQuota.mockResolvedValue(undefined);
 });
 
 describe('handleAddReference', () => {
@@ -98,6 +105,7 @@ describe('handleAddReference', () => {
     const { req, res, json, next } = makeReqRes('blog-1', { url: 'https://example.com/article' });
     await handleAddReference(req, res, next);
 
+    expect(mockAssertWithinQuota).toHaveBeenCalledWith('user-1', 'reference_extractions');
     expect(mockInsertRef).toHaveBeenCalledWith('blog-1', 'https://example.com/article', 1);
     expect(mockScrapeInBackground).toHaveBeenCalledWith('ref-1', 'https://example.com/article');
     expect(json).toHaveBeenCalledWith({ reference: fakeRef });

@@ -11,6 +11,7 @@ import {
 import { AppError } from '../middleware/error-handler.js';
 import type { BlogIntent } from '../domain/types.js';
 import { getUserId } from '../middleware/auth.js';
+import { assertWithinQuota } from '../services/quota-enforcement.js';
 
 const VALID_INTENTS = new Set<BlogIntent>([
   'thought_leadership',
@@ -221,6 +222,7 @@ export async function handleCreateProfile(
     if (cloneErrors.length === 0) {
       const b = body as Record<string, unknown>;
       const cloneFromId = b.cloneFromPredefinedId as string;
+      await assertWithinQuota(userId, 'author_profiles');
       const profile = await cloneProfileFromPredefined(userId, cloneFromId);
       res.status(201).json({ profile });
       return;
@@ -233,6 +235,7 @@ export async function handleCreateProfile(
     }
 
     const b = body as Record<string, unknown>;
+    await assertWithinQuota(userId, 'author_profiles');
     const profile = await createProfile(
       userId,
       b.name as string,

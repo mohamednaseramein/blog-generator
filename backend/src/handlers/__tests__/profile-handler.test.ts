@@ -12,6 +12,11 @@ import { AppError } from '../../middleware/error-handler.js';
 
 vi.mock('../../repositories/profile-repository.js');
 
+const mockAssertWithinQuota = vi.fn();
+vi.mock('../../services/quota-enforcement.js', () => ({
+  assertWithinQuota: (...args: unknown[]) => mockAssertWithinQuota(...args),
+}));
+
 const SAMPLE_PROFILE = {
   id: 'p-1',
   userId: '00000000-0000-0000-0000-000000000001',
@@ -45,7 +50,10 @@ function makeRes(): { res: Response; json: ReturnType<typeof vi.fn>; status: Ret
 
 const next: NextFunction = vi.fn();
 
-beforeEach(() => vi.clearAllMocks());
+beforeEach(() => {
+  vi.clearAllMocks();
+  mockAssertWithinQuota.mockResolvedValue(undefined);
+});
 
 describe('handleListProfiles', () => {
   it('returns profiles from repository', async () => {
@@ -91,6 +99,16 @@ describe('handleCreateProfile — validation', () => {
     expect(next).toHaveBeenCalledWith(expect.objectContaining({ status: 400 }));
   });
 
+  it('checks author profile quota before create', async () => {
+    vi.mocked(repo.createProfile).mockResolvedValue(SAMPLE_PROFILE);
+    const { res } = makeRes();
+    await handleCreateProfile(makeReq({
+      name: 'Test Profile', authorRole: 'CTO', audiencePersona: 'Engineers',
+      intent: 'thought_leadership', toneOfVoice: 'Direct',
+    }), res, next);
+    expect(mockAssertWithinQuota).toHaveBeenCalledWith('00000000-0000-0000-0000-000000000001', 'author_profiles');
+  });
+
   it('creates profile from valid payload', async () => {
     vi.mocked(repo.createProfile).mockResolvedValue(SAMPLE_PROFILE);
     const { res, status } = makeRes();
@@ -114,6 +132,7 @@ describe('handleCreateProfile — validation', () => {
     vi.mocked(repo.cloneProfileFromPredefined).mockResolvedValue(SAMPLE_PROFILE);
     const { res, status } = makeRes();
     await handleCreateProfile(makeReq({ cloneFromPredefinedId: 'pred-1' }), res, next);
+    expect(mockAssertWithinQuota).toHaveBeenCalledWith('00000000-0000-0000-0000-000000000001', 'author_profiles');
     expect(repo.cloneProfileFromPredefined).toHaveBeenCalledWith('00000000-0000-0000-0000-000000000001', 'pred-1');
     expect(status).toHaveBeenCalledWith(201);
   });

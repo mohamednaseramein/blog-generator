@@ -6,6 +6,9 @@ import {
   recordBlogAnalyticsEvent,
   type AiCheckResponse,
 } from '../api/blog-api.js';
+import { QuotaApiError } from '../api/api-errors.js';
+import { recordQuotaBlocked } from '../lib/plan-analytics.js';
+import { QuotaBlockPrompt } from './QuotaBlockPrompt.js';
 import { Button } from './ui/button.js';
 
 function scoreBadgeClass(score: number | null): string {
@@ -87,12 +90,14 @@ export function AuthenticityPanel({
 }: Props) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [quotaBlock, setQuotaBlock] = useState<QuotaApiError | null>(null);
   const [result, setResult] = useState<AiCheckResponse | null>(null);
   const [rulesOpen, setRulesOpen] = useState(false);
   const [sectionsOpen, setSectionsOpen] = useState(false);
 
   const run = useCallback(async () => {
     setError(null);
+    setQuotaBlock(null);
     setLoading(true);
     try {
       const res = await runAiCheck(blogId);
@@ -101,7 +106,12 @@ export function AuthenticityPanel({
         type: res.cached ? 'ai_check_cache_hit' : 'ai_check_run',
       });
     } catch (e) {
-      setError((e as Error).message);
+      if (e instanceof QuotaApiError) {
+        recordQuotaBlocked(e.metric);
+        setQuotaBlock(e);
+      } else {
+        setError((e as Error).message);
+      }
     } finally {
       setLoading(false);
     }
@@ -142,6 +152,17 @@ export function AuthenticityPanel({
           </Link>
         </div>
       </div>
+
+      {quotaBlock && (
+        <div className="mt-3">
+          <QuotaBlockPrompt
+            metric={quotaBlock.metric}
+            limit={quotaBlock.limit}
+            usage={quotaBlock.usage}
+            message={quotaBlock.message}
+          />
+        </div>
+      )}
 
       {error && (
         <p className="mt-3 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-800" role="alert">

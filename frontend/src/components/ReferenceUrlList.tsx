@@ -1,5 +1,8 @@
 import { useState, useCallback } from 'react';
 import { addReference, type BlogReference, type ReferenceScrapeStatus, type ReferenceExtractionStatus } from '../api/blog-api.js';
+import { QuotaApiError } from '../api/api-errors.js';
+import { recordQuotaBlocked } from '../lib/plan-analytics.js';
+import { QuotaBlockPrompt } from './QuotaBlockPrompt.js';
 import { ReferenceUrlCard } from './ReferenceUrlCard.js';
 import { Input } from './ui/input.js';
 import { Button } from './ui/button.js';
@@ -16,6 +19,7 @@ export function ReferenceUrlList({ blogId, initialReferences = [] }: Props) {
   const [references, setReferences] = useState<BlogReference[]>(initialReferences);
   const [inputValue, setInputValue] = useState('');
   const [inputError, setInputError] = useState<string | null>(null);
+  const [quotaBlock, setQuotaBlock] = useState<QuotaApiError | null>(null);
   const [adding, setAdding] = useState(false);
 
   async function handleAdd() {
@@ -33,13 +37,19 @@ export function ReferenceUrlList({ blogId, initialReferences = [] }: Props) {
     }
 
     setInputError(null);
+    setQuotaBlock(null);
     setAdding(true);
     try {
       const { reference } = await addReference(blogId, url);
       setReferences((prev) => [...prev, reference]);
       setInputValue('');
     } catch (e) {
-      setInputError((e as Error).message);
+      if (e instanceof QuotaApiError) {
+        recordQuotaBlocked(e.metric);
+        setQuotaBlock(e);
+      } else {
+        setInputError((e as Error).message);
+      }
     } finally {
       setAdding(false);
     }
@@ -89,6 +99,15 @@ export function ReferenceUrlList({ blogId, initialReferences = [] }: Props) {
           onReferenceUpdate={handleReferenceUpdate}
         />
       ))}
+
+      {quotaBlock && (
+        <QuotaBlockPrompt
+          metric={quotaBlock.metric}
+          limit={quotaBlock.limit}
+          usage={quotaBlock.usage}
+          message={quotaBlock.message}
+        />
+      )}
 
       {references.length < MAX_REFERENCES && (
         <div className="flex flex-col gap-1">

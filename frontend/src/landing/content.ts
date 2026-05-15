@@ -43,18 +43,6 @@ export interface SocialStat {
   value: string;
 }
 
-export interface PricingTier {
-  id: string;
-  name: string;
-  priceLabel: string;
-  summary: string;
-  bullets: string[];
-  cta: CtaLink;
-  /** When true, CTA is styled as secondary / waitlist but remains focusable (PRD US-4 Team). */
-  comingSoon?: boolean;
-  ctaAssistiveHint?: string;
-}
-
 export interface LandingContent {
   hero: {
     h1: string;
@@ -81,7 +69,6 @@ export interface LandingContent {
     sectionTitle: string;
     sectionSubtitle: string;
     disclaimer: string;
-    tiers: PricingTier[];
   };
 }
 
@@ -189,50 +176,5 @@ export const landingContent: LandingContent = {
     sectionSubtitle: 'Pick a lane — billing arrives after we finish the preview.',
     disclaimer:
       'Pricing is illustrative for v1 — billing not yet enabled. All paid features are free during this preview.',
-    tiers: [
-      {
-        id: 'free',
-        name: 'Free',
-        priceLabel: '$0',
-        summary: 'Try the product.',
-        bullets: ['3 blog drafts / month', 'AI generation + outlines', 'SEO panel + readability'],
-        cta: {
-          label: 'Start free',
-          href: '/register?plan=free&source=landing_pricing',
-        },
-      },
-      {
-        id: 'pro',
-        name: 'Pro',
-        priceLabel: '$19 / month',
-        summary: 'For creators publishing weekly.',
-        bullets: [
-          '50 blog drafts / month',
-          'Full AI authenticity check',
-          'SEO export + meta controls',
-        ],
-        cta: {
-          label: 'Start Pro trial',
-          href: '/register?plan=pro&source=landing_pricing',
-        },
-      },
-      {
-        id: 'team',
-        name: 'Team',
-        priceLabel: '$49 / user / month',
-        summary: 'Collaboration when you are ready.',
-        bullets: [
-          'Everything in Pro',
-          'Team workspaces',
-          'Admin controls (roadmap)',
-        ],
-        cta: {
-          label: 'Notify me',
-          href: '/register?plan=team_waitlist&source=landing_pricing',
-        },
-        comingSoon: true,
-        ctaAssistiveHint: 'Team tier is not yet purchasable. Continue to join the waitlist.',
-      },
-    ],
   },
 };

@@ -2,6 +2,7 @@ import type { Request, Response, NextFunction } from 'express';
 import { createBlog, getBlogByIdAndUser, listBlogsByUser, advanceBlogStep } from '../repositories/blog-repository.js';
 import { AppError } from '../middleware/error-handler.js';
 import { getUserId } from '../middleware/auth.js';
+import { assertWithinQuota } from '../services/quota-enforcement.js';
 
 export async function handleListBlogs(
   req: Request,
@@ -24,6 +25,7 @@ export async function handleCreateBlog(
 ): Promise<void> {
   try {
     const userId = getUserId(req as Request & { userId?: string });
+    await assertWithinQuota(userId, 'blogs');
     const blog = await createBlog(userId);
     res.status(201).json({ blogId: blog.id, currentStep: blog.currentStep });
   } catch (err) {

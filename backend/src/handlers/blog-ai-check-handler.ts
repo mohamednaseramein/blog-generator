@@ -23,6 +23,7 @@ import {
   runAiDetectorLlm,
   truncateToWordBudget,
 } from '../services/ai-detector-service.js';
+import { assertWithinQuota } from '../services/quota-enforcement.js';
 
 function buildHaystack(cleanedBody: string, seoTitle: string, meta: string): string {
   return `${cleanedBody}\n\n${seoTitle}\n\n${meta}`;
@@ -89,6 +90,8 @@ export async function handleRunAiCheck(
     if (!allowAiCheckForBlog(blogId)) {
       throw new AppError(429, 'RATE_LIMITED', 'Too many AI checks for this draft — try again in an hour.');
     }
+
+    await assertWithinQuota(userId, 'ai_checks');
 
     const { cleanedForScoring, excluded } = stripExcludedSegments(bodyRaw);
     const wc = wordCount(cleanedForScoring);

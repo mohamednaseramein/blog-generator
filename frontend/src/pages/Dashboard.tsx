@@ -16,7 +16,10 @@ import { Toast } from '../components/ui/toast.js';
 import { WorkspaceLayout } from '../components/WorkspaceLayout';
 import { WorkspaceSidebar } from '../components/WorkspaceSidebar';
 import { createBlog } from '../api/blog-api.js';
+import { QuotaApiError } from '../api/api-errors.js';
 import { listProfiles } from '../api/profile-api.js';
+import { QuotaBlockPrompt } from '../components/QuotaBlockPrompt.js';
+import { recordQuotaBlocked } from '../lib/plan-analytics.js';
 import { useAuth } from '../context/AuthContext';
 
 type AppState =
@@ -58,6 +61,7 @@ export default function Dashboard() {
   const location = useLocation();
   const [state, setState] = useState<AppState>({ step: 'idle' });
   const [error, setError] = useState<string | null>(null);
+  const [quotaBlock, setQuotaBlock] = useState<QuotaApiError | null>(null);
   const [activeProfileId, setActiveProfileId] = useState<string | null>(() => {
     return localStorage.getItem(ACTIVE_PROFILE_KEY);
   });
@@ -96,12 +100,18 @@ export default function Dashboard() {
 
   async function startNewBlog() {
     setError(null);
+    setQuotaBlock(null);
     setState({ step: 'creating' });
     try {
       const { blogId } = await createBlog();
       setState({ step: 'brief', blogId });
     } catch (e) {
-      setError((e as Error).message);
+      if (e instanceof QuotaApiError) {
+        recordQuotaBlocked(e.metric);
+        setQuotaBlock(e);
+      } else {
+        setError((e as Error).message);
+      }
       setState({ step: 'idle' });
     }
   }
@@ -205,6 +215,14 @@ export default function Dashboard() {
                   Walk through our step-by-step wizard and let AI handle the heavy lifting.
                 </p>
               </div>
+              {quotaBlock && (
+                <QuotaBlockPrompt
+                  metric={quotaBlock.metric}
+                  limit={quotaBlock.limit}
+                  usage={quotaBlock.usage}
+                  message={quotaBlock.message}
+                />
+              )}
               {error && <Toast variant="error">{error}</Toast>}
               <div className="flex gap-3">
                 <Button onClick={() => void startNewBlog()} size="md">

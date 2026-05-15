@@ -1,5 +1,12 @@
-import { getSupabase } from '../db/supabase.js';
 import type { PlanLimits, QuotaMetric, UsageSnapshot } from '../domain/subscription-types.js';
+import { getSupabase } from '../db/supabase.js';
+
+export const QUOTA_METRIC_LABELS: Record<QuotaMetric, string> = {
+  blogs: 'blog quota',
+  ai_checks: 'AI check quota',
+  author_profiles: 'author profile limit',
+  reference_extractions: 'reference extraction quota',
+};
 
 function snapshot(metric: QuotaMetric, used: number, limit: number | null): UsageSnapshot {
   const exceeded = limit !== null && used >= limit;

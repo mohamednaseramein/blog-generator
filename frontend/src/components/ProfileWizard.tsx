@@ -1,7 +1,10 @@
 import { useState, useEffect } from 'react';
 import type { AuthorProfile, CreateProfilePayload } from '../api/profile-api.js';
 import { getPredefinedProfiles, cloneProfile, createProfile, updateProfile } from '../api/profile-api.js';
+import { QuotaApiError } from '../api/api-errors.js';
+import { recordQuotaBlocked } from '../lib/plan-analytics.js';
 import { ProfileForm } from './ProfileForm.js';
+import { QuotaBlockPrompt } from './QuotaBlockPrompt.js';
 import { Button } from './ui/button.js';
 import { Toast } from './ui/toast.js';
 
@@ -17,6 +20,7 @@ export function ProfileWizard({ onProfileSelected }: Props) {
   const [selectedProfile, setSelectedProfile] = useState<AuthorProfile | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [quotaBlock, setQuotaBlock] = useState<QuotaApiError | null>(null);
 
   useEffect(() => {
     async function loadProfiles() {
@@ -33,12 +37,18 @@ export function ProfileWizard({ onProfileSelected }: Props) {
   async function handlePickPredefined(profile: AuthorProfile) {
     setIsLoading(true);
     setError(null);
+    setQuotaBlock(null);
     try {
       const { profile: cloned } = await cloneProfile({ cloneFromPredefinedId: profile.id });
       setSelectedProfile(cloned);
       setStep('customize');
     } catch (e) {
-      setError((e as Error).message);
+      if (e instanceof QuotaApiError) {
+        recordQuotaBlocked(e.metric);
+        setQuotaBlock(e);
+      } else {
+        setError((e as Error).message);
+      }
     } finally {
       setIsLoading(false);
     }
@@ -47,11 +57,17 @@ export function ProfileWizard({ onProfileSelected }: Props) {
   async function handleCreateFromScratch(values: CreateProfilePayload) {
     setIsLoading(true);
     setError(null);
+    setQuotaBlock(null);
     try {
       const { profile: created } = await createProfile(values);
       onProfileSelected(created);
     } catch (e) {
-      setError((e as Error).message);
+      if (e instanceof QuotaApiError) {
+        recordQuotaBlocked(e.metric);
+        setQuotaBlock(e);
+      } else {
+        setError((e as Error).message);
+      }
     } finally {
       setIsLoading(false);
     }
@@ -81,6 +97,14 @@ export function ProfileWizard({ onProfileSelected }: Props) {
           </p>
         </div>
 
+        {quotaBlock && (
+          <QuotaBlockPrompt
+            metric={quotaBlock.metric}
+            limit={quotaBlock.limit}
+            usage={quotaBlock.usage}
+            message={quotaBlock.message}
+          />
+        )}
         {error && <Toast variant="error">{error}</Toast>}
 
         <div className="grid gap-4 sm:grid-cols-2">
@@ -123,6 +147,14 @@ export function ProfileWizard({ onProfileSelected }: Props) {
           </p>
         </div>
 
+        {quotaBlock && (
+          <QuotaBlockPrompt
+            metric={quotaBlock.metric}
+            limit={quotaBlock.limit}
+            usage={quotaBlock.usage}
+            message={quotaBlock.message}
+          />
+        )}
         {error && <Toast variant="error">{error}</Toast>}
 
         <div className="rounded-lg border border-slate-200 bg-slate-50 p-6">

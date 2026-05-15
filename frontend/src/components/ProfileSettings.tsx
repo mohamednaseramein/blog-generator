@@ -1,7 +1,10 @@
 import { useState, useEffect } from 'react';
 import type { AuthorProfile, CreateProfilePayload } from '../api/profile-api.js';
 import { listProfiles, createProfile, updateProfile, deleteProfile } from '../api/profile-api.js';
+import { QuotaApiError } from '../api/api-errors.js';
+import { recordQuotaBlocked } from '../lib/plan-analytics.js';
 import { ProfileForm } from './ProfileForm.js';
+import { QuotaBlockPrompt } from './QuotaBlockPrompt.js';
 import { Button } from './ui/button.js';
 import { Toast } from './ui/toast.js';
 
@@ -18,6 +21,7 @@ export function ProfileSettings({ activeProfileId, onActiveProfileChange, onBack
   const [view, setView] = useState<View>('list');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [quotaBlock, setQuotaBlock] = useState<QuotaApiError | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
 
   useEffect(() => {
@@ -36,13 +40,19 @@ export function ProfileSettings({ activeProfileId, onActiveProfileChange, onBack
   async function handleCreate(values: CreateProfilePayload) {
     setIsLoading(true);
     setError(null);
+    setQuotaBlock(null);
     try {
       const { profile } = await createProfile(values);
       setProfiles((prev) => [...prev, profile]);
       setView('list');
       setSuccessMsg(`Profile "${profile.name}" created.`);
     } catch (e) {
-      setError((e as Error).message);
+      if (e instanceof QuotaApiError) {
+        recordQuotaBlocked(e.metric);
+        setQuotaBlock(e);
+      } else {
+        setError((e as Error).message);
+      }
     } finally {
       setIsLoading(false);
     }
@@ -90,6 +100,14 @@ export function ProfileSettings({ activeProfileId, onActiveProfileChange, onBack
           </button>
           <h2 className="text-lg font-semibold text-slate-800">Create New Profile</h2>
         </div>
+        {quotaBlock && (
+          <QuotaBlockPrompt
+            metric={quotaBlock.metric}
+            limit={quotaBlock.limit}
+            usage={quotaBlock.usage}
+            message={quotaBlock.message}
+          />
+        )}
         {error && <Toast variant="error">{error}</Toast>}
         <ProfileForm
           onSubmit={handleCreate}

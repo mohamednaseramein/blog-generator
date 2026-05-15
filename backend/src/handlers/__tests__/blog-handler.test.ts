@@ -1,9 +1,10 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
-const { mockListBlogsByUser, mockCreateBlog, mockGetUserId } = vi.hoisted(() => ({
+const { mockListBlogsByUser, mockCreateBlog, mockGetUserId, mockAssertWithinQuota } = vi.hoisted(() => ({
   mockListBlogsByUser: vi.fn(),
   mockCreateBlog: vi.fn(),
   mockGetUserId: vi.fn(() => 'user-1'),
+  mockAssertWithinQuota: vi.fn(),
 }));
 
 vi.mock('../../repositories/blog-repository.js', () => ({
@@ -17,7 +18,12 @@ vi.mock('../../middleware/auth.js', () => ({
   getUserId: mockGetUserId,
 }));
 
-import { handleListBlogs } from '../blog-handler.js';
+vi.mock('../../services/quota-enforcement.js', () => ({
+  assertWithinQuota: mockAssertWithinQuota,
+}));
+
+import { handleCreateBlog, handleListBlogs } from '../blog-handler.js';
+import { AppError } from '../../middleware/error-handler.js';
 import type { Request, Response, NextFunction } from 'express';
 
 function makeReqRes() {
@@ -56,5 +62,32 @@ describe('handleListBlogs', () => {
     await handleListBlogs(req, res, next);
 
     expect(next).toHaveBeenCalledWith(expect.any(Error));
+  });
+});
+
+describe('handleCreateBlog', () => {
+  it('checks blog quota before creating', async () => {
+    mockAssertWithinQuota.mockResolvedValue(undefined);
+    mockCreateBlog.mockResolvedValue({ id: 'b-new', currentStep: 1 });
+
+    const { req, res, json, next } = makeReqRes();
+    await handleCreateBlog(req, res, next);
+
+    expect(mockAssertWithinQuota).toHaveBeenCalledWith('user-1', 'blogs');
+    expect(mockCreateBlog).toHaveBeenCalledWith('user-1');
+    expect(json).toHaveBeenCalledWith({ blogId: 'b-new', currentStep: 1 });
+    expect(next).not.toHaveBeenCalled();
+  });
+
+  it('does not create a blog when quota is exceeded', async () => {
+    mockAssertWithinQuota.mockRejectedValue(
+      new AppError(402, 'QUOTA_EXCEEDED', 'limit', { metric: 'blogs', limit: 3, usage: 3 }),
+    );
+
+    const { req, res, next } = makeReqRes();
+    await handleCreateBlog(req, res, next);
+
+    expect(mockCreateBlog).not.toHaveBeenCalled();
+    expect(next).toHaveBeenCalledWith(expect.objectContaining({ status: 402, code: 'QUOTA_EXCEEDED' }));
   });
 });
